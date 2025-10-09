@@ -1,19 +1,37 @@
-MODULE_NAME = top
-VERILATOR_FLAGS = -Wall --cc --exe --build -j 0 --trace
-CPP_SRC = sim_main.cpp
-VERILOG_SRC = top.v
-EXECUTABLE = obj_dir/V$(MODULE_NAME)
-all:
-	@echo "Write this Makefile by your self."
+BUILD_DIR = ./build
 
-sim: $(EXECUTABLE)
+PRJ = playground
+
+test:
+	mill -i $(PRJ).test
+
+verilog:
+	$(call git_commit, "generate verilog")
+	mkdir -p $(BUILD_DIR)
+	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
+
+help:
+	mill -i $(PRJ).runMain Elaborate --help
+
+reformat:
+	mill -i __.reformat
+
+checkformat:
+	mill -i __.checkFormat
+
+bsp:
+	mill -i mill.bsp.BSP/install
+
+idea:
+	mill -i mill.idea.GenIdea/idea
+
+clean:
+	-rm -rf $(BUILD_DIR)
+
+.PHONY: test verilog help reformat checkformat clean
+
+sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@echo "Write this Makefile by your self."
-	./$(EXECUTABLE)
+	@echo "Write this Makefile by yourself."
 
-$(EXECUTABLE): $(VERILOG_SRC) $(CPP_SRC)
-	verilator $(VERILATOR_FLAGS) $(CPP_SRC) $(VERILOG_SRC)
-
-waves: waveform.fst
-	gtkwave waveform.fst
-include ../Makefile
+-include ../Makefile
