@@ -53,6 +53,9 @@ static int cmd_q(char *args) {
 }
 
 static int cmd_help(char *args);
+static int cmd_si(char *args);
+static int cmd_info(char *args);
+// static int cmd_x(char *args);
 
 static struct {
   const char *name;
@@ -62,12 +65,40 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
+  { "si", "Step the execution of the program", cmd_si },
+  { "info", "Display information about registers or watchpoints", cmd_info }
+  // { "x", "Examine memory", cmd_x },
   /* TODO: Add more commands */
 
 };
 
 #define NR_CMD ARRLEN(cmd_table)
+
+static int cmd_si(char *args) {
+  int n = 1;
+  if (args != NULL) {
+    n = atoi(args);
+  }
+  cpu_exec(n);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("Usage: info r/w\n");
+    return 0;
+  }
+  if (strcmp(args, "r") == 0) {
+    isa_reg_display();
+  }
+  // else if (strcmp(args, "w") == 0) {
+  //   wp_display();
+  // }
+  else {
+    printf("Unknown info command '%s'\n", args);
+  }
+  return 0;
+}
 
 static int cmd_help(char *args) {
   /* extract the first argument */
