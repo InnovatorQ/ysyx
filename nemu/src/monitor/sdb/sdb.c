@@ -119,16 +119,11 @@ static int cmd_x(char *args) {
   }
 
   int n = atoi(n_str);
-  bool success;
-  word_t addr = expr(expr_str, &success);
-  if (!success) {
-    printf("Invalid expression: %s\n", expr_str);
-    return 0;
-  }
-
+  word_t addr = strtoul(expr_str, NULL, 0);
+  
   for (int i = 0; i < n; i++) {
     word_t data = paddr_read(addr + i * 4, 4);
-    printf(FMT_WORD ": " FMT_WORD "\n", addr + i * 4, data);
+    printf("0x%08x: 0x%08x\n", addr + i * 4, data);
   }
 
   return 0;
