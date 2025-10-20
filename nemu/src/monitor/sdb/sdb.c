@@ -17,6 +17,7 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <memory/vaddr.h>
 #include "sdb.h"
 
 static int is_batch_mode = false;
@@ -55,7 +56,7 @@ static int cmd_q(char *args) {
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
-// static int cmd_x(char *args);
+static int cmd_x(char *args);
 
 static struct {
   const char *name;
@@ -66,8 +67,8 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
   { "si", "Step the execution of the program", cmd_si },
-  { "info", "Display information about registers or watchpoints", cmd_info }
-  // { "x", "Examine memory", cmd_x },
+  { "info", "Display information about registers or watchpoints", cmd_info },
+  { "x", "Examine memory", cmd_x },
   /* TODO: Add more commands */
 
 };
@@ -85,22 +86,52 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   if (args == NULL) {
-    printf("Usage: info r/w\n");
+    printf("Usage: info r [reg_name]/w\n");
     return 0;
   }
-  if (strcmp(args, "r") == 0) {
-    int n = atoi(args);
-    if(n != 0)
-      isa_reg_display_single(n);
-    else  
+  
+  char *subcmd = strtok(args, " ");
+  if (strcmp(subcmd, "r") == 0) {
+    char *reg_name = strtok(NULL, " ");
+    if (reg_name == NULL) {
       isa_reg_display();
+    } else {
+      bool success;
+      word_t val = isa_reg_str2val(reg_name, &success);
+      if (success) {
+        printf("%s: 0x%08x\n", reg_name, val);
+      } else {
+        printf("Unknown register '%s'\n", reg_name);
+      }
+    }
   }
-  // else if (strcmp(args, "w") == 0) {
-  //   wp_display();
-  // }
   else {
-    printf("Unknown info command '%s'\n", args);
+    printf("Unknown info command '%s'\n", subcmd);
   }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  if (args == NULL) {
+    printf("Usage: x N ADDR - examine N words starting from ADDR\n");
+    return 0;
+  }
+  
+  char *n_str = strtok(args, " ");
+  char *addr_str = strtok(NULL, " ");
+  
+  if (n_str == NULL || addr_str == NULL) {
+    printf("Usage: x N ADDR - examine N words starting from ADDR\n");
+    return 0;
+  }
+  
+  int n = atoi(n_str);
+  vaddr_t addr = strtoul(addr_str, NULL, 0);
+  
+  for (int i = 0; i < n; i++) {
+    printf("0x%08x: 0x%08x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
+  }
+  
   return 0;
 }
 
