@@ -23,6 +23,13 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+void isa_reg_display_single(int n) {
+  
+  printf("%s\t" FMT_WORD "\n", regs[n], cpu.gpr[n]);
+  
+  printf("pc\t" FMT_WORD "\n", cpu.pc);
+}
+
 void isa_reg_display() {
   for (int i = 0; i < 32; i ++) {
     printf("%s\t" FMT_WORD "\n", regs[i], cpu.gpr[i]);
