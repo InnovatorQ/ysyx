@@ -31,8 +31,63 @@ static char *code_format =
 "  return 0; "
 "}";
 
+static int buf_pos = 0;
+
+uint32_t choose(int n){
+  return rand() % n;
+}
+
+static void gen(char c) {
+  if (buf_pos < sizeof(buf) - 1) {
+    buf[buf_pos++] = c;
+  }
+}
+
+static void gen_space() {
+  if (choose(2)) gen(' ');
+}
+
+static void gen_num() {
+  uint32_t num = choose(100) + 1; // 1-100 to avoid 0
+  char num_str[16];
+  int len = snprintf(num_str, sizeof(num_str), "%u", num);
+  if (buf_pos + len < sizeof(buf) - 1) {
+    strcpy(buf + buf_pos, num_str);
+    buf_pos += len;
+  }
+}
+
+static void gen_op() {
+  gen_space();
+  switch (choose(4)) {
+    case 0: gen('+'); break;
+    case 1: gen('-'); break;
+    case 2: gen('*'); break;
+    case 3: gen('/'); break;
+  }
+  gen_space();
+}
+
 static void gen_rand_expr() {
-  buf[0] = '\0';
+  if (buf_pos >= sizeof(buf) - 20) return; // prevent overflow
+  
+  switch (choose(3)) {
+  case 0:
+    gen_num();
+    break;
+  case 1:
+    gen('('); gen_rand_expr(); gen(')');
+    break;
+  default:
+    gen_rand_expr();
+    gen_op();
+    gen_rand_expr();
+    break;
+  }
+}
+
+static int has_div_zero(const char *expr) {
+  return strstr(expr, "/0") != NULL || strstr(expr, "/ 0") != NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -44,7 +99,13 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
+    buf_pos = 0;
+    memset(buf, 0, sizeof(buf));
+    
     gen_rand_expr();
+    buf[buf_pos] = '\0';
+    
+    if (has_div_zero(buf)) continue;
 
     sprintf(code_buf, code_format, buf);
 
@@ -53,17 +114,19 @@ int main(int argc, char *argv[]) {
     fputs(code_buf, fp);
     fclose(fp);
 
-    int ret = system("gcc /tmp/.code.c -o /tmp/.expr");
+    int ret = system("gcc /tmp/.code.c -o /tmp/.expr 2>/dev/null");
     if (ret != 0) continue;
 
     fp = popen("/tmp/.expr", "r");
     assert(fp != NULL);
 
-    int result;
-    ret = fscanf(fp, "%d", &result);
+    unsigned result;
+    ret = fscanf(fp, "%u", &result);
     pclose(fp);
 
-    printf("%u %s\n", result, buf);
+    if (ret == 1) {
+      printf("%u %s\n", result, buf);
+    }
   }
   return 0;
 }

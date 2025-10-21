@@ -19,9 +19,11 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include <stdlib.h>
+#include <time.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ,
+  TK_NOTYPE = 256, TK_EQ, TK_NE, TK_NUM, TK_HEX, TK_REG, DEREF,
 
   /* TODO: Add more token types */
 
@@ -38,7 +40,16 @@ static struct rule {
 
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
+  {"-", '-'},           // minus
+  {"\\*", '*'},         // multiply
+  {"/", '/'},           // divide
+  {"\\(", '('},         // left parenthesis
+  {"\\)", ')'},         // right parenthesis
   {"==", TK_EQ},        // equal
+  {"!=", TK_NE},        // not equal
+  {"0[xX][0-9a-fA-F]+", TK_HEX}, // hexadecimal number
+  {"[0-9]+", TK_NUM},   // decimal number
+  {"\\$[a-zA-Z0-9]+", TK_REG}, // register
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -70,6 +81,17 @@ typedef struct token {
 static Token tokens[32] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
+static void print_tokens() {
+  printf("Debug: Total %d tokens recognized:\n", nr_token);
+  for (int i = 0; i < nr_token; i++) {
+    printf("  [%d] type=%d", i, tokens[i].type);
+    if (tokens[i].type == TK_NUM || tokens[i].type == TK_HEX || tokens[i].type == TK_REG) {
+      printf(", str='%s'", tokens[i].str);
+    }
+    printf("\n");
+  }
+}
+
 static bool make_token(char *e) {
   int position = 0;
   int i;
@@ -95,7 +117,28 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-          default: TODO();
+          case TK_NOTYPE: 
+            printf("Debug: Skip whitespace at pos %d\n", position - substr_len);
+            break;
+          case TK_NUM:
+            tokens[nr_token].type = rules[i].token_type;
+            printf("Debug: Token[%d] type=%d\n", nr_token, tokens[nr_token].type);
+            nr_token++;
+            break;
+          case TK_HEX:
+            break;
+          case TK_REG:
+            tokens[nr_token].type = rules[i].token_type;
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
+            nr_token++;
+            break;
+          default:
+            tokens[nr_token].type = rules[i].token_type;
+            printf("Debug: Token[%d] type=%d (operator)\n", nr_token, tokens[nr_token].type);
+            nr_token++;
+            break;
         }
 
         break;
@@ -108,6 +151,7 @@ static bool make_token(char *e) {
     }
   }
 
+  print_tokens();
   return true;
 }
 
@@ -119,7 +163,12 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  // for (i = 0; i < nr_token; i ++) {
+  //   if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == ) ) {
+  //     tokens[i].type = DEREF;
+  //   }
+  // }
+  
 
   return 0;
 }
