@@ -86,17 +86,17 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   if (args == NULL) {
-    printf("Usage: info r [reg_name]/w\n");
+    printf("Usage: info r [reg_num]/w\n");
     return 0;
   }
   
   char *subcmd = strtok(args, " ");
   if (strcmp(subcmd, "r") == 0) {
-    char *reg_name = strtok(NULL, " ");
-    if (reg_name == NULL) {
+    char *reg_num = strtok(NULL, " ");
+    if (reg_num == NULL) {
       isa_reg_display();
     } else {
-      isa_reg_display_single(atoi(reg_name));
+      isa_reg_display_single(atoi(reg_num));
     }
   }
   else {
