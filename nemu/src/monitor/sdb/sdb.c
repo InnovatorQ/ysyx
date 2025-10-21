@@ -86,7 +86,7 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   if (args == NULL) {
-    printf("Usage: info r [reg_num]/w\n");
+    printf("Usage: info r [reg_num]\n");
     return 0;
   }
   
