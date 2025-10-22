@@ -212,7 +212,7 @@ static int cmd_w(char *args) {
     return 0;
   }
   WP* wp = new_wp_with_expr(args);
-  printf("Watchpoint %d: %s\n", wp->NO, args);
+  printf("Watchpoint %d: %s\n", get_wp_no(wp), args);
 #else
   printf("Watchpoint is not compiled\n");
 #endif

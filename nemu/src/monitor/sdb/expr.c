@@ -174,13 +174,55 @@ static bool make_token(char *e) {
 }
 
 
+static word_t eval(int p, int q) {
+  if (p > q) {
+    return 0;
+  }
+  else if (p == q) {
+    if (tokens[p].type == TK_NUM) {
+      return atoi(tokens[p].str);
+    }
+    else if (tokens[p].type == TK_HEX) {
+      return strtol(tokens[p].str, NULL, 16);
+    }
+    else if (tokens[p].type == TK_REG) {
+      bool success;
+      word_t val = isa_reg_str2val(tokens[p].str + 1, &success);
+      return success ? val : 0;
+    }
+    return 0;
+  }
+  else if (tokens[p].type == '(' && tokens[q].type == ')') {
+    return eval(p + 1, q - 1);
+  }
+  else {
+    int op = p;
+    for (int i = p; i <= q; i++) {
+      if (tokens[i].type == '+' || tokens[i].type == '-' || 
+          tokens[i].type == '*' || tokens[i].type == '/') {
+        op = i;
+      }
+    }
+    
+    word_t val1 = eval(p, op - 1);
+    word_t val2 = eval(op + 1, q);
+    
+    switch (tokens[op].type) {
+      case '+': return val1 + val2;
+      case '-': return val1 - val2;
+      case '*': return val1 * val2;
+      case '/': return val2 != 0 ? val1 / val2 : 0;
+      default: return 0;
+    }
+  }
+}
+
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
 
-  /* TODO: Insert codes to evaluate the expression. */
   for (int i = 0; i < nr_token; i ++) {
     if (tokens[i].type == '*' && 
       (i == 0 || 
@@ -196,7 +238,6 @@ word_t expr(char *e, bool *success) {
     }
   }
   
-
   *success = true;
-  return 0; // TODO: implement expression evaluation
+  return eval(0, nr_token - 1);
 }

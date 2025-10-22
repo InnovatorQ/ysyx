@@ -118,3 +118,7 @@ void delete_watchpoint(int no) {
   }
   printf("No watchpoint number %d.\n", no);
 }
+
+int get_wp_no(WP* wp) {
+  return wp->NO;
+}

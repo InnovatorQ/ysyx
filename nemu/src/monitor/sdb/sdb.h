@@ -26,6 +26,7 @@ WP* new_wp_with_expr(char* expr_str);
 void delete_watchpoint(int no);
 bool check_watchpoints();
 void print_watchpoints();
+int get_wp_no(WP* wp);
 #endif
 
 #endif
