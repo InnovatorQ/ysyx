@@ -57,6 +57,8 @@ static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
 static int cmd_x(char *args);
+static int cmd_w(char *args);
+static int cmd_d(char *args);
 
 static struct {
   const char *name;
@@ -69,6 +71,8 @@ static struct {
   { "si", "Step the execution of the program", cmd_si },
   { "info", "Display information about registers or watchpoints", cmd_info },
   { "x", "Examine memory", cmd_x },
+  { "w", "Set a watchpoint", cmd_w },
+  { "d", "Delete a watchpoint", cmd_d },
   /* TODO: Add more commands */
 
 };
@@ -86,7 +90,7 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   if (args == NULL) {
-    printf("Usage: info r [reg_num]\n");
+    printf("Usage: info r [reg_num] | info w\n");
     return 0;
   }
   
@@ -98,6 +102,13 @@ static int cmd_info(char *args) {
     } else {
       isa_reg_display_single(atoi(reg_num));
     }
+  }
+  else if (strcmp(subcmd, "w") == 0) {
+#ifdef CONFIG_WATCHPOINT
+    print_watchpoints();
+#else
+    printf("Watchpoint is not compiled\n");
+#endif
   }
   else {
     printf("Unknown info command '%s'\n", subcmd);
@@ -192,6 +203,34 @@ void sdb_mainloop() {
 
     if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
   }
+}
+
+static int cmd_w(char *args) {
+#ifdef CONFIG_WATCHPOINT
+  if (args == NULL) {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+  WP* wp = new_wp_with_expr(args);
+  printf("Watchpoint %d: %s\n", wp->NO, args);
+#else
+  printf("Watchpoint is not compiled\n");
+#endif
+  return 0;
+}
+
+static int cmd_d(char *args) {
+#ifdef CONFIG_WATCHPOINT
+  if (args == NULL) {
+    printf("Usage: d N\n");
+    return 0;
+  }
+  int no = atoi(args);
+  delete_watchpoint(no);
+#else
+  printf("Watchpoint is not compiled\n");
+#endif
+  return 0;
 }
 
 void init_sdb() {

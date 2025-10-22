@@ -14,11 +14,15 @@
 ***************************************************************************************/
 
 #include "sdb.h"
+#include <string.h>
+#include <stdio.h>
 
 #define NR_WP 32
 
 typedef struct watchpoint {
   int NO;
+  char expr[256];
+  word_t old_value;
   struct watchpoint *next;
 
   /* TODO: Add more members if necessary */
@@ -40,4 +44,77 @@ void init_wp_pool() {
 }
 
 /* TODO: Implement the functionality of watchpoint */
+WP* new_wp() {
+  assert(free_ != NULL);
+  WP* wp = free_;
+  free_ = free_->next;
+  wp->next = head;
+  head = wp;
+  return wp;
+}
 
+void free_wp(WP* wp) {
+  if (head == wp) {
+    head = head->next;
+  } else {
+    WP* prev = head;
+    while (prev->next != wp) {
+      prev = prev->next;
+    }
+    prev->next = wp->next;
+  }
+  wp->next = free_;
+  free_ = wp;
+}
+
+WP* new_wp_with_expr(char* expr_str) {
+  WP* wp = new_wp();
+  strcpy(wp->expr, expr_str);
+  bool success;
+  wp->old_value = expr(expr_str, &success);
+  assert(success);
+  return wp;
+}
+
+bool check_watchpoints() {
+  WP* wp = head;
+  while (wp != NULL) {
+    bool success;
+    word_t new_value = expr(wp->expr, &success);
+    if (success && new_value != wp->old_value) {
+      printf("Watchpoint %d: %s\n", wp->NO, wp->expr);
+      printf("Old value = " FMT_WORD "\n", wp->old_value);
+      printf("New value = " FMT_WORD "\n", new_value);
+      wp->old_value = new_value;
+      return true;
+    }
+    wp = wp->next;
+  }
+  return false;
+}
+
+void print_watchpoints() {
+  if (head == NULL) {
+    printf("No watchpoints.\n");
+    return;
+  }
+  printf("Num     Type           Disp Enb Address    What\n");
+  WP* wp = head;
+  while (wp != NULL) {
+    printf("%-8d watchpoint     keep y   %-10s %s\n", wp->NO, "", wp->expr);
+    wp = wp->next;
+  }
+}
+
+void delete_watchpoint(int no) {
+  WP* wp = head;
+  while (wp != NULL) {
+    if (wp->NO == no) {
+      free_wp(wp);
+      printf("Watchpoint %d deleted.\n", no);
+      return;
+    }
+    wp = wp->next;
+  }
+  printf("No watchpoint number %d.\n", no);
+}

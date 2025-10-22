@@ -23,7 +23,7 @@
 #include <time.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ, TK_NE, TK_NUM, TK_HEX, TK_REG, DEREF,
+  TK_NOTYPE = 256, TK_EQ, TK_NE, TK_AND, TK_NUM, TK_HEX, TK_REG, DEREF, 
 
   /* TODO: Add more token types */
 
@@ -45,11 +45,13 @@ static struct rule {
   {"/", '/'},           // divide
   {"\\(", '('},         // left parenthesis
   {"\\)", ')'},         // right parenthesis
+  {"&&", TK_AND},      // logical AND
   {"==", TK_EQ},        // equal
   {"!=", TK_NE},        // not equal
   {"0[xX][0-9a-fA-F]+", TK_HEX}, // hexadecimal number
   {"[0-9]+", TK_NUM},   // decimal number
   {"\\$[a-zA-Z0-9]+", TK_REG}, // register
+  
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -87,7 +89,16 @@ static void print_tokens() {
     printf("  [%d] type=%d", i, tokens[i].type);
     if (tokens[i].type == TK_NUM || tokens[i].type == TK_HEX || tokens[i].type == TK_REG) {
       printf(", str='%s'", tokens[i].str);
+    }else if(tokens[i].type == DEREF) {
+      printf(" (DEREF)");
+    }else if(tokens[i].type == TK_AND) {
+      printf(" (AND)");
+    }else if(tokens[i].type == TK_EQ) {
+      printf(" (EQ)");
+    }else if(tokens[i].type == TK_NE) {
+      printf(" (NE)");
     }
+
     printf("\n");
   }
 }
@@ -122,10 +133,17 @@ static bool make_token(char *e) {
             break;
           case TK_NUM:
             tokens[nr_token].type = rules[i].token_type;
-            printf("Debug: Token[%d] type=%d\n", nr_token, tokens[nr_token].type);
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
             nr_token++;
             break;
           case TK_HEX:
+            tokens[nr_token].type = rules[i].token_type;
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
+            nr_token++;
             break;
           case TK_REG:
             tokens[nr_token].type = rules[i].token_type;
@@ -163,12 +181,22 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  // for (i = 0; i < nr_token; i ++) {
-  //   if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == ) ) {
-  //     tokens[i].type = DEREF;
-  //   }
-  // }
+  for (int i = 0; i < nr_token; i ++) {
+    if (tokens[i].type == '*' && 
+      (i == 0 || 
+        tokens[i - 1].type == '(' ||
+        tokens[i - 1].type == '+' || 
+        tokens[i - 1].type == '-' ||
+        tokens[i - 1].type == '*' || 
+        tokens[i - 1].type == '/' ||
+        tokens[i - 1].type == TK_EQ || 
+        tokens[i - 1].type == TK_AND || 
+        tokens[i - 1].type == TK_NE) ) {
+      tokens[i].type = DEREF;
+    }
+  }
   
 
-  return 0;
+  *success = true;
+  return 0; // TODO: implement expression evaluation
 }

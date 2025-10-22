@@ -20,5 +20,12 @@
 
 word_t expr(char *e, bool *success);
 
+#ifdef CONFIG_WATCHPOINT
+typedef struct watchpoint WP;
+WP* new_wp_with_expr(char* expr_str);
+void delete_watchpoint(int no);
+bool check_watchpoints();
+void print_watchpoints();
+#endif
 
 #endif

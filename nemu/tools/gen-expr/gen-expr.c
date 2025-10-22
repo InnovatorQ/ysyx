@@ -48,7 +48,7 @@ static void gen_space() {
 }
 
 static void gen_num() {
-  uint32_t num = choose(100) + 1; // 1-100 to avoid 0
+  uint32_t num = choose(100) + 1; // 1-100 
   char num_str[16];
   int len = snprintf(num_str, sizeof(num_str), "%u", num);
   if (buf_pos + len < sizeof(buf) - 1) {
@@ -69,7 +69,7 @@ static void gen_op() {
 }
 
 static void gen_rand_expr() {
-  if (buf_pos >= sizeof(buf) - 20) return; // prevent overflow
+  if (buf_pos >= sizeof(buf) - 20) return; // 防止缓存区溢出
   
   switch (choose(3)) {
   case 0:
