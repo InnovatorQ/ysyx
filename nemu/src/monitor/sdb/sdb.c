@@ -69,11 +69,11 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-  { "si", "Step the execution of the program", cmd_si },
-  { "info", "Display information about registers or watchpoints", cmd_info },
-  { "x", "Examine memory", cmd_x },
-  { "w", "Set a watchpoint", cmd_w },
-  { "d", "Delete a watchpoint", cmd_d },
+  { "si", "Step the execution of the program", cmd_si },//add 1
+  { "info", "Display information about registers or watchpoints", cmd_info },//add 2
+  { "x", "Examine memory", cmd_x },//add 3
+  { "w", "Set a watchpoint", cmd_w },//add 4
+  { "d", "Delete a watchpoint", cmd_d },// add5
   /* TODO: Add more commands */
 
 };
@@ -111,9 +111,7 @@ static int cmd_info(char *args) {
     printf("Watchpoint is not compiled\n");
 #endif
   }
-  else {
-    printf("Unknown info comman/src/memory/paddr.o /home/qzx/ysyx/ysyx-workbench/nemu/build/obj-riscv64-nemu-interpreter/src/memory/vaddr.o  -O2 -O2d '%s'\n", subcmd);
-  }
+  
   return 0;
 }
 
