@@ -35,7 +35,7 @@ static void restart() {
 }
 
 void init_isa() {
-  /* Load built-in image. */
+  /* 将一个内置的客户程序读入到内存中 */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
   /* Initialize this virtual computer system. */
