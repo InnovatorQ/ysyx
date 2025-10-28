@@ -135,26 +135,22 @@ static bool make_token(char *e) {
             tokens[nr_token].type = rules[i].token_type;
             strncpy(tokens[nr_token].str, substr_start, substr_len);
             tokens[nr_token].str[substr_len] = '\0';
-            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
             nr_token++;
             break;
           case TK_HEX:
             tokens[nr_token].type = rules[i].token_type;
             strncpy(tokens[nr_token].str, substr_start, substr_len);
             tokens[nr_token].str[substr_len] = '\0';
-            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
             nr_token++;
             break;
           case TK_REG:
             tokens[nr_token].type = rules[i].token_type;
             strncpy(tokens[nr_token].str, substr_start, substr_len);
             tokens[nr_token].str[substr_len] = '\0';
-            printf("Debug: Token[%d] type=%d, str='%s'\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
             nr_token++;
             break;
           default:
             tokens[nr_token].type = rules[i].token_type;
-            printf("Debug: Token[%d] type=%d (operator)\n", nr_token, tokens[nr_token].type);
             nr_token++;
             break;
         }
