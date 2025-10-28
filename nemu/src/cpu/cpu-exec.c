@@ -77,7 +77,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
 #endif
 }
-
+//传入-1是手册中的整型转换规则定义
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {

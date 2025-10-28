@@ -111,7 +111,7 @@ static int cmd_info(char *args) {
 #endif
   }
   else {
-    printf("Unknown info command '%s'\n", subcmd);
+    printf("Unknown info comman/src/memory/paddr.o /home/qzx/ysyx/ysyx-workbench/nemu/build/obj-riscv64-nemu-interpreter/src/memory/vaddr.o  -O2 -O2d '%s'\n", subcmd);
   }
   return 0;
 }
@@ -237,6 +237,6 @@ void init_sdb() {
   /* Compile the regular expressions. */
   init_regex();
 
-  /* Initialize the watchpoint pool. */
+  
   init_wp_pool();
 }
