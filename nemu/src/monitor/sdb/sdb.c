@@ -58,6 +58,7 @@ static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
 static int cmd_x(char *args);
+static int cmd_p(char *args);
 static int cmd_w(char *args);
 static int cmd_d(char *args);
 
@@ -72,8 +73,9 @@ static struct {
   { "si", "Step the execution of the program", cmd_si },//add 1
   { "info", "Display information about registers or watchpoints", cmd_info },//add 2
   { "x", "Examine memory", cmd_x },//add 3
-  { "w", "Set a watchpoint", cmd_w },//add 4
-  { "d", "Delete a watchpoint", cmd_d },// add5
+  { "p", "Expreesion", cmd_p},//add 4
+  { "w", "Set a watchpoint", cmd_w },//add 5
+  { "d", "Delete a watchpoint", cmd_d },// add 6
   /* TODO: Add more commands */
 
 };
@@ -136,6 +138,51 @@ static int cmd_x(char *args) {
     printf("0x%08x: 0x%08x\n", addr + i * 4, data);
   }
 
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+
+  bool success = true;
+  word_t result = expr(args, &success);
+  if (success) {
+    printf("%u\n", result);
+  } else {
+    printf("Invalid expression: %s\n", args);
+  }
+
+  return 0;
+}
+
+static int cmd_w(char *args) {
+#ifdef CONFIG_WATCHPOINT
+  if (args == NULL) {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+  WP* wp = new_wp_with_expr(args);
+  printf("Watchpoint %d: %s\n", get_wp_no(wp), args);
+#else
+  printf("Watchpoint is not compiled\n");
+#endif
+  return 0;
+}
+
+static int cmd_d(char *args) {
+#ifdef CONFIG_WATCHPOINT
+  if (args == NULL) {
+    printf("Usage: d N\n");
+    return 0;
+  }
+  int no = atoi(args);
+  delete_watchpoint(no);
+#else
+  printf("Watchpoint is not compiled\n");
+#endif
   return 0;
 }
 
@@ -204,33 +251,7 @@ void sdb_mainloop() {
   }
 }
 
-static int cmd_w(char *args) {
-#ifdef CONFIG_WATCHPOINT
-  if (args == NULL) {
-    printf("Usage: w EXPR\n");
-    return 0;
-  }
-  WP* wp = new_wp_with_expr(args);
-  printf("Watchpoint %d: %s\n", get_wp_no(wp), args);
-#else
-  printf("Watchpoint is not compiled\n");
-#endif
-  return 0;
-}
 
-static int cmd_d(char *args) {
-#ifdef CONFIG_WATCHPOINT
-  if (args == NULL) {
-    printf("Usage: d N\n");
-    return 0;
-  }
-  int no = atoi(args);
-  delete_watchpoint(no);
-#else
-  printf("Watchpoint is not compiled\n");
-#endif
-  return 0;
-}
 
 void init_sdb() {
   /* Compile the regular expressions. */
