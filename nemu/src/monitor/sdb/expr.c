@@ -90,13 +90,15 @@ static void print_tokens() {
     if (tokens[i].type == TK_NUM || tokens[i].type == TK_HEX || tokens[i].type == TK_REG) {
       printf(", str='%s'", tokens[i].str);
     }else if(tokens[i].type == DEREF) {
-      printf(" (DEREF)");
+      printf(", str='%s'", tokens[i].str);
     }else if(tokens[i].type == TK_AND) {
-      printf(" (AND)");
+      printf(", str='%s'", tokens[i].str);
     }else if(tokens[i].type == TK_EQ) {
-      printf(" (EQ)");
+      printf(", str='%s'", tokens[i].str);
     }else if(tokens[i].type == TK_NE) {
-      printf(" (NE)");
+      printf(", str='%s'", tokens[i].str);
+    }else {
+      printf(", str='%c'", tokens[i].type);
     }
 
     printf("\n");
