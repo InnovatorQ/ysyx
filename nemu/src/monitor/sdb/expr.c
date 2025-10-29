@@ -168,7 +168,7 @@ static bool make_token(char *e) {
     }
   }
 
-  print_tokens();
+  
   return true;
 }
 
@@ -236,7 +236,7 @@ word_t expr(char *e, bool *success) {
       tokens[i].type = DEREF;
     }
   }
-  
+  print_tokens();
   *success = true;
   return eval(0, nr_token - 1);
 }
