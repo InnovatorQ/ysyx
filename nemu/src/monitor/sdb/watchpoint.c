@@ -81,7 +81,7 @@ bool check_watchpoints() {
   while (wp != NULL) {
     bool success;
     word_t new_value = expr(wp->expr, &success);
-    if (success && new_value != wp->old_value) {
+    if (success && (new_value != wp->old_value)) {
       printf("Watchpoint %d: %s\n", wp->NO, wp->expr);
       printf("Old value = " FMT_WORD "\n", wp->old_value);
       printf("New value = " FMT_WORD "\n", new_value);
