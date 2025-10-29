@@ -16,6 +16,48 @@
 #include <isa.h>
 #include <memory/paddr.h>
 
+word_t expr(char *e, bool *success);
+
+void test_expr() {
+  FILE *fp = fopen("./tools/gen-expr/input", "r");
+  if (fp == NULL) {
+    Log("Cannot open input file: ./tools/gen-expr/input");
+    return;
+  }
+  
+  char line[65536];
+  int test_count = 0;
+  int pass_count = 0;
+  
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    // 解析每行：expected_result expression
+    char *space_pos = strchr(line, ' ');
+    if (space_pos == NULL) continue;
+    
+    *space_pos = '\0';
+    unsigned expected = strtoul(line, NULL, 10);
+    char *expr_str = space_pos + 1;
+    
+    // 移除换行符
+    char *newline = strchr(expr_str, '\n');
+    if (newline) *newline = '\0';
+    
+    bool success = true;
+    word_t result = expr(expr_str, &success);
+    
+    test_count++;
+    if (success && result == expected) {
+      pass_count++;
+    } else {
+      printf("FAIL: expr=\"%s\" expected=%u got=%u success=%d\n", 
+             expr_str, expected, result, success);
+    }
+  }
+  
+  fclose(fp);
+  printf("Expression test: %d/%d passed\n", pass_count, test_count);
+}
+
 void init_rand();
 void init_log(const char *log_file);
 void init_mem();
@@ -129,6 +171,9 @@ void init_monitor(int argc, char *argv[]) {
   init_sdb();
 
   IFDEF(CONFIG_ITRACE, init_disasm());
+
+  /* Test expression evaluator */
+  test_expr();
 
   /* Display welcome message. */
   welcome();

@@ -86,9 +86,7 @@ static void gen_rand_expr() {
   }
 }
 
-static int has_div_zero(const char *expr) {
-  return strstr(expr, "/0") != NULL || strstr(expr, "/ 0") != NULL;
-}
+
 
 int main(int argc, char *argv[]) {
   int seed = time(0);
@@ -104,22 +102,25 @@ int main(int argc, char *argv[]) {
     
     gen_rand_expr();
     buf[buf_pos] = '\0';
-    
-    if (has_div_zero(buf)) continue;
-
+    //将buf中的表达式写入code_format模板中，再将格式化的数据输出到code_buf中
     sprintf(code_buf, code_format, buf);
 
     FILE *fp = fopen("/tmp/.code.c", "w");
     assert(fp != NULL);
+    //将表达式写入临时文件/tmp/.code.c
     fputs(code_buf, fp);
     fclose(fp);
-
+    //使用 gcc 编译成可执行文件 /tmp/.expr
     int ret = system("gcc /tmp/.code.c -o /tmp/.expr 2>/dev/null");
+    //如果编译失败，跳过这次生成
     if (ret != 0) continue;
-
+    //使用 timeout 命令限制可执行文件的运行时间为1秒,用以进行错误处理
+    ret = system("timeout 1s /tmp/.expr 2>/dev/null");
+    if (ret != 0) continue;
+    //运行可执行文件/tmp/.expr，并通过管道读取其输出
     fp = popen("/tmp/.expr", "r");
     assert(fp != NULL);
-
+    //通过fscanf获取表达式计算结果
     unsigned result;
     ret = fscanf(fp, "%u", &result);
     pclose(fp);
