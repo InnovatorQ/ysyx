@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
-
+#include <memory/paddr.h>
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
@@ -198,7 +198,9 @@ static word_t eval(int p, int q) {
     int op = p;
     for (int i = p; i <= q; i++) {
       if (tokens[i].type == '+' || tokens[i].type == '-' || 
-          tokens[i].type == '*' || tokens[i].type == '/') {
+          tokens[i].type == '*' || tokens[i].type == '/' || 
+          tokens[i].type == TK_EQ || tokens[i].type == TK_NE ||
+          tokens[i].type == TK_AND || tokens[i].type == DEREF) {
         op = i;
       }
     }
@@ -211,6 +213,10 @@ static word_t eval(int p, int q) {
       case '-': return val1 - val2;
       case '*': return val1 * val2;
       case '/': return val2 != 0 ? val1 / val2 : 0;
+      case TK_EQ: return val1 == val2;
+      case TK_NE: return val1 != val2;
+      case TK_AND: return val1 && val2;
+      case DEREF: return paddr_read(val2, 4) ;
       default: return 0;
     }
   }
