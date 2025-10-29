@@ -42,6 +42,7 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   for(i = 0; i < 32; i++){
     if(strcmp(s, regs[i]) == 0){
       printf("%s\t" FMT_WORD "\n", regs[i], cpu.gpr[i]);
+      *success = true;
       return cpu.gpr[i];
     }
   }

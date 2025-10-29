@@ -179,12 +179,15 @@ static word_t eval(int p, int q) {
   }
   else if (p == q) {
     if (tokens[p].type == TK_NUM) {
+      //直接返回数字
       return atoi(tokens[p].str);
     }
     else if (tokens[p].type == TK_HEX) {
+      //返回十六进制
       return strtoul(tokens[p].str, NULL, 16);
     }
     else if (tokens[p].type == TK_REG) {
+      //返回寄存器中的值
       bool success;
       word_t val = isa_reg_str2val(tokens[p].str + 1, &success);
       return success ? val : 0;
@@ -207,7 +210,7 @@ static word_t eval(int p, int q) {
     
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
-    
+    //返回运算结果
     switch (tokens[op].type) {
       case '+': return val1 + val2;
       case '-': return val1 - val2;
@@ -227,7 +230,7 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
-
+  
   for (int i = 0; i < nr_token; i ++) {
     if (tokens[i].type == '*' && 
       (i == 0 || 
