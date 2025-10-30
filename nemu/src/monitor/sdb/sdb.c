@@ -193,8 +193,8 @@ static int cmd_p_test() {
       printf("PASS: expr=\"%s\" expected=%u got=%u\n", 
              expr_str, expected, result);
     } else {
-      printf("FAIL: expr=\"%s\" expected=%u got=%u success=%d\n", 
-             expr_str, expected, result, success);
+      printf("FAIL: expr=\"%s\" expected=%u got=%u \n", 
+             expr_str, expected, result);
     }
   }
   
