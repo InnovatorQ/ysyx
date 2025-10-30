@@ -83,6 +83,27 @@ typedef struct token {
 static Token tokens[1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
+bool check_parentheses(int p, int q) {
+  if(tokens[p].type == '(' || tokens[q].type == ')') {
+    int paren_count = 0;
+    //计算括号的匹配情况
+    for(int i = p + 1; i < q; i++) {
+      if (tokens[i].type == '(') {
+        paren_count++;
+      } else if (tokens[i].type == ')') {
+        paren_count--;
+      }
+    }
+    if( paren_count == 0) {
+      return true;
+    }else {
+      return false;
+    }
+  }else {
+    return false;
+  }
+}
+
 static void print_tokens() {
   printf("Debug: Total %d tokens recognized:\n", nr_token);
   for (int i = 0; i < nr_token; i++) {
@@ -195,7 +216,7 @@ static word_t eval(int p, int q) {
     }
     return 0;
   }
-  else if (tokens[p].type == '(' && tokens[q].type == ')') {
+  else if (check_parentheses(p, q) == true) {
     return eval(p + 1, q - 1);
   }
   else {
@@ -212,11 +233,6 @@ static word_t eval(int p, int q) {
           tokens[i].type == TK_AND || tokens[i].type == DEREF)) {
         op = i;
       }
-    }
-    
-    if (op == -1) {
-      // 没找到运算符，可能是语法错误
-      return 0;
     }
     
     word_t val1 = eval(p, op - 1);
