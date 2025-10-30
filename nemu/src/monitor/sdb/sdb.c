@@ -51,7 +51,7 @@ static int cmd_c(char *args) {
 
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
-  return 0;
+  return -1;
 }
 
 static int cmd_help(char *args);
@@ -61,7 +61,7 @@ static int cmd_x(char *args);
 static int cmd_p(char *args);
 static int cmd_w(char *args);
 static int cmd_d(char *args);
-static int test_expr();
+static int cmd_p_test();
 
 static struct {
   const char *name;
@@ -75,7 +75,7 @@ static struct {
   { "info", "Display information about registers or watchpoints", cmd_info },//add 2
   { "x", "Examine memory", cmd_x },//add 3
   { "p", "Expreesion", cmd_p},//add 4
-  { "test-expr", "Test the expression parser", test_expr},//add 5
+  { "test-expr", "Test the expression parser", cmd_p_test},//add 5
   { "w", "Set a watchpoint", cmd_w },//add 6
   { "d", "Delete a watchpoint", cmd_d },// add 7
   /* TODO: Add more commands */
@@ -160,7 +160,7 @@ static int cmd_p(char *args) {
   return 0;
 }
 
-static int test_expr() {
+static int cmd_p_test() {
   FILE *fp = fopen("./tools/gen-expr/input", "r");
   if (fp == NULL) {
     Log("Cannot open input file: ./tools/gen-expr/input");
