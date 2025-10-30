@@ -91,27 +91,9 @@ static void gen_rand_expr() {
   default:
     gen_rand_expr();
     gen_space();
-    int op = choose(3);
-    switch (op){
-      case 0 :
-        gen('+');
-        gen_space();
-        gen_rand_expr();
-        break;
-      case 1 : 
-        gen('*');
-        gen_space();
-        gen_rand_expr();
-        break;
-      case 2 : 
-        gen('/');
-        gen_space();
-        gen_rand_expr();
-        break;
-      default :
-        break;
-    }
-    
+    gen_op();
+    gen_space();
+    gen_rand_expr();
     break;
   }
   
@@ -141,8 +123,8 @@ int main(int argc, char *argv[]) {
     //将表达式写入临时文件/tmp/.code.c
     fputs(code_buf, fp);
     fclose(fp);
-    //使用 gcc 编译成可执行文件 /tmp/.expr
-    int ret = system("gcc /tmp/.code.c -o /tmp/.expr 2>/dev/null");
+    //使用 gcc 编译成可执行文件 /tmp/.
+    int ret = system("gcc -Wall -Werror=div-by-zero -Woverflow /tmp/.code.c -o /tmp/.expr 2>/dev/null");
     //如果编译失败，跳过这次生成
     if (ret != 0) continue;
 
