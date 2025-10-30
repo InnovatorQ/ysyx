@@ -198,6 +198,7 @@ static word_t eval(int p, int q) {
   if (p > q) {
     return 0;
   }
+  //单个token的情况
   else if (p == q) {
     if (tokens[p].type == TK_NUM) {
       //直接返回数字
@@ -215,50 +216,98 @@ static word_t eval(int p, int q) {
     }
     return 0;
   }
+  //检查表达式是不是先被括号包围
   else if (check_parentheses(p, q) == true) {
     return eval(p + 1, q - 1);
   }
+  //计算表达式
   else {
     int op = -1;
     int paren_count = 0;
-    for (int i = p; i <= q; i++) {
-      if (tokens[i].type == '(') {
+    
+    // 从右到左找主运算符，优先级：&& > == != > + - > * /
+    for (int i = q; i >= p; i--) {
+      if (tokens[i].type == ')') {
         paren_count++;
-      } else if (tokens[i].type == ')') {
+      } else if (tokens[i].type == '(') {
         paren_count--;
       } else if (paren_count == 0) {
         if (tokens[i].type == TK_AND) {
           op = i;
-        } else if ((tokens[i].type == TK_EQ || tokens[i].type == TK_NE) && 
-                   (op == -1 || tokens[op].type == TK_AND)) {
-          op = i;
-        } else if ((tokens[i].type == '+' || tokens[i].type == '-') && 
-                   (op == -1 || tokens[op].type == TK_AND || 
-                    tokens[op].type == TK_EQ || tokens[op].type == TK_NE)) {
-          op = i;
-        } else if ((tokens[i].type == '*' || tokens[i].type == '/') && 
-                   (op == -1 || tokens[op].type == TK_AND || 
-                    tokens[op].type == TK_EQ || tokens[op].type == TK_NE ||
-                    tokens[op].type == '+' || tokens[op].type == '-')) {
-          op = i;
-        } else if (tokens[i].type == DEREF && op == -1) {
-          op = i;
+          break;
         }
       }
     }
     
+    if (op == -1) {
+      paren_count = 0;
+      for (int i = q; i >= p; i--) {
+        if (tokens[i].type == ')') {
+          paren_count++;
+        } else if (tokens[i].type == '(') {
+          paren_count--;
+        } else if (paren_count == 0) {
+          if (tokens[i].type == TK_EQ || tokens[i].type == TK_NE) {
+            op = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (op == -1) {
+      paren_count = 0;
+      for (int i = q; i >= p; i--) {
+        if (tokens[i].type == ')') {
+          paren_count++;
+        } else if (tokens[i].type == '(') {
+          paren_count--;
+        } else if (paren_count == 0) {
+          if (tokens[i].type == '+' || tokens[i].type == '-') {
+            op = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (op == -1) {
+      paren_count = 0;
+      for (int i = q; i >= p; i--) {
+        if (tokens[i].type == ')') {
+          paren_count++;
+        } else if (tokens[i].type == '(') {
+          paren_count--;
+        } else if (paren_count == 0) {
+          if (tokens[i].type == '*' || tokens[i].type == '/') {
+            op = i;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (op == -1) {
+      for (int i = p; i <= q; i++) {
+        if (tokens[i].type == DEREF) {
+          word_t addr = eval(i + 1, q);
+          return paddr_read(addr, 4);
+        }
+      }
+      return 0;
+    }
+    
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
-    //返回运算结果
+    
     switch (tokens[op].type) {
       case '+': return val1 + val2;
       case '-': return val1 - val2;
       case '*': return val1 * val2;
-      case '/': return (val2 != 0) ? (val1 / val2) : 0;
+      case '/': return val2 != 0 ? val1 / val2 : 0;
       case TK_EQ: return val1 == val2;
       case TK_NE: return val1 != val2;
       case TK_AND: return val1 && val2;
-      case DEREF: return paddr_read(val2, 4) ;
       default: return 0;
     }
   }
