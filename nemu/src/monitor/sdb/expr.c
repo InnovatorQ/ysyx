@@ -199,15 +199,31 @@ static word_t eval(int p, int q) {
     return eval(p + 1, q - 1);
   }
   else {
-    int op = p;
+    int op = -1;
+    int paren_count = 0;
+    
+    // 找到优先级最低的运算符作为主运算符
     for (int i = p; i <= q; i++) {
-      if (tokens[i].type == '+' || tokens[i].type == '-' || 
-          tokens[i].type == '*' || tokens[i].type == '/' || 
-          tokens[i].type == TK_EQ || tokens[i].type == TK_NE ||
-          tokens[i].type == TK_AND || tokens[i].type == DEREF) {
-        op = i;
+      if (tokens[i].type == '(') paren_count++;
+      else if (tokens[i].type == ')') paren_count--;
+      else if (paren_count == 0) {
+        if (tokens[i].type == TK_AND) op = i;
+        else if (tokens[i].type == TK_EQ || tokens[i].type == TK_NE) {
+          if (op == -1 || tokens[op].type == TK_AND) op = i;
+        }
+        else if (tokens[i].type == '+' || tokens[i].type == '-') {
+          if (op == -1 || tokens[op].type == TK_AND || 
+              tokens[op].type == TK_EQ || tokens[op].type == TK_NE) op = i;
+        }
+        else if (tokens[i].type == '*' || tokens[i].type == '/') {
+          if (op == -1 || tokens[op].type == TK_AND || 
+              tokens[op].type == TK_EQ || tokens[op].type == TK_NE ||
+              tokens[op].type == '+' || tokens[op].type == '-') op = i;
+        }
       }
     }
+    
+    if (op == -1) op = p;
     
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
