@@ -80,10 +80,10 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[2048] __attribute__((used)) = {};
+static Token tokens[1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
-bool check_parentheses(int p, int q) {
+static bool check_parentheses(int p, int q) {
   if(tokens[p].type == '(' || tokens[q].type == ')') {
     int paren_count = 0;
     //计算括号的匹配情况
@@ -210,8 +210,7 @@ static word_t eval(int p, int q) {
     else if (tokens[p].type == TK_REG) {
       //返回寄存器中的值
       bool success;
-      word_t val = 
-      isa_reg_str2val(tokens[p].str + 1, &success);
+      word_t val = isa_reg_str2val(tokens[p].str + 1, &success);
       return success ? val : 0;
     }
     return 0;
@@ -227,11 +226,24 @@ static word_t eval(int p, int q) {
         paren_count++;
       } else if (tokens[i].type == ')') {
         paren_count--;
-      } else if (paren_count == 0 && (tokens[i].type == '+' || tokens[i].type == '-' || 
-          tokens[i].type == '*' || tokens[i].type == '/' || 
-          tokens[i].type == TK_EQ || tokens[i].type == TK_NE ||
-          tokens[i].type == TK_AND || tokens[i].type == DEREF)) {
-        op = i;
+      } else if (paren_count == 0) {
+        if (tokens[i].type == TK_AND) {
+          op = i;
+        } else if ((tokens[i].type == TK_EQ || tokens[i].type == TK_NE) && 
+                   (op == -1 || tokens[op].type == TK_AND)) {
+          op = i;
+        } else if ((tokens[i].type == '+' || tokens[i].type == '-') && 
+                   (op == -1 || tokens[op].type == TK_AND || 
+                    tokens[op].type == TK_EQ || tokens[op].type == TK_NE)) {
+          op = i;
+        } else if ((tokens[i].type == '*' || tokens[i].type == '/') && 
+                   (op == -1 || tokens[op].type == TK_AND || 
+                    tokens[op].type == TK_EQ || tokens[op].type == TK_NE ||
+                    tokens[op].type == '+' || tokens[op].type == '-')) {
+          op = i;
+        } else if (tokens[i].type == DEREF && op == -1) {
+          op = i;
+        }
       }
     }
     
