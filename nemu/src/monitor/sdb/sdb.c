@@ -75,7 +75,7 @@ static struct {
   { "info", "Display information about registers or watchpoints", cmd_info },//add 2
   { "x", "Examine memory", cmd_x },//add 3
   { "p", "Expreesion", cmd_p},//add 4
-  { "test-expr", "Test the expression parser", cmd_p_test},//add 5
+  { "p_test", "Test the expression parser", cmd_p_test},//add 5
   { "w", "Set a watchpoint", cmd_w },//add 6
   { "d", "Delete a watchpoint", cmd_d },// add 7
   /* TODO: Add more commands */
