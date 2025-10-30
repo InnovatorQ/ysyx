@@ -51,7 +51,7 @@ static int cmd_c(char *args) {
 
 static int cmd_q(char *args) {
   nemu_state.state = NEMU_QUIT;
-  return -1;
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -61,6 +61,7 @@ static int cmd_x(char *args);
 static int cmd_p(char *args);
 static int cmd_w(char *args);
 static int cmd_d(char *args);
+static int test_expr();
 
 static struct {
   const char *name;
@@ -74,8 +75,9 @@ static struct {
   { "info", "Display information about registers or watchpoints", cmd_info },//add 2
   { "x", "Examine memory", cmd_x },//add 3
   { "p", "Expreesion", cmd_p},//add 4
-  { "w", "Set a watchpoint", cmd_w },//add 5
-  { "d", "Delete a watchpoint", cmd_d },// add 6
+  { "test-expr", "Test the expression parser", test_expr},//add 5
+  { "w", "Set a watchpoint", cmd_w },//add 6
+  { "d", "Delete a watchpoint", cmd_d },// add 7
   /* TODO: Add more commands */
 
 };
@@ -155,6 +157,47 @@ static int cmd_p(char *args) {
     printf("Invalid expression: %s\n", args);
   }
 
+  return 0;
+}
+
+static int test_expr() {
+  FILE *fp = fopen("./tools/gen-expr/input", "r");
+  if (fp == NULL) {
+    Log("Cannot open input file: ./tools/gen-expr/input");
+    return 0 ;
+  }
+  
+  char line[65536];
+  int test_count = 0;
+  int pass_count = 0;
+  
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    // 解析每行：expected_result expression
+    char *space_pos = strchr(line, ' ');
+    if (space_pos == NULL) continue;
+    
+    *space_pos = '\0';
+    unsigned expected = strtoul(line, NULL, 10);
+    char *expr_str = space_pos + 1;
+    
+    // 移除换行符
+    char *newline = strchr(expr_str, '\n');
+    if (newline) *newline = '\0';
+    
+    bool success = true;
+    word_t result = expr(expr_str, &success);
+    
+    test_count++;
+    if (success && result == expected) {
+      pass_count++;
+    } else {
+      printf("FAIL: expr=\"%s\" expected=%u got=%u success=%d\n", 
+             expr_str, expected, result, success);
+    }
+  }
+  
+  fclose(fp);
+  printf("Expression test: %d/%d passed\n", pass_count, test_count);
   return 0;
 }
 
