@@ -199,7 +199,7 @@ static word_t eval(int p, int q) {
     return eval(p + 1, q - 1);
   }
   else {
-    int op = p;
+    int op = -1;
     int paren_count = 0;
     for (int i = p; i <= q; i++) {
       if (tokens[i].type == '(') {
@@ -212,6 +212,11 @@ static word_t eval(int p, int q) {
           tokens[i].type == TK_AND || tokens[i].type == DEREF)) {
         op = i;
       }
+    }
+    
+    if (op == -1) {
+      // 没找到运算符，可能是语法错误
+      return 0;
     }
     
     word_t val1 = eval(p, op - 1);
