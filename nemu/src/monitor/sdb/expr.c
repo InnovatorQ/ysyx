@@ -84,24 +84,21 @@ static Token tokens[1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool check_parentheses(int p, int q) {
-  if(tokens[p].type == '(' || tokens[q].type == ')') {
-    int paren_count = 0;
-    //计算括号的匹配情况
-    for(int i = p + 1; i < q; i++) {
-      if (tokens[i].type == '(') {
-        paren_count++;
-      } else if (tokens[i].type == ')') {
-        paren_count--;
-      }
-    }
-    if( paren_count == 0) {
-      return true;
-    }else {
-      return false;
-    }
-  }else {
+  if(tokens[p].type != '(' || tokens[q].type != ')') {
     return false;
   }
+  int paren_count = 0;
+  for(int i = p; i <= q; i++) {
+    if (tokens[i].type == '(') {
+      paren_count++;
+    } else if (tokens[i].type == ')') {
+      paren_count--;
+      if (paren_count == 0 && i < q) {
+        return false;
+      }
+    }
+  }
+  return paren_count == 0;
 }
 
 static void print_tokens() {
