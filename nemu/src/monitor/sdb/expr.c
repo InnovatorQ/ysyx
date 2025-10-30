@@ -245,6 +245,7 @@ static word_t eval(int p, int q) {
         }
       }
     }
+    if (op == -1) return 0;
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
     switch (tokens[op].type) {
