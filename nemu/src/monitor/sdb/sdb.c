@@ -190,6 +190,8 @@ static int cmd_p_test() {
     test_count++;
     if (success && result == expected) {
       pass_count++;
+      printf("PASS: expr=\"%s\" expected=%u got=%u\n", 
+             expr_str, expected, result);
     } else {
       printf("FAIL: expr=\"%s\" expected=%u got=%u success=%d\n", 
              expr_str, expected, result, success);
