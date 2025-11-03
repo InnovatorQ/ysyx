@@ -18,7 +18,7 @@ comma = ,
 LDFLAGS_CXX = $(addprefix -Wl$(comma), $(LDFLAGS)) -pie -ldl $(shell sdl2-config --libs)
 
 run: image
-	$(IMAGE).elf
+	$(IMAGE).elf 
 
 gdb: image
 	gdb -ex "handle SIGUSR1 SIGUSR2 SIGSEGV noprint nostop" $(IMAGE).elf

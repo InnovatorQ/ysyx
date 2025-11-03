@@ -35,9 +35,15 @@ static void restart() {
 }
 
 void init_isa() {
-  /* Load built-in image. */
+  /* 
+  将一个内置的客户程序(nemu/src/isa/riscv32/init.c)读入到内存中 
+  monitor将客户程序读入到固定的内存位置RESET_VECTOR(nemu/include/memory/paddr.h)
+  */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
-  /* Initialize this virtual computer system. */
+  /* 
+  初始化寄存器 
+  寄存器结构体CPU_state定义在nemu/src/isa/riscv32/include/isa-def.h
+  */
   restart();
 }
