@@ -40,7 +40,12 @@ void isa_reg_display() {
 word_t isa_reg_str2val(const char *s, bool *success) {
   int i;
   for(i = 0; i < 32; i++){
-    if(strcmp(s, regs[i]) == 0){
+    if(strcmp(s, "pc") == 0){
+      printf("pc\t" FMT_WORD "\n", cpu.pc);
+      *success = true;
+      return cpu.pc;
+    }
+    else if(strcmp(s, regs[i]) == 0){
       printf("%s\t" FMT_WORD "\n", regs[i], cpu.gpr[i]);
       *success = true;
       return cpu.gpr[i];
