@@ -26,13 +26,13 @@ enum {
   TYPE_I, TYPE_U, TYPE_S,
   TYPE_N, // none
 };
-
+//宏BITS和SEXT, 它们均在nemu/include/macro.h中定义, 分别用于位抽取和符号扩展
 #define src1R() do { *src1 = R(rs1); } while (0)
 #define src2R() do { *src2 = R(rs2); } while (0)
 #define immI() do { *imm = SEXT(BITS(i, 31, 20), 12); } while(0)
 #define immU() do { *imm = SEXT(BITS(i, 31, 12), 20) << 12; } while(0)
 #define immS() do { *imm = (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); } while(0)
-
+//获取inst中的操作对象或操作数
 static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst;
   int rs1 = BITS(i, 19, 15);
@@ -57,7 +57,34 @@ static int decode_exec(Decode *s) {
   decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
   __VA_ARGS__ ; \
 }
-
+  /*
+  模式匹配
+  INSTPAT(instruction pattern),INSTPAT(模式字符串, 指令名称, 指令类型, 指令执行操作);
+  0表示相应的位只能匹配0
+  1表示相应的位只能匹配1
+  ?表示相应的位可以匹配0或1
+  空格是分隔符, 只用于提升模式字符串的可读性, 不参与匹配
+  INSTPAT_START+INSTPAT(auipc)宏定义展开后类似如下:
+  { const void * __instpat_end = &&__instpat_end_;
+do {
+  uint64_t key, mask, shift;
+  pattern_decode("??????? ????? ????? ??? ????? 00101 11", 38, &key, &mask, &shift);
+  if ((((uint64_t)s->isa.inst >> shift) & mask) == key) {
+    {
+      int rd = 0;
+      word_t src1 = 0, src2 = 0, imm = 0;
+      decode_operand(s, &rd, &src1, &src2, &imm, TYPE_U);
+      R(rd) = s->pc + imm;
+    }
+    goto *(__instpat_end);
+  }
+} while (0);
+// ...
+__instpat_end_: ; }
+  key   = 0x17;
+  mask  = 0x7f;
+  shift = 0;
+  */
   INSTPAT_START();
   INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(rd) = s->pc + imm);
   INSTPAT("??????? ????? ????? 100 ????? 00000 11", lbu    , I, R(rd) = Mr(src1 + imm, 1));
@@ -73,6 +100,12 @@ static int decode_exec(Decode *s) {
 }
 
 int isa_exec_once(Decode *s) {
+  // 随着取指的过程修改s->snpc的值, 使得从isa_exec_once()返回后s->snpc正好为下一条指令的PC. 
+  // inst_fetch()会将inst字节序列按照小端序存入s->isa.inst中，大部分主机CPU会按照小端方式解释，可Motorola 68k系列的处理器都是大端架构
+  // 1.假设我们需要将NEMU运行在Motorola 68k的机器上(把NEMU的源代码编译成Motorola 68k的机器码) 
+  // 2.假设我们需要把Motorola 68k作为一个新的ISA加入到NEMU中
+  // 可以使用预定义宏，编写条件代码
   s->isa.inst = inst_fetch(&s->snpc, 4);
+  // 通过s->dnpc更新返回下一条指令的PC
   return decode_exec(s);
 }

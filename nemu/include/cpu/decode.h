@@ -17,7 +17,8 @@
 #define __CPU_DECODE_H__
 
 #include <isa.h>
-
+// 在程序分析领域中, 静态指令是指程序代码中的指令, 动态指令是指程序运行过程中的指令. 
+// 简单的理解为顺序执行的下一条指令是静态的下一条指令, 而分支跳转后的下一条指令是动态的下一条指令.
 typedef struct Decode {
   vaddr_t pc;
   vaddr_t snpc; // static next pc
@@ -87,6 +88,7 @@ finish:
 
 
 // --- pattern matching wrappers for decode ---
+// pattern_decode()函数将模式字符串中的0和1抽取到整型变量key中, mask表示key的掩码, 而shift则表示opcode距离最低位的比特数量
 #define INSTPAT(pattern, ...) do { \
   uint64_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
