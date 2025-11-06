@@ -11,7 +11,7 @@ size_t strlen(const char *s) {
     s++;
   }
   return len;
-  panic("Not implemented");
+  //panic("Not implemented");
 }
 
 char *strcpy(char *dst, const char *src) {
