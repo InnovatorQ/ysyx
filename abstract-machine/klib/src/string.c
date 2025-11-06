@@ -11,40 +11,40 @@ size_t strlen(const char *s) {
     s++;
   }
   return len;
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 char *strcpy(char *dst, const char *src) {
 
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 char *strncpy(char *dst, const char *src, size_t n) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 char *strcat(char *dst, const char *src) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 int strcmp(const char *s1, const char *s2) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 int strncmp(const char *s1, const char *s2, size_t n) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 void *memset(void *s, int c, size_t n) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
-  //panic("Not implemented");
+  panic("Not implemented");
 }
 
 int memcmp(const void *s1, const void *s2, size_t n) {
