@@ -5,7 +5,9 @@
 
 #include ISA_H // the macro `ISA_H` is defined in CFLAGS
                // it will be expanded as "x86/x86.h", "mips/mips32.h", ...
-
+// 内联汇编语句：允许你在C代码中直接嵌入汇编指令。
+// 这主要用于需要直接操作硬件、执行特权指令或对性能有极致要求的场景（如操作系统内核、驱动程序和嵌入式系统开发）
+// 通过将标识结束的结束码移动到通用寄存器中,将其作为参数传给set_nemu_state(),将halt()中的结束码设置到NEMU的monitor中
 #if defined(__ISA_X86__)
 # define nemu_trap(code) asm volatile ("int3" : :"a"(code))
 #elif defined(__ISA_MIPS32__)

@@ -8,12 +8,14 @@ html:
 ## 1. Basic Setup and Checks
 
 ### Default to create a bare-metal kernel image
+### 如果用户只敲了 make（没有指定目标），默认执行 make image
 ifeq ($(MAKECMDGOALS),)
   MAKECMDGOALS  = image
   .DEFAULT_GOAL = image
 endif
 
 ### Override checks when `make clean/clean-all/html`
+### 如果用户执行的是清理命令，就跳过一堆检查
 ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html),)
 
 ### Print build info message
@@ -50,7 +52,7 @@ WORK_DIR  = $(shell pwd)
 DST_DIR   = $(WORK_DIR)/build/$(ARCH)
 $(shell mkdir -p $(DST_DIR))
 
-### Compilation targets (a binary image or archive)
+### Compilation targets (a binary image（ELF可执行文件） or archive（静态库文件）)
 IMAGE_REL = build/$(NAME)-$(ARCH)
 IMAGE     = $(abspath $(IMAGE_REL))
 ARCHIVE   = $(WORK_DIR)/build/$(NAME)-$(ARCH).a
@@ -77,6 +79,15 @@ INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, 
 INCFLAGS += $(addprefix -I, $(INC_PATH))
 
 ARCH_H := arch/$(ARCH).h
+### Common compilation flags for all languages
+# 选项	含义
+# -O2	优化级别
+# -MMD	自动生成 .d 依赖文件（include 追踪）
+# -Wall -Werror	打开所有警告，并视为错误
+# -fno-builtin	禁止使用 GCC 内建函数（防止优化掉 OS 自己的实现）
+# -fno-stack-protector	去掉栈保护（裸机编译中没必要）
+# -ffreestanding	告诉编译器“没有标准库环境”
+# -DARCH_H=\"arch/...h\"	宏定义，告诉代码当前编译的架构
 CFLAGS   += -O2 -MMD -Wall -Werror $(INCFLAGS) \
             -D__ISA__=\"$(ISA)\" -D__ISA_$(shell echo $(ISA) | tr a-z A-Z)__ \
             -D__ARCH__=$(ARCH) -D__ARCH_$(shell echo $(ARCH) | tr a-z A-Z | tr - _) \
@@ -117,6 +128,7 @@ $(DST_DIR)/%.o: %.S
 
 ifeq ($(MAKECMDGOALS),archive)
 ### Rule (archive): objects (`*.o`) -> `ARCHIVE.a` (ar)
+### 将$ISA-nemu的AM实现源文件编译成目标文件, 然后通过ar将这些目标文件作为一个库, 打包成一个归档文件
 $(ARCHIVE): $(OBJS)
 	@echo + AR "->" $(shell realpath $@ --relative-to .)
 	@$(AR) rcs $@ $^
