@@ -163,9 +163,7 @@ endif
 image: image-dep
 archive: $(ARCHIVE)
 image-dep: $(IMAGE).elf
-run: image 
-	$(IMAGE) -b
-.PHONY: image image-dep archive run
+.PHONY: image image-dep archive 
 
 ### Force to rebuild a rule
 force:
