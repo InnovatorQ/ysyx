@@ -48,10 +48,10 @@ int sprintf(char *out, const char *fmt, ...) {
         while(*str) *pbuf++ = *str++;
         break;
       }
-      case 'c': {
-        *pbuf++ = va_arg(args, int);
-        break;
-      }
+      // case 'c': {
+      //   *pbuf++ = va_arg(args, int);
+      //   break;
+      // }
       case '%': {
         *pbuf++ = '%';
         break;
