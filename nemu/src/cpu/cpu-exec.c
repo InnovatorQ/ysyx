@@ -47,17 +47,9 @@ void iringbuf_display() {
   for (int i = 0; i < IRINGBUF_SIZE; i++) {
     int idx = (iringbuf_ptr + i) % IRINGBUF_SIZE;
     if (iringbuf[idx].pc == 0) continue;
-    //打印箭头和PC
-    printf("%s" FMT_WORD ": ", 
-           (idx == (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE) ? "-->" : "   ",
-           iringbuf[idx].pc);
-    
-    // 打印指令字节
-    uint8_t *inst = (uint8_t *)&iringbuf[idx].inst;
-    for (int j = 3; j >= 0; j--) {  //小端序,先默认32位
-      printf("%02x ", inst[j]);
-    }
-    
+    //打印箭头
+    printf("%s" , 
+           (idx == (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE) ? "-->" : "   ");
     // 提取出形如：s2, 16(sp)的反汇编指令
     printf("%s\n", iringbuf[idx].logbuf);
     
