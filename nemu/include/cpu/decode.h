@@ -27,6 +27,19 @@ typedef struct Decode {
   IFDEF(CONFIG_ITRACE, char logbuf[128]);
 } Decode;
 
+// Instruction ring buffer
+#define IRINGBUF_SIZE 16
+typedef struct {
+  vaddr_t pc;
+  uint32_t inst;
+  char logbuf[128];
+} IringBufEntry;
+
+extern IringBufEntry iringbuf[IRINGBUF_SIZE];
+extern int iringbuf_ptr;
+void iringbuf_write(Decode *s);
+void iringbuf_display();
+
 // --- pattern matching mechanism ---
 __attribute__((always_inline))
 static inline void pattern_decode(const char *str, int len,

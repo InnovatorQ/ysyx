@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include <string.h>
 #include "../monitor/sdb/sdb.h"
 
 /* The assembly code of instructions executed is only output to the screen
@@ -31,14 +32,53 @@ uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
-void device_update();
+// Instruction ring buffer
+IringBufEntry iringbuf[IRINGBUF_SIZE];
+int iringbuf_ptr = 0;
 
+void iringbuf_write(Decode *s) {
+  iringbuf[iringbuf_ptr].pc = s->pc;
+  iringbuf[iringbuf_ptr].inst = s->isa.inst;
+  strcpy(iringbuf[iringbuf_ptr].logbuf, s->logbuf);
+  iringbuf_ptr = (iringbuf_ptr + 1) % IRINGBUF_SIZE;
+}
+
+void iringbuf_display() {
+  printf("Recent executed instructions:\n");
+  for (int i = 0; i < IRINGBUF_SIZE; i++) {
+    int idx = (iringbuf_ptr + i) % IRINGBUF_SIZE;
+    if (iringbuf[idx].pc == 0) continue;
+    
+    printf("%s" FMT_WORD ": ", 
+           (idx == (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE) ? "-->" : "   ",
+           iringbuf[idx].pc);
+    
+    // Print instruction bytes
+    uint8_t *inst = (uint8_t *)&iringbuf[idx].inst;
+    for (int j = 3; j >= 0; j--) {
+      printf("%02x ", inst[j]);
+    }
+    
+    // Extract and print disassembly
+    char *asm_start = strchr(iringbuf[idx].logbuf, '\t');
+    if (asm_start) {
+      printf("%s", asm_start + 1);
+    }
+    printf("\n");
+  }
+}
+
+void device_update();
+// 条件跟踪代码
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }  //将生成的PC地址，机器码字节，反汇编指令写入日志
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+  
+  // Write to instruction ring buffer
+  IFDEF(CONFIG_ITRACE, iringbuf_write(_this));
   
 #ifdef CONFIG_WATCHPOINT
   if (check_watchpoints()) {
@@ -53,6 +93,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   isa_exec_once(s);
   cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
+  //日志生成代码
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;
@@ -61,7 +102,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #ifdef CONFIG_ISA_x86
   for (i = 0; i < ilen; i ++) {
 #else
-  for (i = ilen - 1; i >= 0; i --) {
+  for (i = ilen - 1; i >= 0; i --) {  //输出机器码字节
 #endif
     p += snprintf(p, 4, " %02x", inst[i]);
   }
@@ -73,6 +114,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   p += space_len;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  //反汇编生成汇编指令
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
 #endif
@@ -99,6 +141,7 @@ static void statistic() {
 }
 
 void assert_fail_msg() {
+  IFDEF(CONFIG_ITRACE, iringbuf_display());
   isa_reg_display();
   statistic();
 }
