@@ -27,22 +27,22 @@ int sprintf(char *out, const char *fmt, ...) {
     }
     pf++;
     switch (*pf) {
-      case 'd': {
-        int num = va_arg(args, int);
-        if(num < 0) {
-          *pbuf++ = '-';
-          num = -num;
-        }
-        char temp[12];
-        int i = 0;
-        if(num == 0) temp[i++] = '0';
-        while(num > 0) {
-          temp[i++] = '0' + num % 10;
-          num /= 10;
-        }
-        while(--i >= 0) *pbuf++ = temp[i];
-        break;
-      }
+      // case 'd': {
+      //   int num = va_arg(args, int);
+      //   if(num < 0) {
+      //     *pbuf++ = '-';
+      //     num = -num;
+      //   }
+      //   char temp[12];
+      //   int i = 0;
+      //   if(num == 0) temp[i++] = '0';
+      //   while(num > 0) {
+      //     temp[i++] = '0' + num % 10;
+      //     num /= 10;
+      //   }
+      //   while(--i >= 0) *pbuf++ = temp[i];
+      //   break;
+      // }
       // case 's': {
       //   char *str = va_arg(args, char*);
       //   while(*str) *pbuf++ = *str++;
