@@ -26,12 +26,13 @@ char *strcpy(char *dst, const char *src) {
 char *strncpy(char *dst, const char *src, size_t n) {
   char *temp = dst;
   assert((dst != NULL) && (src != NULL));
-  while(n){
-    *temp++ = *src++;
-    n--; 
+  while(n && (*temp = *src)){
+    temp++; src++; n--;
+  }
+  while(n--){
+    *temp++ = '\0';
   }
   return dst;
-  //panic("Not implemented");
 }
 
 char *strcat(char *dst, const char *src) {
@@ -69,25 +70,22 @@ void *memset(void *s, int c, size_t n) {
   const unsigned char unsigned_c = c;
   unsigned char *temp = s;
   while(n--){
-    *temp = unsigned_c;
+    *temp++ = unsigned_c;
   }
   return s;
-  panic("Not implemented");
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
   assert((dst != NULL) && (src != NULL));
   char *pd = dst;
   const char *ps = src;
-  void *ret = dst;  //保存目标起始地址
+  void *ret = dst;
 
   if(pd <= ps || pd >= ps + n){
-    //无重叠且dst在src之前，从前往后复制
     while(n--){
       *pd++ = *ps++;
     }
   }else{
-    //参与重叠且dst在src之后
     pd += n - 1;
     ps += n - 1;
     while(n--){
@@ -95,7 +93,6 @@ void *memmove(void *dst, const void *src, size_t n) {
     }
   }
   return ret;
-  panic("Not implemented");
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
@@ -106,7 +103,6 @@ void *memcpy(void *out, const void *in, size_t n) {
     *d++ = *s++;
   }
   return out;
-  panic("Not implemented");
 }
 
 int memcmp(const void *s1, const void *s2, size_t n) {
@@ -119,7 +115,6 @@ int memcmp(const void *s1, const void *s2, size_t n) {
     p1++; p2++; 
   }
   return 0;
-  panic("Not implemented");
 }
 
 #endif
