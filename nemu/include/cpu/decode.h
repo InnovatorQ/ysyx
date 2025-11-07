@@ -28,7 +28,7 @@ typedef struct Decode {
 } Decode;
 
 // iringbuf数据结构
-#define IRINGBUF_SIZE 16
+#define IRINGBUF_SIZE 64
 typedef struct {
   vaddr_t pc;
   uint32_t inst;
