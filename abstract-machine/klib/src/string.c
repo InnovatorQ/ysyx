@@ -7,7 +7,7 @@
 size_t strlen(const char *s) {
   assert(s != NULL);
   size_t len = 0;
-  while(*s != '\n'){
+  while(*s != '\0'){
     len++;
     s++;
   }
