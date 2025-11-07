@@ -31,7 +31,7 @@ char *strncpy(char *dst, const char *src, size_t n) {
     n--; 
   }
   return dst;
-  panic("Not implemented");
+  //panic("Not implemented");
 }
 
 char *strcat(char *dst, const char *src) {
@@ -42,7 +42,7 @@ char *strcat(char *dst, const char *src) {
   }
   while((*temp++ = *src++) != '\0');
   return dst;
-  panic("Not implemented");
+  //panic("Not implemented");
 }
 
 int strcmp(const char *s1, const char *s2) {
@@ -52,7 +52,7 @@ int strcmp(const char *s1, const char *s2) {
     s1++; s2++;
   }
   return *(unsigned char*)s1 - *(unsigned char*)s2;
-  panic("Not implemented");
+  //panic("Not implemented");
 }
 
 int strncmp(const char *s1, const char *s2, size_t n) {
@@ -62,23 +62,64 @@ int strncmp(const char *s1, const char *s2, size_t n) {
     s1++; s2++;
   }
   return *(unsigned char*)s1 - *(unsigned char*)s2;
-  panic("Not implemented");
+  //panic("Not implemented");
 }
 
 void *memset(void *s, int c, size_t n) {
+  assert(s != NULL);
+  const unsigned char unsigned_c = c;
+  unsigned char *temp = s;
+  while(n--){
+    *temp = unsigned_c;
+  }
+  return s;
   panic("Not implemented");
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
-  
+  assert((dst != NULL) && (src != NULL));
+  char *pd = dst;
+  const char *ps = src;
+  void *ret = dst;  //保存目标起始地址
+
+  if(pd <= ps || pd >= ps + n){
+    //无重叠且dst在src之前，从前往后复制
+    while(n--){
+      *pd++ = *ps++;
+    }
+  }else{
+    //参与重叠且dst在src之后
+    pd += n - 1;
+    ps += n - 1;
+    while(n--){
+      *pd-- = *ps--;
+    }
+  }
+  return ret;
   panic("Not implemented");
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
+  assert((out != NULL) && (in != NULL));
+  char *d = out;
+  const char *s = in;
+  while(n--){
+    *d++ = *s++;
+  }
+  return out;
   panic("Not implemented");
 }
 
 int memcmp(const void *s1, const void *s2, size_t n) {
+  assert((s1 != NULL) && (s2 != NULL));
+  const unsigned char *p1 = s1, *p2 = s2;
+  while(n--){
+    if(*p1 != *p2){
+      return (int)(*p1 - *p2);
+    }
+    p1++; p2++; 
+  }
+  return 0;
   panic("Not implemented");
 }
 
