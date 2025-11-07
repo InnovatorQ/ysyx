@@ -34,7 +34,7 @@ static bool g_print_step = false;
 // Instruction ring buffer
 IringBufEntry iringbuf[IRINGBUF_SIZE];
 int iringbuf_ptr = 0;
-
+int iringbuf_error_ptr = -1;
 void iringbuf_write(Decode *s) {
   iringbuf[iringbuf_ptr].pc = s->pc;
   iringbuf[iringbuf_ptr].inst = s->isa.inst;
@@ -49,7 +49,7 @@ void iringbuf_display() {
     if (iringbuf[idx].pc == 0) continue;
     //打印箭头
     printf("%s" , 
-           (idx == (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE) ? "-->" : "   ");
+           (idx == iringbuf_error_ptr) ? "-->" : "   ");
     // 提取出形如：s2, 16(sp)的反汇编指令
     printf("%s\n", iringbuf[idx].logbuf);
     
@@ -65,7 +65,10 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
-  
+  // 寻找出导致NEMU出现ABORT的指令
+  if (nemu_state.state == NEMU_ABORT) {
+    iringbuf_error_ptr = (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE;
+  }
   IFDEF(CONFIG_ITRACE, iringbuf_write(_this));
   
 #ifdef CONFIG_WATCHPOINT

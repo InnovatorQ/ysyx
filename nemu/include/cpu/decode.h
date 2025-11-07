@@ -36,7 +36,8 @@ typedef struct {
 } IringBufEntry;
 
 extern IringBufEntry iringbuf[IRINGBUF_SIZE];
-extern int iringbuf_ptr;
+extern int iringbuf_ptr;        // 索引
+extern int iringbuf_error_ptr;  // 指向引发错误的指令
 void iringbuf_write(Decode *s);
 void iringbuf_display();
 
