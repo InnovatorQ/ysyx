@@ -43,15 +43,15 @@ int sprintf(char *out, const char *fmt, ...) {
         while(--i >= 0) *pbuf++ = temp[i];
         break;
       }
-      case 's': {
-        char *str = va_arg(args, char*);
-        while(*str) *pbuf++ = *str++;
-        break;
-      }
-      // case 'c': {
-      //   *pbuf++ = va_arg(args, int);
+      // case 's': {
+      //   char *str = va_arg(args, char*);
+      //   while(*str) *pbuf++ = *str++;
       //   break;
       // }
+      case 'c': {
+        *pbuf++ = va_arg(args, int);
+        break;
+      }
       case '%': {
         *pbuf++ = '%';
         break;
