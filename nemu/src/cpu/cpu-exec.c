@@ -59,12 +59,9 @@ void iringbuf_display() {
     }
     
     // 提取出形如：s2, 16(sp)的反汇编指令
-    char *asm_start = strchr(iringbuf[idx].logbuf, '\t');
-    if (asm_start) {
-      //打印反汇编指令
-      printf("%s", asm_start + 1);
-    }
-    printf("\n");
+    printf("%s\n", iringbuf[idx].logbuf);
+    
+    
   }
 }
 
