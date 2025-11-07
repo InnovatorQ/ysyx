@@ -27,7 +27,7 @@ typedef struct Decode {
   IFDEF(CONFIG_ITRACE, char logbuf[128]);
 } Decode;
 
-// Instruction ring buffer
+// iringbuf数据结构
 #define IRINGBUF_SIZE 16
 typedef struct {
   vaddr_t pc;

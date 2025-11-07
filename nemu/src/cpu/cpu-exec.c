@@ -39,28 +39,29 @@ void iringbuf_write(Decode *s) {
   iringbuf[iringbuf_ptr].pc = s->pc;
   iringbuf[iringbuf_ptr].inst = s->isa.inst;
   strcpy(iringbuf[iringbuf_ptr].logbuf, s->logbuf);
+  //环形
   iringbuf_ptr = (iringbuf_ptr + 1) % IRINGBUF_SIZE;
 }
 
 void iringbuf_display() {
-  printf("Recent executed instructions:\n");
   for (int i = 0; i < IRINGBUF_SIZE; i++) {
     int idx = (iringbuf_ptr + i) % IRINGBUF_SIZE;
     if (iringbuf[idx].pc == 0) continue;
-    
+    //打印箭头和PC
     printf("%s" FMT_WORD ": ", 
            (idx == (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE) ? "-->" : "   ",
            iringbuf[idx].pc);
     
-    // Print instruction bytes
+    // 打印指令字节
     uint8_t *inst = (uint8_t *)&iringbuf[idx].inst;
-    for (int j = 3; j >= 0; j--) {
+    for (int j = 3; j >= 0; j--) {  //小端序,先默认32位
       printf("%02x ", inst[j]);
     }
     
-    // Extract and print disassembly
+    // 提取出形如：s2, 16(sp)的反汇编指令
     char *asm_start = strchr(iringbuf[idx].logbuf, '\t');
     if (asm_start) {
+      //打印反汇编指令
       printf("%s", asm_start + 1);
     }
     printf("\n");
@@ -68,7 +69,7 @@ void iringbuf_display() {
 }
 
 void device_update();
-// 条件跟踪代码
+// 更新设备状态， 条件跟踪代码
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }  //将生成的PC地址，机器码字节，反汇编指令写入日志
@@ -94,13 +95,13 @@ static void exec_once(Decode *s, vaddr_t pc) {
   //日志生成代码
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-  int ilen = s->snpc - s->pc;
+  int ilen = s->snpc - s->pc; // 通过 snpc - pc 计算得出当前指令占用的字节数
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst;
 #ifdef CONFIG_ISA_x86
-  for (i = 0; i < ilen; i ++) {
+  for (i = 0; i < ilen; i ++) { //大端序，从低地址到高地址输出字节
 #else
-  for (i = ilen - 1; i >= 0; i --) {  //输出机器码字节
+  for (i = ilen - 1; i >= 0; i --) {  //输出机器码字节，小端序
 #endif
     p += snprintf(p, 4, " %02x", inst[i]);
   }
