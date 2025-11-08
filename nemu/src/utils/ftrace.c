@@ -194,7 +194,7 @@ void init_ftrace(const char *elf_file) {
       symbols[idx].name = strdup(strtab_data + syms[i].st_name);
       symbols[idx].addr = syms[i].st_value;  // 函数地址
       symbols[idx].size = syms[i].st_size;   // 函数大小
-      
+      idx++;
     }
   }
 
