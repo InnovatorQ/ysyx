@@ -185,6 +185,12 @@ void ftrace_call(vaddr_t pc, vaddr_t target) {
     for (int i = 0; i < call_depth; i++) printf("  ");
     // 输出函数调用信息
     printf("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
+    
+    // 同时输出到日志文件（如果启用了日志）
+    log_write("FTRACE: ");
+    for (int i = 0; i < call_depth; i++) log_write("  ");
+    log_write("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
+    
     call_depth++;  // 增加调用深度
   }
 }
@@ -203,5 +209,10 @@ void ftrace_ret(vaddr_t pc) {
     for (int i = 0; i < call_depth; i++) printf("  ");
     // 输出函数返回信息
     printf("ret  [" FMT_WORD "]\n", pc);
+    
+    // 同时输出到日志文件（如果启用了日志）
+    log_write("FTRACE: ");
+    for (int i = 0; i < call_depth; i++) log_write("  ");
+    log_write("ret  [" FMT_WORD "]\n", pc);
   }
 }
