@@ -31,13 +31,7 @@ static int call_depth = 0;        // 当前函数调用深度，用于输出缩�
 #define MAX_CALL_DEPTH 64
 static const char* call_stack[MAX_CALL_DEPTH];  // 存储每层调用的函数名
 
-/**
- * 根据地址查找对应的函数名
- * @param addr 要查找的地址
- * @return 函数名字符串，如果找不到返回NULL
- * 
- * 遍历所有已加载的函数符号，检查给定地址是否在某个函数的地址范围内
- */
+
 static const char* find_symbol(vaddr_t addr) {
   for (int i = 0; i < symbol_count; i++) {
     // 检查地址是否在函数的地址范围内 [addr, addr+size)
@@ -48,16 +42,7 @@ static const char* find_symbol(vaddr_t addr) {
   return NULL;  // 没找到对应的函数
 }
 
-/**
- * 初始化ftrace功能，从ELF文件中读取函数符号信息
- * @param elf_file ELF文件路径
- * 
- * ELF文件解析步骤：
- * 1. 读取ELF文件头，验证文件格式
- * 2. 读取节头表，找到符号表和字符串表的位置
- * 3. 读取符号表，提取所有函数符号
- * 4. 将函数信息存储到全局数组中供后续使用
- */
+
 void init_ftrace(const char *elf_file) {
   // 如果没有提供ELF文件，直接返回
   if (!elf_file) return;
@@ -223,14 +208,6 @@ cleanup:
   fclose(fp);
 }
 
-/**
- * 记录函数调用
- * @param pc 调用指令的地址
- * @param target 被调用函数的地址
- * 
- * 输出格式：call [调用地址 -> 目标地址] 函数名
- * 使用缩进表示调用层次
- */
 void ftrace_call(vaddr_t pc, vaddr_t target) {
   const char *func_name = find_symbol(target);  // 查找目标地址对应的函数名
   if (func_name) {
@@ -239,7 +216,7 @@ void ftrace_call(vaddr_t pc, vaddr_t target) {
     // 输出函数调用信息
     printf("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
     
-    // 同时输出到日志文件（如果启用了日志）
+    // 同时输出到日志文件
     log_write("FTRACE: ");
     for (int i = 0; i < call_depth; i++) log_write("  ");
     log_write("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
@@ -252,13 +229,6 @@ void ftrace_call(vaddr_t pc, vaddr_t target) {
   }
 }
 
-/**
- * 记录函数返回
- * @param pc 返回指令的地址
- * 
- * 输出格式：ret [返回地址]
- * 使用缩进表示调用层次
- */
 void ftrace_ret(vaddr_t pc) {
   if (call_depth > 0) {
     call_depth--;  // 减少调用深度
