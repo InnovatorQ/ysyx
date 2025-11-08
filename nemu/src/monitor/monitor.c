@@ -46,7 +46,7 @@ void sdb_set_batch_mode();
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
-static char *elf_file = NULL; //elf为增加功能
+static char *elf_file = NULL;      // ELF文件路径，用于ftrace功能读取函数符号信息 //elf为增加功能
 static int difftest_port = 1234;
 
 static long load_img() {
@@ -73,23 +73,23 @@ static long load_img() {
 
 static int parse_args(int argc, char *argv[]) {
   const struct option table[] = {
-    {"batch"    , no_argument      , NULL, 'b'},
-    {"log"      , required_argument, NULL, 'l'},
-    {"diff"     , required_argument, NULL, 'd'},
-    {"port"     , required_argument, NULL, 'p'},
-    {"elf"      , required_argument, NULL, 'e'},
-    {"help"     , no_argument      , NULL, 'h'},
+    {"batch"    , no_argument      , NULL, 'b'},  // 批处理模式，不进入交互式调试
+    {"log"      , required_argument, NULL, 'l'},  // 指定日志输出文件
+    {"diff"     , required_argument, NULL, 'd'},  // 指定DiffTest参考实现
+    {"port"     , required_argument, NULL, 'p'},  // 指定DiffTest端口
+    {"elf"      , required_argument, NULL, 'e'},  // 指定ELF文件，用于ftrace功能
+    {"help"     , no_argument      , NULL, 'h'},  // 显示帮助信息
     {0          , 0                , NULL,  0 },
   };
   int o;
   while ( (o = getopt_long(argc, argv, "-bhl:d:p:e:", table, NULL)) != -1) {
     switch (o) {
-      case 'b': sdb_set_batch_mode(); break;
-      case 'p': sscanf(optarg, "%d", &difftest_port); break;
-      case 'l': log_file = optarg; break;
-      case 'd': diff_so_file = optarg; break;
-      case 'e': elf_file = optarg; break;
-      case 1: img_file = optarg; return 0;
+      case 'b': sdb_set_batch_mode(); break;           // 设置批处理模式
+      case 'p': sscanf(optarg, "%d", &difftest_port); break;  // 解析DiffTest端口号
+      case 'l': log_file = optarg; break;              // 设置日志文件路径
+      case 'd': diff_so_file = optarg; break;          // 设置DiffTest参考实现路径
+      case 'e': elf_file = optarg; break;              // 设置ELF文件路径，用于ftrace
+      case 1: img_file = optarg; return 0;             // 设置程序镜像文件路径
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");
