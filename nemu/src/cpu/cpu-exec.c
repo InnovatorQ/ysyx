@@ -30,11 +30,12 @@ CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
-
+#ifdef CONFIG_ITRACE_COND
 // Instruction ring buffer
 IringBufEntry iringbuf[IRINGBUF_SIZE];
 int iringbuf_ptr = 0;
 int iringbuf_error_ptr = -1;
+
 void iringbuf_write(Decode *s) {
   iringbuf[iringbuf_ptr].pc = s->pc;
   iringbuf[iringbuf_ptr].inst = s->isa.inst;
@@ -56,12 +57,13 @@ void iringbuf_display() {
     
   }
 }
-
+#endif
 void device_update();
 // 更新设备状态， 条件跟踪代码
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }  //将生成的PC地址，机器码字节，反汇编指令写入日志
+  IFDEF(CONFIG_ITRACE, iringbuf_write(_this));
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
@@ -69,7 +71,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (nemu_state.state == NEMU_ABORT) {
     iringbuf_error_ptr = (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE;
   }
-  IFDEF(CONFIG_ITRACE, iringbuf_write(_this));
+  
   
 #ifdef CONFIG_WATCHPOINT
   if (check_watchpoints()) {
