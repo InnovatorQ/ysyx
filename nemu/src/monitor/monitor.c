@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <ftrace.h>
 
 
 void init_rand();
@@ -120,6 +121,9 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());
+
+  /* Initialize ftrace. */
+  init_ftrace(elf_file);
 
   /* Perform ISA dependent initialization. */
   init_isa();
