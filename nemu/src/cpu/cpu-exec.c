@@ -31,14 +31,45 @@ uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
-void device_update();
+// Instruction ring buffer
+IringBufEntry iringbuf[IRINGBUF_SIZE];
+int iringbuf_ptr = 0;
+int iringbuf_error_ptr = -1;
+void iringbuf_write(Decode *s) {
+  iringbuf[iringbuf_ptr].pc = s->pc;
+  iringbuf[iringbuf_ptr].inst = s->isa.inst;
+  strcpy(iringbuf[iringbuf_ptr].logbuf, s->logbuf);
+  //环形
+  iringbuf_ptr = (iringbuf_ptr + 1) % IRINGBUF_SIZE;
+}
 
+void iringbuf_display() {
+  for (int i = 0; i < IRINGBUF_SIZE; i++) {
+    int idx = (iringbuf_ptr + i) % IRINGBUF_SIZE;
+    if (iringbuf[idx].pc == 0) continue;
+    //打印箭头
+    printf("%s" , 
+           (idx == iringbuf_error_ptr) ? "-->" : "   ");
+    // 提取出形如：s2, 16(sp)的反汇编指令
+    printf("%s\n", iringbuf[idx].logbuf);
+    
+    
+  }
+}
+
+void device_update();
+// 更新设备状态， 条件跟踪代码
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
-  if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
+  if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }  //将生成的PC地址，机器码字节，反汇编指令写入日志
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
+  // 寻找出导致NEMU出现ABORT的指令
+  if (nemu_state.state == NEMU_ABORT) {
+    iringbuf_error_ptr = (iringbuf_ptr - 1 + IRINGBUF_SIZE) % IRINGBUF_SIZE;
+  }
+  IFDEF(CONFIG_ITRACE, iringbuf_write(_this));
   
 #ifdef CONFIG_WATCHPOINT
   if (check_watchpoints()) {
@@ -53,15 +84,16 @@ static void exec_once(Decode *s, vaddr_t pc) {
   isa_exec_once(s);
   cpu.pc = s->dnpc;
 #ifdef CONFIG_ITRACE
+  //日志生成代码
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-  int ilen = s->snpc - s->pc;
+  int ilen = s->snpc - s->pc; // 通过 snpc - pc 计算得出当前指令占用的字节数
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst;
 #ifdef CONFIG_ISA_x86
-  for (i = 0; i < ilen; i ++) {
+  for (i = 0; i < ilen; i ++) { //大端序，从低地址到高地址输出字节
 #else
-  for (i = ilen - 1; i >= 0; i --) {
+  for (i = ilen - 1; i >= 0; i --) {  //输出机器码字节，小端序
 #endif
     p += snprintf(p, 4, " %02x", inst[i]);
   }
@@ -73,6 +105,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   p += space_len;
 
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  //反汇编生成汇编指令
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
 #endif
@@ -99,6 +132,7 @@ static void statistic() {
 }
 
 void assert_fail_msg() {
+  IFDEF(CONFIG_ITRACE, iringbuf_display());
   isa_reg_display();
   statistic();
 }
