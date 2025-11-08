@@ -1,7 +1,7 @@
 /*
  * ftrace.c - 函数调用跟踪功能实现
  * 
- * 本文件实现了函数调用跟踪功能，主要包括：
+ * 实现了函数调用跟踪功能，主要包括：
  * 1. ELF文件解析：读取符号表获取函数信息
  * 2. 函数符号管理：存储和查找函数符号
  * 3. 调用跟踪：记录函数调用和返回
@@ -68,7 +68,7 @@ void init_ftrace(const char *elf_file) {
     return;
   }
   
-  // 验证ELF魔数，确保这是一个有效的ELF文件
+  // 验证ELFmagic，确保这是一个有效的ELF文件
   if (memcmp(ehdr.e_ident, ELFMAG, SELFMAG) != 0) {
     Log("Not a valid ELF file");
     fclose(fp);
