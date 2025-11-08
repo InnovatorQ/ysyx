@@ -1,14 +1,19 @@
-/*
- * ftrace.c - 函数调用跟踪功能实现
- * 
- * 实现了函数调用跟踪功能，主要包括：
- * 1. ELF文件解析：读取符号表获取函数信息
- * 2. 函数符号管理：存储和查找函数符号
- * 3. 调用跟踪：记录函数调用和返回
- */
-
 #include <ftrace.h>
 #include <elf.h>
+
+/*
+ElfN_Addr       Unsigned program address, uintN_t
+           ElfN_Off        Unsigned file offset, uintN_t
+           ElfN_Section    Unsigned section index, uint16_t
+           ElfN_Versym     Unsigned version symbol information, uint16_t
+           Elf_Byte        unsigned char
+           ElfN_Half       uint16_t
+           ElfN_Sword      int32_t
+           ElfN_Word       uint32_t
+           ElfN_Sxword     int64_t
+           ElfN_Xword      uint64_t
+
+*/
 
 // 函数符号结构体，用于存储从ELF文件中解析出的函数信息
 typedef struct {
@@ -65,6 +70,25 @@ void init_ftrace(const char *elf_file) {
   }
 
   // 步骤1: 读取ELF文件头
+  /*
+  typedef struct
+{
+  unsigned char	e_ident[EI_NIDENT];	 Magic number and other info 
+  Elf32_Half	e_type;			 Object file type 
+  Elf32_Half	e_machine;		 Architecture 
+  Elf32_Word	e_version;		 Object file version 
+  Elf32_Addr	e_entry;		 Entry point virtual address 
+  Elf32_Off	e_phoff;		 Program header table file offset 
+  Elf32_Off	e_shoff;		 Section header table file offset 
+  Elf32_Word	e_flags;		 Processor-specific flags 
+  Elf32_Half	e_ehsize;		 ELF header size in bytes 
+  Elf32_Half	e_phentsize;		 Program header table entry size 
+  Elf32_Half	e_phnum;		 Program header table entry count 
+  Elf32_Half	e_shentsize;		 Section header table entry size 
+  Elf32_Half	e_shnum;		 Section header table entry count 
+  Elf32_Half	e_shstrndx;		 Section header string table index 
+} Elf32_Ehdr; 
+  */
   Elf32_Ehdr ehdr;  // ELF文件头结构体
   if (fread(&ehdr, sizeof(ehdr), 1, fp) != 1) {
     Log("Failed to read ELF header");
@@ -80,21 +104,35 @@ void init_ftrace(const char *elf_file) {
   }
 
   // 步骤2: 读取节头表（Section Header Table）
-  // 节头表包含了文件中所有节的信息，如符号表、字符串表等
+  /*
+  typedef struct
+{
+  Elf32_Word	sh_name;		 Section name (string tbl index) 
+  Elf32_Word	sh_type;		 Section type 
+  Elf32_Word	sh_flags;		 Section flags 
+  Elf32_Addr	sh_addr;		 Section virtual addr at execution 
+  Elf32_Off	sh_offset;		 Section file offset 
+  Elf32_Word	sh_size;		 Section size in bytes 
+  Elf32_Word	sh_link;		 Link to another section 
+  Elf32_Word	sh_info;		 Additional section information 
+  Elf32_Word	sh_addralign;  Section alignment 
+  Elf32_Word	sh_entsize;		 Entry size if section holds table 
+} Elf32_Shdr;
+  */
   Elf32_Shdr *shdrs = malloc(ehdr.e_shnum * sizeof(Elf32_Shdr));
-  fseek(fp, ehdr.e_shoff, SEEK_SET);  // 跳转到节头表位置
-  if (fread(shdrs, sizeof(Elf32_Shdr), ehdr.e_shnum, fp) != ehdr.e_shnum) {
+  fseek(fp, ehdr.e_shoff, SEEK_SET);  // 跳转到节头表首地址
+  if (fread(shdrs, sizeof(Elf32_Shdr), ehdr.e_shnum, fp) != ehdr.e_shnum) { //保证节头数量正确
     Log("Failed to read section headers");
     free(shdrs);
     fclose(fp);
     return;
   }
 
-  // 步骤3: 读取节头字符串表
-  // 这个表存储了所有节的名称，用于查找特定的节
-  Elf32_Shdr *shstrtab = &shdrs[ehdr.e_shstrndx];
-  char *shstrtab_data = malloc(shstrtab->sh_size);
-  fseek(fp, shstrtab->sh_offset, SEEK_SET);
+  // 步骤3: 读取节头字符串表项
+  // 这个表项存储了所有节的名称，用于查找特定的节
+  Elf32_Shdr *shstrtab = &shdrs[ehdr.e_shstrndx]; //指向节头字符串表项的地址
+  char *shstrtab_data = malloc(shstrtab->sh_size);  
+  fseek(fp, shstrtab->sh_offset, SEEK_SET); //跳转到节头字符串表项指向的数据（组成所有节名称的字符）的地址
   if (fread(shstrtab_data, shstrtab->sh_size, 1, fp) != 1) {
     Log("Failed to read section header string table");
     free(shstrtab_data);
@@ -106,6 +144,7 @@ void init_ftrace(const char *elf_file) {
   // 步骤4: 查找符号表(.symtab)和字符串表(.strtab)
   Elf32_Shdr *symtab = NULL, *strtab = NULL;
   for (int i = 0; i < ehdr.e_shnum; i++) {
+    //sh_name是一个偏移量索引，当在字符串首地址中加上了这个偏移量，才能得到正确的节名称
     char *name = shstrtab_data + shdrs[i].sh_name;  // 获取节名称
     if (strcmp(name, ".symtab") == 0) {
       symtab = &shdrs[i];  // 找到符号表
@@ -117,13 +156,13 @@ void init_ftrace(const char *elf_file) {
   // 检查是否找到了必需的表
   if (!symtab || !strtab) {
     Log("Symbol table or string table not found");
-    goto cleanup;
+    goto cleanup; //用cleanup，省点行数
   }
 
   // 步骤5: 读取字符串表
   // 字符串表存储了所有符号的名称
   char *strtab_data = malloc(strtab->sh_size);
-  fseek(fp, strtab->sh_offset, SEEK_SET);
+  fseek(fp, strtab->sh_offset, SEEK_SET); //指向节头表中的.strtab中的偏移量，从而找到字符串表
   if (fread(strtab_data, strtab->sh_size, 1, fp) != 1) {
     Log("Failed to read string table");
     free(strtab_data);
@@ -131,6 +170,17 @@ void init_ftrace(const char *elf_file) {
   }
 
   // 步骤6: 读取符号表
+  /*
+  typedef struct
+{
+  Elf32_Word	st_name;		Symbol name (string tbl index) 
+  Elf32_Addr	st_value;		Symbol value 
+  Elf32_Word	st_size;		Symbol size 
+  unsigned char	st_info;	Symbol type and binding 
+  unsigned char	st_other;	Symbol visibility 
+  Elf32_Section	st_shndx;	Section index 
+} Elf32_Sym;
+  */
   int sym_count = symtab->sh_size / sizeof(Elf32_Sym);  // 计算符号数量
   Elf32_Sym *syms = malloc(symtab->sh_size);
   fseek(fp, symtab->sh_offset, SEEK_SET);
@@ -152,14 +202,13 @@ void init_ftrace(const char *elf_file) {
 
   // 步骤8: 分配内存并存储函数符号信息
   symbols = malloc(symbol_count * sizeof(Symbol));
-  int idx = 0;
   for (int i = 0; i < sym_count; i++) {
     if (ELF32_ST_TYPE(syms[i].st_info) == STT_FUNC && syms[i].st_size > 0) {
       // 复制函数名称（需要动态分配内存）
-      symbols[idx].name = strdup(strtab_data + syms[i].st_name);
-      symbols[idx].addr = syms[i].st_value;  // 函数地址
-      symbols[idx].size = syms[i].st_size;   // 函数大小
-      idx++;
+      symbols[i].name = strdup(strtab_data + syms[i].st_name);
+      symbols[i].addr = syms[i].st_value;  // 函数地址
+      symbols[i].size = syms[i].st_size;   // 函数大小
+      
     }
   }
 
