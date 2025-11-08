@@ -22,6 +22,10 @@ static Symbol *symbols = NULL;    // 函数符号数组
 static int symbol_count = 0;      // 函数符号总数
 static int call_depth = 0;        // 当前函数调用深度，用于输出缩进
 
+// 函数调用栈，用于跟踪当前调用的函数
+#define MAX_CALL_DEPTH 64
+static const char* call_stack[MAX_CALL_DEPTH];  // 存储每层调用的函数名
+
 /**
  * 根据地址查找对应的函数名
  * @param addr 要查找的地址
@@ -180,12 +184,21 @@ cleanup:
  */
 void ftrace_call(vaddr_t pc, vaddr_t target) {
   const char *func_name = find_symbol(target);  // 查找目标地址对应的函数名
-  if (func_name) {    
+  if (func_name) {
+    // 输出缩进，表示调用层次
+    for (int i = 0; i < call_depth; i++) printf("  ");
+    // 输出函数调用信息
+    printf("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
+    
     // 同时输出到日志文件（如果启用了日志）
     log_write("FTRACE: ");
     for (int i = 0; i < call_depth; i++) log_write("  ");
     log_write("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
     
+    // 将函数名压入调用栈
+    if (call_depth < MAX_CALL_DEPTH) {
+      call_stack[call_depth] = func_name;
+    }
     call_depth++;  // 增加调用深度
   }
 }
@@ -200,11 +213,18 @@ void ftrace_call(vaddr_t pc, vaddr_t target) {
 void ftrace_ret(vaddr_t pc) {
   if (call_depth > 0) {
     call_depth--;  // 减少调用深度
+    
+    // 获取返回的函数名（从调用栈中取出）
+    const char *func_name = (call_depth < MAX_CALL_DEPTH) ? call_stack[call_depth] : "unknown";
+    
+    // 输出缩进，表示调用层次
+    for (int i = 0; i < call_depth; i++) printf("  ");
+    // 输出函数返回信息，包含函数名
+    printf("ret  [" FMT_WORD "] %s\n", pc, func_name);
+    
     // 同时输出到日志文件（如果启用了日志）
     log_write("FTRACE: ");
-    // 输出缩进，表示调用层次
     for (int i = 0; i < call_depth; i++) log_write("  ");
-    // 输出函数返回信息
-    log_write("ret  [" FMT_WORD "]\n", pc);
+    log_write("ret  [" FMT_WORD "] %s\n", pc, func_name);
   }
 }
