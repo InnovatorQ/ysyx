@@ -187,12 +187,13 @@ void init_ftrace(const char *elf_file) {
 
   // 步骤8: 分配内存并存储函数符号信息
   symbols = malloc(symbol_count * sizeof(Symbol));
+  int idx = 0;    // 函数符号数组的索引
   for (int i = 0; i < sym_count; i++) {
     if (ELF32_ST_TYPE(syms[i].st_info) == STT_FUNC && syms[i].st_size > 0) {
       // 复制函数名称（需要动态分配内存）
-      symbols[i].name = strdup(strtab_data + syms[i].st_name);
-      symbols[i].addr = syms[i].st_value;  // 函数地址
-      symbols[i].size = syms[i].st_size;   // 函数大小
+      symbols[idx].name = strdup(strtab_data + syms[i].st_name);
+      symbols[idx].addr = syms[i].st_value;  // 函数地址
+      symbols[idx].size = syms[i].st_size;   // 函数大小
       
     }
   }
