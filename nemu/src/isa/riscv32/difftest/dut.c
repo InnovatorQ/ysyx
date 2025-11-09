@@ -18,7 +18,22 @@
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  return false;
+  // 检查PC
+  if (ref_r->pc != cpu.pc) {
+    printf("PC mismatch: ref = " FMT_WORD ", dut = " FMT_WORD "\n", ref_r->pc, cpu.pc);
+    return false;
+  }
+  
+  // 检查通用寄存器
+  for (int i = 0; i < MUXDEF(CONFIG_RVE, 16, 32); i++) {
+    if (ref_r->gpr[i] != cpu.gpr[i]) {
+      printf("GPR[%d] mismatch: ref = " FMT_WORD ", dut = " FMT_WORD "\n", 
+             i, ref_r->gpr[i], cpu.gpr[i]);
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 void isa_difftest_attach() {
