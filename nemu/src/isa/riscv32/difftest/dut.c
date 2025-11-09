@@ -16,11 +16,11 @@
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
-
+// 把通用寄存器和PC与从DUT中读出的寄存器的值进行比较. 若对比结果一致, 函数返回true; 如果发现值不一样, 函数返回false
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   // 检查PC
-  if (ref_r->pc != cpu.pc) {
-    printf("PC mismatch: ref = " FMT_WORD ", dut = " FMT_WORD "\n", ref_r->pc, cpu.pc);
+  if (ref_r->pc != pc) {
+    printf("PC mismatch: " FMT_WORD "\n", pc);
     return false;
   }
   
