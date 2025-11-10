@@ -61,11 +61,11 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
 
 void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
-
+  // 打开传入的动态库文件ref_so_file
   void *handle;
   handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
-
+  // 通过动态链接对动态库中的上述API符号进行符号解析和重定位, 返回它们的地址.
   ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
   assert(ref_difftest_memcpy);
 
@@ -85,12 +85,14 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   Log("The result of every instruction will be compared with %s. "
       "This will help you a lot for debugging, but also significantly reduce the performance. "
       "If it is not necessary, you can turn it off in menuconfig.", ref_so_file);
-
+  // 对REF的DIffTest功能进行初始化, 具体行为因REF而异.
   ref_difftest_init(port);
+  // 将DUT的guest memory拷贝到REF中
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+  // 将DUT的寄存器状态拷贝到REF中
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
-
+// 由于不同ISA的寄存器有所不同, 框架代码把寄存器对比抽象成一个ISA相关的API, 即isa_difftest_checkregs()函数
 static void checkregs(CPU_state *ref, vaddr_t pc) {
   if (!isa_difftest_checkregs(ref, pc)) {
     nemu_state.state = NEMU_ABORT;
@@ -98,8 +100,9 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     isa_reg_display();
   }
 }
-
+// 进行了上述初始化工作之后, DUT和REF就处于相同的状态了. 接下来就可以进行逐条指令执行后的状态对比了
 void difftest_step(vaddr_t pc, vaddr_t npc) {
+  // 在cpu_exec()的主循环中被调用, 在NEMU中执行完一条指令后, 就在difftest_step()中让REF执行相同的指令, 然后读出REF中的寄存器, 并进行对比.
   CPU_state ref_r;
 
   if (skip_dut_nr_inst > 0) {

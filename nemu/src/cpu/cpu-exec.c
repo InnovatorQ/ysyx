@@ -58,8 +58,9 @@ void iringbuf_display() {
   }
 }
 #endif
+// 更新设备状态
 void device_update();
-// 更新设备状态， 条件跟踪代码
+// 条件跟踪代码
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }  //将生成的PC地址，机器码字节，反汇编指令写入日志
