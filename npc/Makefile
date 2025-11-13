@@ -6,6 +6,8 @@ VERILATOR_CFLAGS += -MMD --build -cc --trace-fst \
 
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
+MEM_DST = ./ROM
+OBJ_TAR = $(MEM_DST)/sum.hex
 BIN = $(BUILD_DIR)/$(TOPNAME)
 SIM_BIN = $(BUILD_DIR)/wave.fst
 default: $(BIN)
@@ -23,7 +25,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
 run: $(BIN)
-	@$^ 
+	@$^ $(OBJ_TAR)
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)
