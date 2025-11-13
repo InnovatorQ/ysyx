@@ -29,6 +29,7 @@ module IDU(
     wire            inst_u;
     wire            inst_r;
     wire            inst_s;
+    wire            inst_j;
 
     wire            inst_add;
     wire            inst_addi;
@@ -38,11 +39,14 @@ module IDU(
     wire            inst_lbu;
     wire            inst_sb;
     wire            inst_sw;
+    wire            inst_auipc;
+    wire            inst_jal;
     wire            inst_ebreak;
 
     wire [31 : 0]   imm_i;
     wire [31 : 0]   imm_u;
     wire [31 : 0]   imm_s;
+    wire [31 : 0]   imm_j;
     //得到指令类型
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -56,12 +60,15 @@ module IDU(
     assign inst_lui  = (opcode == 7'b0110111);
     assign inst_sb   = (opcode == 7'b0100011) && (funct3 == 3'b000);
     assign inst_sw   = (opcode == 7'b0100011) && (funct3 == 3'b010);
+    assign inst_auipc= (opcode == 7'b0010111);
+    assign inst_jal  = (opcode == 7'b1101111);
     assign inst_ebreak = (inst == 32'h00100073);
 
     assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lbu;
     assign inst_r = inst_add;
-    assign inst_u = inst_lui;
+    assign inst_u = inst_lui | inst_auipc;
     assign inst_s = inst_sb | inst_sw;
+    assign inst_j = inst_jal;
 
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lbu | inst_lui;
     // assign mem_wen = inst_s;
@@ -71,7 +78,7 @@ module IDU(
     assign store =  inst_sw ? 4'hf : 
                     inst_sb ? 4'h1 : 4'h0;
     assign alu_op = inst_addi | inst_add | inst_lui;
-    assign br_taken = inst_jalr;
+    assign br_taken = inst_jalr | inst_jal;
     
     //获取操作对象
     assign rd = inst[11:7];
@@ -80,12 +87,16 @@ module IDU(
     assign imm_i = {{20{inst[31]}}, inst[31:20]};
     assign imm_u = {inst[31:12], 12'b0};
     assign imm_s = {{20{inst[31]}}, inst[31:25], inst[11:7]};
+    assign imm_j = ({{11{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0});
     assign imm = inst_i ? imm_i : 
-                 inst_lui ? imm_u : 
-                 inst_s ? imm_s : 32'b0;
-    assign br_target = (rs1_data + imm_i) & ~32'h1;  // JALR目标地址，最低位清零
+                 inst_u ? imm_u : 
+                 inst_s ? imm_s : 
+                 inst_j ? imm_j : 32'b0;
+    assign br_target = inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
+                        inst_jal ? (pc + imm_j) : 32'b0;  
     assign mem_addr = rs1_data + imm;
-    assign src1 = inst_lui ? 32'b0 : rs1_data;  // lui时src1为0
+    assign src1 = inst_lui ? 32'b0 : 
+                inst_auipc ? pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
     always @(*) begin
