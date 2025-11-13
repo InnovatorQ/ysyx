@@ -12,7 +12,7 @@ int printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
-  int len = sprintf(buf, fmt, args);
+  int len = vsprintf(buf, fmt, args);
   va_end(args);
 
   if(len > 0){
@@ -24,12 +24,6 @@ int printf(const char *fmt, ...) {
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
-  panic("Not implemented");
-}
-
-int sprintf(char *out, const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
   char *pbuf = out;
   const char *pf = fmt;
   
@@ -40,7 +34,6 @@ int sprintf(char *out, const char *fmt, ...) {
     }
     pf++;
     
-    // 解析宽度
     int width = 0;
     while(*pf >= '0' && *pf <= '9') {
       width = width * 10 + (*pf - '0');
@@ -49,7 +42,7 @@ int sprintf(char *out, const char *fmt, ...) {
     
     switch (*pf) {
       case 'd': {
-        int num = va_arg(args, int);
+        int num = va_arg(ap, int);
         char temp[12];
         int len = 0;
         
@@ -64,7 +57,6 @@ int sprintf(char *out, const char *fmt, ...) {
           num /= 10;
         }
         
-        // 处理宽度
         while(width > len) {
           *pbuf++ = ' ';
           width--;
@@ -74,7 +66,7 @@ int sprintf(char *out, const char *fmt, ...) {
         break;
       }
       case 'x': {
-        unsigned int num = va_arg(args, unsigned int);
+        unsigned int num = va_arg(ap, unsigned int);
         char temp[10];
         int len = 0;
         
@@ -94,7 +86,7 @@ int sprintf(char *out, const char *fmt, ...) {
         break;
       }
       case 's': {
-        char *str = va_arg(args, char*);
+        char *str = va_arg(ap, char*);
         int len = strlen(str);
         
         while(width > len) {
@@ -112,7 +104,7 @@ int sprintf(char *out, const char *fmt, ...) {
             width--;
           }
         }
-        *pbuf++ = va_arg(args, int);
+        *pbuf++ = va_arg(ap, int);
         break;
       }
       case '%': {
@@ -123,8 +115,15 @@ int sprintf(char *out, const char *fmt, ...) {
     pf++;
   }
   *pbuf = '\0';
-  va_end(args);
   return pbuf - out;
+}
+
+int sprintf(char *out, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  int len = vsprintf(out, fmt, args);
+  va_end(args);
+  return len;
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {
