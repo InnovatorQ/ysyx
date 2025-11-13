@@ -15,6 +15,8 @@ void putch(char ch) {
 }
 
 void halt(int code) {
+  // mv a0, %0 - 将code变量的值移动到a0寄存器，%0是占位符，代表第一个操作数（这里是code）
+  asm volatile("mv a0, %0; ebreak" : : "r"(code));
   while (1);
 }
 

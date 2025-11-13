@@ -46,6 +46,7 @@ module top(
     always @(posedge clk) begin
         if(reset) begin
             pc <= 32'h80000000;
+            //pc <= 32'h0;
         end else begin
             pc <= next_pc;
         end

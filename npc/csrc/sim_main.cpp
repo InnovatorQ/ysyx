@@ -48,7 +48,8 @@ extern "C" void ebreak(){
 // `wmask`中每比特表示`wdata`中1个字节的掩码,
 // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
-    int addr = (waddr & ~0x3u) >> 2;
+    int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
+    if (addr < 0 || addr >= MSIZE) return;
     int *mem = &pmem[addr];
     for(int i = 0; i < 4; i++) {
         if(wmask & (1 << i)) {
@@ -61,7 +62,8 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
 extern "C" int pmem_read(int raddr) {
-    int addr = (raddr & ~0x3u) >> 2;
+    // 将物理地址映射到pmem数组索引
+    int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
     if (addr >= 0 && addr < MSIZE) {
         return pmem[addr];
     }
@@ -88,6 +90,19 @@ static void reset(int n){
     while(n-- > 0) single_cycle();
     top->reset = 0;
     
+}
+
+void load_bin(const char *filename) {
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        printf("Failed to open %s\n", filename);
+        return;
+    }
+    
+    // 直接加载到pmem[0]，pmem_read函数会处理地址映射
+    size_t bytes_read = fread(pmem, 1, MSIZE * 4, fp);
+    printf("Loaded %zu bytes from %s (bin format)\n", bytes_read, filename);
+    fclose(fp);
 }
 
 void load_pf(const char *filename){
@@ -137,10 +152,16 @@ void load_pf(const char *filename){
 int main(int argc, char **argv){
     Verilated::commandArgs(argc, argv);
     Verilated::traceEverOn(true);
-    char *pf = "./ROM/sum.hex";
-    load_pf(pf);
-    // 设置测试数据
-    //pmem[0x04] = 0x00010002;  
+    char *pf = argv[1];
+    
+    // 检测文件扩展名
+    char *ext = strrchr(pf, '.');
+    if (ext && strcmp(ext, ".bin") == 0) {
+        load_bin(pf);
+    } else {
+        load_pf(pf);
+    }
+      
 
     top = new Vtop;
     tfp = new VerilatedFstC;
