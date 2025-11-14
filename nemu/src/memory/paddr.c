@@ -73,23 +73,23 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) { 
     pmem_write(addr, len, data); 
     #ifdef CONFIG_MTRACE
-    #ifdef CONFIG_MTRACE_COND
-    if (MTRACE_COND) {
-      log_write("MTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
-        addr, data, len, cpu.pc);
-    }
-    #endif
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
     #endif
     return; 
   }
   IFDEF(CONFIG_DEVICE, //保持对MMIO的跟踪
   #ifdef CONFIG_MTRACE
-  #ifdef CONFIG_MTRACE_COND
-      if(MTRACE_COND){
-        log_write("MTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " [MMIO]\n",
-          addr, data, len, cpu.pc);
-      }
-  #endif
+    #ifdef CONFIG_MTRACE_COND
+        if(MTRACE_COND){
+          log_write("MTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " [MMIO]\n",
+            addr, data, len, cpu.pc);
+        }
+    #endif
   #endif
       mmio_write(addr, len, data); return);
   out_of_bound(addr);

@@ -11,7 +11,9 @@ AM_DEVREG( 1, UART_CONFIG,  RD, bool present);
 AM_DEVREG( 2, UART_TX,      WR, char data);
 AM_DEVREG( 3, UART_RX,      RD, char data);
 AM_DEVREG( 4, TIMER_CONFIG, RD, bool present, has_rtc);
-AM_DEVREG( 5, TIMER_RTC,    RD, int year, month, day, hour, minute, second);
+// AM_TIMER_RTC, AM实时时钟(RTC, Real Time Clock), 可读出当前的年月日时分秒.
+AM_DEVREG( 5, TIMER_RTC,    RD, int year, month, day, hour, minute, second); 
+// AM_TIMER_UPTIME, AM系统启动时间, 以微秒为单位.
 AM_DEVREG( 6, TIMER_UPTIME, RD, uint64_t us);
 AM_DEVREG( 7, INPUT_CONFIG, RD, bool present);
 AM_DEVREG( 8, INPUT_KEYBRD, RD, bool keydown; int keycode);
