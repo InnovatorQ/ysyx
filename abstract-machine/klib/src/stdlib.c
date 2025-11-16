@@ -37,9 +37,9 @@ void *malloc(size_t size) {
   // static char *addr 在函数调用间保持上次分配的位置，避免重复分配同一块内存
   static char *addr = NULL;
   if (addr == NULL) { // 第一次调用malloc时，初始化addr指向heap的起始位置
-    addr = (char *)ROUNDUP(heap.start, 8);
+    addr = (char *)ROUNDUP(heap.start, 4);
   }
-  size = ROUNDUP(size, 8); // 确保每次分配的大小是8的倍数
+  size = ROUNDUP(size, 4); // 确保每次分配的大小是4的倍数
   char *ret = addr;
   addr += size;
   return ret;
