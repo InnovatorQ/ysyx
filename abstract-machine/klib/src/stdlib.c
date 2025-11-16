@@ -39,7 +39,7 @@ void *malloc(size_t size) {
     addr = (char *)ROUNDUP(heap.start, 8);
   }
   size = ROUNDUP(size, 8);
-  if (addr + size > (char *)heap.end) {
+  if (addr + size >= (char *)heap.end) {
     return NULL;
   }
   char *ret = addr;
