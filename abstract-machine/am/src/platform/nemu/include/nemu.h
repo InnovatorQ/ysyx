@@ -34,6 +34,7 @@
 #define VGACTL_ADDR     (DEVICE_BASE + 0x0000100)
 #define AUDIO_ADDR      (DEVICE_BASE + 0x0000200)
 #define DISK_ADDR       (DEVICE_BASE + 0x0000300)
+// VGA初始化时注册了从0xa1000000开始的一段用于映射到video memory(显存, 也叫frame buffer, 帧缓冲)的MMIO空间. 代码只模拟了400x300x32的图形模式, 一个像素占32个bit的存储空间
 #define FB_ADDR         (MMIO_BASE   + 0x1000000)
 #define AUDIO_SBUF_ADDR (MMIO_BASE   + 0x1200000)
 
