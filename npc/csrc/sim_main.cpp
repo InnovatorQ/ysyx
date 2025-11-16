@@ -4,41 +4,21 @@
 #include"verilated_fst_c.h"
 
 #include<stdio.h>
+#include<time.h>
 #include<stdbool.h>
 #include<assert.h>
+#include<sys/time.h>
 
 static Vtop* top;
 static VerilatedFstC* tfp;
 //宏
-#define MSIZE (1024 * 512)
+#define MSIZE (128 * 1024 * 1024)
 #define MAX_INST 100
+#define RTC_ADDR 0xa0000048
 //全局
 bool is_ebreak = false;
 int pmem[MSIZE];
-// int inst_sram[MAX_INST] = {
-//     0x01000093, // addi x1, x0, 16(0x10)     # x1 = 16 (地址)
-//     0x12345137, // lui x2, 0x12345     # x2 = 0x12345000  
-//     0x67810113, // addi x2, x2, 0x678  # x2 = 0x12345678
-//     0x0000a183, // lw x3, 0(x1)        # x3 = mem[4] = 0x00010002
-//     0x0020c203, // lbu x4, 2(x1)       # x4 = mem[4](mem[0][23:16]) = 0x01
-//     0x00208223, // sb x2, 4(x1)        # mem[5] = x2[7:0] = 0x78
-//     0x0020a223, // sw x2, 4(x1)        # mem[5] = x2 = 0x12345678
-//     0x0040a303, // lw x6, 4(x1)        # x6 = mem[20] = 0x12345678
-//     0x00100073  // ebreak
-// };
-// 地址0x00: 0x01000093 addi x1, x0, 16      # x1 = 16 (基地址)
-// 地址0x04: 0x12345137 lui x2, 0x12345      # x2 = 0x12345000  
-// 地址0x08: 0x67810113 addi x2, x2, 0x678   # x2 = 0x12345678
-// 地址0x0c: 0x0000a183 lw x3, 0(x1)         # x3 = mem[4] = 0x12345678
-// 地址0x10: 0x0010c203 lbu x4, 1(x1)        # x4 = mem[4][15:8]的字节 = 0x56
-// 地址0x14: 0x002082a3 sb x2, 5(x1)         # mem[5] = x2[7:0]
-// 地址0x18: 0x0020a223 sw x2, 4(x1)         # mem[5] = 0x12345678  
-// 地址0x1c: 0x0040a303 lw x6, 4(x1)         # x6 = mem[5] = 0x12345678
-// 地址0x20: ebreak               # 结束
-
-// 地址0x40: 测试数据 0x12345678
-// 地址0x44: 测试数据 0x9abcdef0
-
+static uint64_t boot_time = 0;
 
 extern "C" void ebreak(){
     is_ebreak = true;
@@ -48,20 +28,54 @@ extern "C" void ebreak(){
 // `wmask`中每比特表示`wdata`中1个字节的掩码,
 // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
+    //避免重复调用
+    static int last_waddr = -1;
+    static int last_wdata = -1;
+    static int last_wmask = -1;
+    if(waddr == last_waddr && wdata == last_wdata && wmask == last_wmask){
+        return;
+    }
+    last_waddr =  waddr; last_wdata = wdata; last_wmask = wmask;
+    if( waddr >= 0x10000000){
+        
+        putchar((char)(wdata & 0xff));
+        return;
+    }
+    
     int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
     if (addr < 0 || addr >= MSIZE) return;
     int *mem = &pmem[addr];
+    
     for(int i = 0; i < 4; i++) {
         if(wmask & (1 << i)) {
-            *mem = (*mem & ~(0xff << (i * 8))) // 清空内存中的目标字节
-            | (((wdata >> (i * 8)) & 0xff) << (i * 8));   //选择wdata中的目标字节，写入内存中的对应字节
+            *mem = (*mem & ~(0xff << (i * 8)))
+            | (((wdata >> (i * 8)) & 0xff) << (i * 8));
         }
     }
-    printf("regs : 0x%08x ->MEM[0x%08x] : %08x\n", wdata , addr ,pmem[addr]);
 }
 
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
 extern "C" int pmem_read(int raddr) {
+    //避免重复调用
+    static int last_raddr = -1;
+    if(raddr == last_raddr){
+        return 0;
+    }
+    last_raddr =  raddr; 
+    
+    // 处理RTC设备
+    if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 8) {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        uint64_t us = (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec - boot_time;
+        
+        if(raddr == RTC_ADDR) {
+            return (uint32_t)(us & 0xFFFFFFFF);
+        } else if(raddr == RTC_ADDR + 4) {
+            return (uint32_t)(us >> 32);
+        }
+    }
+    
     // 将物理地址映射到pmem数组索引
     int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
     if (addr >= 0 && addr < MSIZE) {
@@ -69,10 +83,6 @@ extern "C" int pmem_read(int raddr) {
     }
     return 0;
 }
-
-// int inst_read(int inst_addr){
-//     return inst_sram[inst_addr >> 2];
-// }
 
 static void single_cycle(){
     top->clk = 0; top->eval();
@@ -95,13 +105,13 @@ static void reset(int n){
 void load_bin(const char *filename) {
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
-        printf("Failed to open %s\n", filename);
+        // printf("Failed to open %s\n", filename);
         return;
     }
     
     // 直接加载到pmem[0]，pmem_read函数会处理地址映射
     size_t bytes_read = fread(pmem, 1, MSIZE * 4, fp);
-    printf("Loaded %zu bytes from %s (bin format)\n", bytes_read, filename);
+    // printf("Loaded %zu bytes from %s (bin format)\n", bytes_read, filename);
     fclose(fp);
 }
 
@@ -145,7 +155,7 @@ void load_pf(const char *filename){
         }
     }
     
-    printf("Loaded %d words from %s (hex format)\n", total_words, filename);
+    // printf("Loaded %d words from %s (hex format)\n", total_words, filename);
     fclose(fp);
 }
 
@@ -153,6 +163,11 @@ int main(int argc, char **argv){
     Verilated::commandArgs(argc, argv);
     Verilated::traceEverOn(true);
     char *pf = argv[1];
+    
+    // 初始化启动时间
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    boot_time = (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
     
     // 检测文件扩展名
     char *ext = strrchr(pf, '.');
@@ -175,15 +190,15 @@ int main(int argc, char **argv){
     
     while(1){
         
-        printf("Cycle %d: PC=0x%08x, INST=0x%08x\n", 
-               cycle_count, top->pc, top->inst);
+        // printf("Cycle %d: PC=0x%08x, INST=0x%08x\n", 
+        //        cycle_count, top->pc, top->inst);
         single_cycle();
         cycle_count++;
         // 检测ebreak指令
         if(is_ebreak) {
             if(top->a0_data == 0) printf("\033[32mHIT GOOD TRAP!\033[0m\n");
             else printf("\033[31mHIT BAD TRAP!\033[0m\n");
-            printf("ebreak指令,总运行周期为%d\n", cycle_count);
+            // printf("ebreak指令,总运行周期为%d\n", cycle_count);
             break;
         }
     }
