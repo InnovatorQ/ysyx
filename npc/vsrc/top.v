@@ -102,8 +102,8 @@ module top(
         .a0_data        (a0_data    )
     );
     
-    always @(mem_addr) begin
-        $display("mem_addr : %08x", mem_addr);
-    end
+    // always @(mem_addr) begin
+    //     $display("mem_addr : %08x", mem_addr);
+    // end
 
 endmodule

@@ -14,7 +14,7 @@ module regfile(
     always @(posedge clk) begin
         if(wen && waddr != 0) begin
             regs[waddr] <= wdata;
-            if(!reset) $display("REG[%d] = 0x%08x", waddr, wdata);
+            //if(!reset) $display("REG[%d] = 0x%08x", waddr, wdata);
         end
     end
     assign a0_data = regs[10];
