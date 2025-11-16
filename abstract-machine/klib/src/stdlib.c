@@ -36,9 +36,9 @@ void *malloc(size_t size) {
 #if !(defined(__ISA_NATIVE__) && defined(__NATIVE_USE_KLIB__))
   static char *addr = NULL;
   if (addr == NULL) {
-    addr = (char *)ROUNDUP(heap.start, 8);
+    addr = (char *)ROUNDUP(heap.start, 4);
   }
-  size = ROUNDUP(size, 8);
+  size = ROUNDUP(size, 4);
   if (addr + size >= (char *)heap.end) {
     return NULL;
   }
