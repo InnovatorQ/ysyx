@@ -67,7 +67,7 @@ int strncmp(const char *s1, const char *s2, size_t n) {
 
 void *memset(void *s, int c, size_t n) {
   assert(s != NULL);
-  const unsigned char unsigned_c = c;
+  unsigned char unsigned_c = c;
   unsigned char *temp = s;
   while(n--){
     *temp++ = unsigned_c;
