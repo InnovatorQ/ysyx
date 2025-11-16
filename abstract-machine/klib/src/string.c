@@ -79,20 +79,20 @@ void *memmove(void *dst, const void *src, size_t n) {
   assert((dst != NULL) && (src != NULL));
   char *pd = dst;
   const char *ps = src;
-  void *ret = dst;
 
-  if(pd <= ps || pd >= ps + n){
+  if(pd == ps || n == 0) return dst;
+  if(pd < ps){
     while(n--){
       *pd++ = *ps++;
     }
   }else{
-    pd += n - 1;
-    ps += n - 1;
-    while(n--){
-      *pd-- = *ps--;
+      pd += n;
+      ps += n;
+      while(n--){
+        *(--pd) = *(--ps);
+      }
     }
-  }
-  return ret;
+  return dst;
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
