@@ -23,7 +23,7 @@ void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
   uint32_t *fb = (uint32_t *)(uintptr_t)FB_ADDR;
   uint32_t *pixels = (uint32_t *)ctl->pixels;
-  int screen_w = inl(VGACTL_ADDR) & 0xffff;
+  int screen_w = inl(VGACTL_ADDR) & 0xff;
   // 一行一行地将pixels中的图像数据复制到显存fb的对应位置
   for (int j = 0; j < ctl->h; j++) {
     for (int i = 0; i < ctl->w; i++) {
