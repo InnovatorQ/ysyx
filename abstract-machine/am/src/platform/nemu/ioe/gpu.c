@@ -21,6 +21,9 @@ void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
 }
 
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
+  *ctl = (AM_GPU_FBDRAW_T){
+    .x = 0, .y = 0, .pixels = NULL, .w = 0, .h = 0, .sync = false
+  };
   if (ctl->sync) {
     outl(SYNC_ADDR, 1);
   }
