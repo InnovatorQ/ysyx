@@ -25,3 +25,5 @@ if len(mainargs_pad) != max_len:
     exit(1)
 fp.write(mainargs_pad)
 fp.close()
+# 定位到占位符位置，用实际的mainargs替换占位符，用null字符(\0)填充剩余空间到最大长度
+# 写入文件：将修改后的数据写回二进制文件

@@ -34,15 +34,16 @@ void send_key(uint8_t, bool);
 void vga_update_screen();
 
 void device_update() {
+  // 检查距离上次设备更新是否已经超过一定时间
   static uint64_t last = 0;
   uint64_t now = get_time();
   if (now - last < 1000000 / TIMER_HZ) {
     return;
   }
   last = now;
-
+// 刷新VGA
   IFDEF(CONFIG_HAS_VGA, vga_update_screen());
-
+// 检查是否有按键按下/释放, 以及是否点击了窗口的X按钮
 #ifndef CONFIG_TARGET_AM
   SDL_Event event;
   while (SDL_PollEvent(&event)) {

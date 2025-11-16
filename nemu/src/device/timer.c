@@ -16,9 +16,10 @@
 #include <device/map.h>
 #include <device/alarm.h>
 #include <utils.h>
-
+/*为什么不设置一个64位的RTC寄存器呢？
+32位的CPU无法一次访问64位的设备寄存器, 因此将一个64位的功能拆分成两个32位的设备寄存器, 可同时支持接入32位和64位CPU.*/ 
 static uint32_t *rtc_port_base = NULL;
-
+// 映射到两个32位的RTC寄存器
 static void rtc_io_handler(uint32_t offset, int len, bool is_write) {
   assert(offset == 0 || offset == 4);
   if (!is_write && offset == 4) {
@@ -38,11 +39,12 @@ static void timer_intr() {
 #endif
 
 void init_timer() {
+  // 分别注册0x48处长度为8个字节的端口
   rtc_port_base = (uint32_t *)new_space(8);
 #ifdef CONFIG_HAS_PORT_IO
   add_pio_map ("rtc", CONFIG_RTC_PORT, rtc_port_base, 8, rtc_io_handler);
 #else
-  add_mmio_map("rtc", CONFIG_RTC_MMIO, rtc_port_base, 8, rtc_io_handler);
+  add_mmio_map("rtc", CONFIG_RTC_MMIO, rtc_port_base, 8, rtc_io_handler);    // 0xa0000048处长度为8字节的MMIO空间
 #endif
   IFNDEF(CONFIG_TARGET_AM, add_alarm_handle(timer_intr));
 }
