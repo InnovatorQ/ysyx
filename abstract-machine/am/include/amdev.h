@@ -16,6 +16,7 @@ AM_DEVREG( 5, TIMER_RTC,    RD, int year, month, day, hour, minute, second);
 // AM_TIMER_UPTIME, AM系统启动时间, 以微秒为单位.
 AM_DEVREG( 6, TIMER_UPTIME, RD, uint64_t us);
 AM_DEVREG( 7, INPUT_CONFIG, RD, bool present);
+// AM键盘控制器, 可读出按键信息. 
 AM_DEVREG( 8, INPUT_KEYBRD, RD, bool keydown; int keycode);
 AM_DEVREG( 9, GPU_CONFIG,   RD, bool present, has_accel; int width, height, vmemsz);
 AM_DEVREG(10, GPU_STATUS,   RD, bool ready);
