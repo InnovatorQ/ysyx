@@ -12,11 +12,7 @@ module LSU(
     
     assign mem_rdata = (load != 4'h0) ? pmem_read(mem_addr) : 32'b0;
     assign byte_offset = mem_addr[1:0];
-    // always @(mem_addr) begin
-    //     $display("mem_addr : %08x", mem_addr);
-    // end
     
-
     assign selected_byte = (byte_offset == 2'b00) ? mem_rdata[7:0] :
                           (byte_offset == 2'b01) ? mem_rdata[15:8] :
                           (byte_offset == 2'b10) ? mem_rdata[23:16] :
