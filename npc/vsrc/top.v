@@ -2,12 +2,15 @@ import "DPI-C" function void ebreak();
 import "DPI-C" function int pmem_read(input int raddr);
 import "DPI-C" function void pmem_write(
   input int waddr, input int wdata, input byte wmask);
+  //build/obj_dir/Vtop__Trace__0__Slow.cpp:    
+  //bufp->fullIData(oldp+23,(vlSelf->top__DOT__WBU__DOT__rf__DOT__regs[0]),32);
+  
 module top(
     input                   clk,
     input                   reset,
     input       [31 : 0]    inst,
     output reg  [31 : 0]    pc,
-    output      [31 : 0]    a0_data
+    output reg  [31 : 0]    regs [31 : 0]
 );
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
@@ -45,8 +48,8 @@ module top(
     
     always @(posedge clk) begin
         if(reset) begin
-            pc <= 32'h80000000;
-            //pc <= 32'h0;
+            //pc <= 32'h80000000;
+            pc <= 32'hfffffffc;
         end else begin
             pc <= next_pc;
         end
@@ -99,7 +102,7 @@ module top(
         .rf2_data       (rs2_data   ),
         .wb_data        (wb_data    ),
         .rf_wen         (rf_wen     ),
-        .a0_data        (a0_data    )
+        .regs           (regs       )
     );
     
     // always @(mem_addr) begin

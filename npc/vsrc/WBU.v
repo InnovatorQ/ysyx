@@ -9,7 +9,7 @@ module WBU(
     input  [31 : 0] wb_data,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
-    output [31 : 0] a0_data
+    output [31 : 0] regs [31 : 0]
 );
     regfile rf(
             .clk        (clk        ),
@@ -21,6 +21,6 @@ module WBU(
             .wen        (rf_wen     ),
             .waddr      (rd         ),
             .wdata      (wb_data    ),
-            .a0_data    (a0_data    )
+            .regs       (regs       )
         );
 endmodule

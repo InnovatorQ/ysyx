@@ -2,7 +2,8 @@ TOPNAME = top
 VERILATOR = verilator
 VERILATOR_CFLAGS += -MMD --build -cc --trace-fst \
 		    -O3 --x-assign fast --x-initial fast --noassert \
-		    -Wno-UNOPTFLAT
+		    -Wno-UNOPTFLAT -LDFLAGS "-lreadline" \
+		    -CFLAGS "-I$(abspath ./include)"
 
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
@@ -21,11 +22,14 @@ $(BIN): $(VSRCS) $(CSRCS)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
-		-I$(abspath ./vsrc) \
+		-I$(abspath ./vsrc) -I$(abspath ./include) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
 run: $(BIN)
 	@$^ $(OBJ_TAR)
+
+run-batch: $(BIN)
+	@$^ $(OBJ_TAR) -b
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)
@@ -33,4 +37,4 @@ sim: $(SIM_BIN)
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: default clean run sim
+.PHONY: default clean run run-batch sim
