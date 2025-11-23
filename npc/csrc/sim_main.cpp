@@ -3,6 +3,7 @@
 #include"verilated.h"
 #include"verilated_fst_c.h"
 #include"monitor/sdb/sdb.h"
+#include"common.h"
 
 #include<stdio.h>
 #include<time.h>
@@ -19,7 +20,7 @@ VerilatedFstC* tfp;
 #define RTC_ADDR 0xa0000048
 //全局
 bool is_ebreak = false;
-int pmem[MSIZE];
+word_t pmem[MSIZE];
 
 extern "C" void ebreak(){
     is_ebreak = true;
@@ -37,15 +38,20 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
         return;
     }
     last_waddr =  waddr; last_wdata = wdata; last_wmask = wmask;
+    
+    // 记录内存写入日志
+    log_write("MTRACE: WRITE [0x%08x] = 0x%08x (mask=0x%02x) at pc=0x%08x\n", 
+              waddr, wdata, wmask & 0xff, top->pc);
+    
     if( waddr >= 0x10000000){
         putchar((char)(wdata & 0xff));
         return;
     }
     
-    //int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
-    int addr = (waddr & ~0x3u) >> 2;
+    int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
+    //int addr = (waddr & ~0x3u) >> 2;
     if (addr < 0 || addr >= MSIZE) return;
-    int *mem = &pmem[addr];
+    word_t *mem = &pmem[addr];
     
     for(int i = 0; i < 4; i++) {
         if(wmask & (1 << i)) {
@@ -56,7 +62,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 }
 
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
-extern "C" int pmem_read(int raddr) {
+extern "C" word_t pmem_read(int raddr) {
     // 处理RTC设备 - 返回当前系统时间（不缓存）
     if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
 
@@ -75,14 +81,35 @@ extern "C" int pmem_read(int raddr) {
         }
         
     }
-    
     // 将物理地址映射到pmem数组索引
-    //int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
-    int addr = (raddr & ~0x3u) >> 2;
+    int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
+    //int addr = (raddr & ~0x3u) >> 2;
+    
     if (addr >= 0 && addr < MSIZE) {
-        return pmem[addr];
+        word_t data = pmem[addr];
+        // 避免重复记录相同地址的读取
+        static int last_raddr = -1;
+        static word_t last_data = 0;
+        static word_t last_pc = 0;
+        if (raddr != last_raddr || data != last_data || top->pc != last_pc) {
+            log_write("MTRACE: READ [0x%08x] = 0x%08x at pc=0x%08x\n", 
+                      raddr, data, top->pc);
+            last_raddr = raddr;
+            last_data = data;
+            last_pc = top->pc;
+        }
+        return data;
     }
     return 0;
+}
+
+word_t get_rf(int n){
+    if(n >= 0 && n < 32) return top->regs[n];
+    else if(n == 32) return top->pc;
+    else {
+        printf("Invalid register number: %d\n", n);
+        return 0;
+    }
 }
 
 void single_cycle(){
@@ -92,7 +119,7 @@ void single_cycle(){
     top->clk = 1; top->eval();
     //确保上升沿更新PC的同时得到inst
     top->inst = pmem_read(top->pc);
-    printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
+    //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
     tfp->dump(Verilated::time());
     Verilated::timeInc(1);
 }
@@ -104,45 +131,24 @@ static void reset(int n){
     
 }
 
-void load_bin(const char *filename) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) {
-        printf("Failed to open %s\n", filename);
-        return;
-    }
-    
-    // 直接加载到pmem[0]，pmem_read函数会处理地址映射
-    size_t bytes_read = fread(pmem, 1, MSIZE * 4, fp);
-    printf("Loaded %zu bytes from %s (bin format)\n", bytes_read, filename);
-    fclose(fp);
-}
-
 
 
 int main(int argc, char **argv){
     Verilated::commandArgs(argc, argv);
     Verilated::traceEverOn(true);
-    
-    
-    
-    
     top = new Vtop;
     tfp = new VerilatedFstC;
     top->trace(tfp, 99);
     tfp->open("./build/wave.fst");
     //reset10个周期
-    reset(10);
+    reset(1);
 
     init_monitor(argc, argv);
+    init_disasm();  // 初始化Capstone反汇编器，用于ITRACE指令跟踪
     
     // 进入sdb主循环
     sdb_mainloop();
     
-    // 程序结束处理
-    if(is_ebreak) {
-        if(top->a0_data == 0) printf("\033[32mHIT GOOD TRAP!\033[0m\n");
-        else printf("\033[31mHIT BAD TRAP!\033[0m\n");
-    }
     
     tfp->close();
     delete tfp;
