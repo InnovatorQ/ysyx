@@ -1,6 +1,7 @@
 #include <am.h>
 #include <klib-macros.h>
 #include <stdio.h>
+
 void __am_timer_init();
 
 void __am_timer_rtc(AM_TIMER_RTC_T *);
@@ -17,6 +18,7 @@ static void __am_gpu_config (AM_GPU_CONFIG_T *cfg) {
   cfg->height = 300;
   cfg->vmemsz = 0;  
 }
+static void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) { }
 
 typedef void (*handler_t)(void *buf);
 static void *lut[128] = {
@@ -27,6 +29,7 @@ static void *lut[128] = {
   [AM_INPUT_KEYBRD] = __am_input_keybrd,
   [AM_UART_CONFIG]  = __am_uart_config,
   [AM_GPU_CONFIG]   = __am_gpu_config,
+  [AM_GPU_FBDRAW]   = __am_gpu_fbdraw,
 };
 
 static void fail(void *buf) { panic("access nonexist register"); }
