@@ -10,6 +10,7 @@
 #include<stdbool.h>
 #include<assert.h>
 #include<sys/time.h>
+#include<unistd.h>
 
 extern void init_monitor(int argc, char *argv[]);
 
@@ -30,20 +31,18 @@ extern "C" void ebreak(){
 // `wmask`中每比特表示`wdata`中1个字节的掩码,
 // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
-    //避免重复调用
     static int last_waddr = -1;
     static int last_wdata = -1;
-    static int last_wmask = -1;
-    if(waddr == last_waddr && wdata == last_wdata && wmask == last_wmask){
+    static char last_wmask = -1;
+    if(waddr == last_waddr && wdata == last_wdata && wmask == last_wmask) {
         return;
     }
-    last_waddr =  waddr; last_wdata = wdata; last_wmask = wmask;
+    last_waddr = waddr;
+    last_wdata = wdata;
+    last_wmask = wmask;
     
-    // 记录内存写入日志
-    log_write("MTRACE: WRITE [0x%08x] = 0x%08x (mask=0x%02x) at pc=0x%08x\n", 
-              waddr, wdata, wmask & 0xff, top->pc);
     
-    if( waddr >= 0x10000000){
+    if( waddr >= 0x10000000) {
         putchar((char)(wdata & 0xff));
         return;
     }
@@ -59,25 +58,31 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
             | (((wdata >> (i * 8)) & 0xff) << (i * 8));
         }
     }
+    // 记录内存写入日志
+    log_write("MTRACE: WRITE [0x%08x] = 0x%08x (mask=0x%02x) at pc=0x%08x\n", 
+              waddr, wdata, wmask & 0xff, top->pc);
 }
 
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
 extern "C" word_t pmem_read(int raddr) {
     // 处理RTC设备 - 返回当前系统时间（不缓存）
     if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
-
+        // 获取微秒级时间用于AM_TIMER_UPTIME
+        uint64_t uptime_us = get_time();
+        
+        // 获取实际时间用于AM_TIMER_RTC
         time_t now = time(NULL);
         struct tm *tm_info = localtime(&now);
         
         switch(raddr - RTC_ADDR) {
-            case 0:return now & 0xFFFFFFFF; 
-            case 4:return (now >> 32) & 0xFFFFFFFF; 
-            case 8:return tm_info->tm_sec; 
-            case 12:return tm_info->tm_min; 
-            case 16:return tm_info->tm_hour; 
-            case 20:return tm_info->tm_mday; 
-            case 24:return tm_info->tm_mon + 1; 
-            case 28:return tm_info->tm_year + 1900; 
+            case 0: return uptime_us & 0xFFFFFFFF;        // uptime低32位(微秒)
+            case 4: return (uptime_us >> 32) & 0xFFFFFFFF; // uptime高32位(微秒)
+            case 8: return tm_info->tm_sec;               // 秒
+            case 12: return tm_info->tm_min;              // 分
+            case 16: return tm_info->tm_hour;             // 时
+            case 20: return tm_info->tm_mday;             // 日
+            case 24: return tm_info->tm_mon + 1;          // 月
+            case 28: return tm_info->tm_year + 1900;      // 年
         }
         
     }

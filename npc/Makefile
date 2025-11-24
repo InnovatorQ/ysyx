@@ -36,7 +36,7 @@ $(LIBCAPSTONE):
 	$(MAKE) -C ../nemu/tools/capstone
 
 run: $(BIN)
-	@$^ --log=$(BUILD_DIR)/npc-log.txt --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^ -b --log=$(BUILD_DIR)/npc-log.txt  $(OBJ_TAR) 
 
 run-batch: $(BIN)
 	@$^ -b --log=$(BUILD_DIR)/npc-log.txt $(OBJ_TAR)
