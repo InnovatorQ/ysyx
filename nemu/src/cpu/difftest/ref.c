@@ -19,39 +19,15 @@
 #include <memory/paddr.h>
 
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  printf("difftest_memcpy: addr=0x%x, n=%zu, direction=%d\n", addr, n, direction);
-  if (direction == DIFFTEST_TO_REF) {
-    printf("difftest_memcpy: writing to NEMU memory\n");
-    for (size_t i = 0; i < n; i++) {
-      paddr_write(addr + i, 1, *((uint8_t*)buf + i));
-    }
-    printf("difftest_memcpy: write completed\n");
-  } else {
-    printf("difftest_memcpy: reading from NEMU memory\n");
-    for (size_t i = 0; i < n; i++) {
-      *((uint8_t*)buf + i) = paddr_read(addr + i, 1);
-    }
-    printf("difftest_memcpy: read completed\n");
-  }
+  assert(0);
 }
 
 __EXPORT void difftest_regcpy(void *dut, bool direction) {
-  printf("difftest_regcpy: dut=%p, direction=%d, sizeof(cpu)=%zu\n", dut, direction, sizeof(cpu));
-  if (direction == DIFFTEST_TO_REF) {
-    printf("difftest_regcpy: copying to NEMU\n");
-    memcpy(&cpu, dut, sizeof(cpu));
-    printf("difftest_regcpy: copy to NEMU completed\n");
-  } else {
-    printf("difftest_regcpy: copying from NEMU\n");
-    memcpy(dut, &cpu, sizeof(cpu));
-    printf("difftest_regcpy: copy from NEMU completed\n");
-  }
+  assert(0);
 }
 
 __EXPORT void difftest_exec(uint64_t n) {
-  printf("difftest_exec: executing %lu instructions\n", n);
-  cpu_exec(n);
-  printf("difftest_exec: execution completed\n");
+  assert(0);
 }
 
 __EXPORT void difftest_raise_intr(word_t NO) {
