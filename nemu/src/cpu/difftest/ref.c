@@ -19,37 +19,39 @@
 #include <memory/paddr.h>
 
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  // 内存访问接口：允许外部读写NEMU的内存
+  printf("difftest_memcpy: addr=0x%x, n=%zu, direction=%d\n", addr, n, direction);
   if (direction == DIFFTEST_TO_REF) {
-    // 外部向NEMU写入内存数据
+    printf("difftest_memcpy: writing to NEMU memory\n");
     for (size_t i = 0; i < n; i++) {
       paddr_write(addr + i, 1, *((uint8_t*)buf + i));
     }
+    printf("difftest_memcpy: write completed\n");
   } else {
-    // 外部从NEMU读取内存数据  
+    printf("difftest_memcpy: reading from NEMU memory\n");
     for (size_t i = 0; i < n; i++) {
       *((uint8_t*)buf + i) = paddr_read(addr + i, 1);
     }
+    printf("difftest_memcpy: read completed\n");
   }
 }
 
 __EXPORT void difftest_regcpy(void *dut, bool direction) {
-  // 寄存器访问接口：允许外部读写NEMU的寄存器状态
+  printf("difftest_regcpy: dut=%p, direction=%d, sizeof(cpu)=%zu\n", dut, direction, sizeof(cpu));
   if (direction == DIFFTEST_TO_REF) {
-    // 外部向NEMU写入寄存器状态
+    printf("difftest_regcpy: copying to NEMU\n");
     memcpy(&cpu, dut, sizeof(cpu));
+    printf("difftest_regcpy: copy to NEMU completed\n");
   } else {
-    // 外部从NEMU读取寄存器状态
+    printf("difftest_regcpy: copying from NEMU\n");
     memcpy(dut, &cpu, sizeof(cpu));
+    printf("difftest_regcpy: copy from NEMU completed\n");
   }
 }
 
 __EXPORT void difftest_exec(uint64_t n) {
-  // 执行指令函数：让REF(NEMU)执行n条指令
-  // n: 要执行的指令条数
-  // 调用NEMU的CPU执行函数，执行指定数量的指令
-  // 这样可以让REF和DUT保持同步执行
+  printf("difftest_exec: executing %lu instructions\n", n);
   cpu_exec(n);
+  printf("difftest_exec: execution completed\n");
 }
 
 __EXPORT void difftest_raise_intr(word_t NO) {
