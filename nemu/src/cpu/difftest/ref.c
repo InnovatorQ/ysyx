@@ -19,16 +19,18 @@
 #include <memory/paddr.h>
 
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  // 内存访问接口：允许外部读写NEMU的内存
-  if (direction == DIFFTEST_TO_REF) {
-    // 外部向NEMU写入内存数据
-    for (size_t i = 0; i < n; i++) {
-      paddr_write(addr + i, 1, *((uint8_t*)buf + i));
-    }
-  } else {
-    // 外部从NEMU读取内存数据  
-    for (size_t i = 0; i < n; i++) {
-      *((uint8_t*)buf + i) = paddr_read(addr + i, 1);
+  if(likely(in_pmem(addr))){
+    // 内存访问接口：允许外部读写NEMU的内存
+    if (direction == DIFFTEST_TO_REF) {
+      // 外部向NEMU写入内存数据
+      for (size_t i = 0; i < n; i++) {
+        paddr_write(addr + i, 1, *((uint8_t*)buf + i));
+      }
+    } else {
+      // 外部从NEMU读取内存数据  
+      for (size_t i = 0; i < n; i++) {
+        *((uint8_t*)buf + i) = paddr_read(addr + i, 1);
+      }
     }
   }
 }
