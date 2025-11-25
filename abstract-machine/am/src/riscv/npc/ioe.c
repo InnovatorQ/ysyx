@@ -42,10 +42,10 @@ bool ioe_init() {
 }
 
 void ioe_read (int reg, void *buf) { 
-  printf("ioe_read: accessing register %d\n", reg);
+  //printf("ioe_read: accessing register %d\n", reg);
   ((handler_t)lut[reg])(buf); 
 }
 void ioe_write(int reg, void *buf) { 
-  printf("ioe_write: accessing register %d\n", reg);
+  //printf("ioe_write: accessing register %d\n", reg);
   ((handler_t)lut[reg])(buf); 
 }

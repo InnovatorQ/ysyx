@@ -10,7 +10,6 @@
 #include<stdbool.h>
 #include<assert.h>
 #include<sys/time.h>
-#include<unistd.h>
 
 extern void init_monitor(int argc, char *argv[]);
 
@@ -149,11 +148,9 @@ int main(int argc, char **argv){
     reset(1);
 
     init_monitor(argc, argv);
-    init_disasm();  // 初始化Capstone反汇编器，用于ITRACE指令跟踪
     
     // 进入sdb主循环
     sdb_mainloop();
-    
     
     tfp->close();
     delete tfp;
