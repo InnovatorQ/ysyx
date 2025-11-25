@@ -30,7 +30,7 @@ module top(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire            alu_op;
+    wire [3 : 0]    alu_op;
     
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;

@@ -1,6 +1,6 @@
 // 负责根据控制信号控制ALU, 对数据进行计算
 module EXU(
-    input                 alu_op,
+    input  [3  : 0]       alu_op,
     input  [31 : 0]       src1_data,
     input  [31 : 0]       src2_data,
     output [31 : 0]       alu_result

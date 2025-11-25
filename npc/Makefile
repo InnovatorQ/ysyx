@@ -39,10 +39,10 @@ $(LIBCAPSTONE):
 
 # 如果NEMU库不存在，则构建它
 $(NEMU_SO):
-	$(MAKE) -C ../nemu riscv32-nemu-interpreter-so
+	$(MAKE) -C ../nemu 
 
 run: $(BIN)
-	@$^ -b --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) $(OBJ_TAR) 
+	@$^ -b --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) --elf=$(ELF_TAR) $(OBJ_TAR) 
 
 run-batch: $(BIN)
 	@$^ -b --log=$(BUILD_DIR)/npc-log.txt $(OBJ_TAR)
