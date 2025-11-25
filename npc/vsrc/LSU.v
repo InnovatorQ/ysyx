@@ -23,12 +23,11 @@ module LSU(
                        32'b0;
 
     always @(*) begin
-        if (store != 4'h0) begin
-            if (store == 4'h1) begin // sb指令
-                pmem_write(mem_addr, st_data << (byte_offset * 8), 1 << byte_offset);
-            end else begin // sw指令
-                pmem_write(mem_addr, st_data, 8'hf);
-            end
-        end
+        case (store)
+            4'hf: pmem_write(mem_addr, st_data, 8'b1111);
+            4'h3: pmem_write(mem_addr, st_data << (byte_offset * 16), 3 << byte_offset);
+            4'h1: pmem_write(mem_addr, st_data << (byte_offset * 8), 1 << byte_offset);
+            default: pmem_write(mem_addr, 32'b0, 8'b0000);
+        endcase
     end
 endmodule
