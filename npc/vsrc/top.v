@@ -30,7 +30,7 @@ module top(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire [3 : 0]    alu_op;
+    wire [4 : 0]    alu_op;
     
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;
@@ -81,6 +81,7 @@ module top(
         .alu_op         (alu_op     ),
         .src1_data      (src1       ),
         .src2_data      (src2       ),
+        .shamt          (rs2        ),
         .alu_result     (alu_result )
     );
 

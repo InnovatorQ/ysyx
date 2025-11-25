@@ -42,7 +42,7 @@ $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
 run: $(BIN)
-	@$^ -b --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^  --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) --elf=$(ELF_TAR) $(OBJ_TAR) 
 
 run-batch: $(BIN)
 	@$^ -b --log=$(BUILD_DIR)/npc-log.txt $(OBJ_TAR)

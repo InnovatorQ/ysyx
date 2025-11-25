@@ -12,7 +12,7 @@ module IDU(
     output [31 : 0] imm,
     output [31 : 0] src1,
     output [31 : 0] src2,
-    output [3 : 0]  alu_op,
+    output [4 : 0]  alu_op,
     output [31 : 0] br_target,
     output          mem_ren,
     output [31 : 0] mem_addr,
@@ -45,6 +45,7 @@ module IDU(
     wire            inst_sw;
     wire            inst_auipc;
     wire            inst_jal;
+    wire            inst_srai;
     wire            inst_sltu;
     wire            inst_sltiu;
     wire            inst_bne;
@@ -73,12 +74,13 @@ module IDU(
     assign inst_sw   = (opcode == 7'b0100011) && (funct3 == 3'b010);
     assign inst_auipc= (opcode == 7'b0010111);
     assign inst_jal  = (opcode == 7'b1101111);
+    assign inst_srai = (opcode == 7'b0010011) && (funct3 == 3'b101) && (funct7 == 7'b0100000);
     assign inst_sltu = (opcode == 7'b0110011) && (funct3 == 3'b011) && (funct7 == 7'b0);
     assign inst_sltiu= (opcode == 7'b0010011) && (funct3 == 3'b011);
     assign inst_bne  = (opcode == 7'b1100011) && (funct3 == 3'b001);
     assign inst_ebreak = (inst == 32'h00100073);
 
-    assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lbu ;
+    assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lbu | inst_srai;
     assign inst_iu = inst_sltiu;
     assign inst_r = inst_add | inst_sub | inst_xor | inst_sltu;
     assign inst_u = inst_lui | inst_auipc;
@@ -87,7 +89,7 @@ module IDU(
     assign inst_j = inst_jal;
 
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lbu | inst_lui | inst_auipc |
-                     inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu;
+                     inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai;
     // assign mem_wen = inst_s;
     assign mem_ren = inst_lw | inst_lbu;
     assign load = inst_lw ? 4'hf :
@@ -98,6 +100,7 @@ module IDU(
     assign alu_op[1] = inst_sltiu | inst_sltu;
     assign alu_op[2] = inst_sub;
     assign alu_op[3] = inst_xor;
+    assign alu_op[4] = inst_srai;
     //计算分支是否被采取
     assign br_taken = inst_jalr | inst_jal | (inst_bne && (rs1_data != rs2_data));
     
