@@ -22,13 +22,13 @@ module alu(
     wire [31 : 0] adder_a;
     wire [31 : 0] adder_b;
     wire [31 : 0] adder_result;
-    wire [31 : 0] adder_cin;
+    wire          adder_cin;
     wire          adder_cout;
 
     assign adder_a = alu_src1;
     assign adder_b = (op_sltu | op_sub) ? ~alu_src2 : alu_src2;
-    assign adder_cin = (op_sltu | op_sub) ? 32'b1 : 32'b0;
-    assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
+    assign adder_cin = (op_sltu | op_sub) ? 1'b1 : 1'b0;
+    assign {adder_cout, adder_result} = adder_a + adder_b + {31'b0, adder_cin};
 
     assign add_result = adder_result;
     assign sltu_result = {31'b0, ~adder_cout};
