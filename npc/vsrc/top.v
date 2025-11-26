@@ -23,6 +23,7 @@ module top(
     wire [3 : 0]    mem_op;
     wire [31: 0]    mem_addr;
     wire [3 : 0]    load;
+    wire            load_sign;
     wire [3 : 0]    store;
     wire [4 : 0]    rd;
     wire [4 : 0]    rs1;
@@ -30,7 +31,7 @@ module top(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire [4 : 0]    alu_op;
+    wire [11 : 0]   alu_op;
     
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;
@@ -73,6 +74,7 @@ module top(
         .mem_ren    (mem_ren    ),
         .mem_addr   (mem_addr   ),
         .load       (load       ),
+        .load_sign  (load_sign  ),
         .store      (store      ),
         .st_data    (st_data    )
     );
@@ -87,6 +89,7 @@ module top(
 
     LSU LSU(
         .load       (load       ),
+        .load_sign  (load_sign  ),
         .store      (store      ),
         .st_data    (st_data    ),
         .mem_addr   (mem_addr   ),

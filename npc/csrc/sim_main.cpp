@@ -123,7 +123,7 @@ void single_cycle(){
     top->clk = 1; top->eval();
     //确保上升沿更新PC的同时得到inst
     top->inst = pmem_read(top->pc);
-    printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
+    //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
     tfp->dump(Verilated::time());
     Verilated::timeInc(1);
 }
