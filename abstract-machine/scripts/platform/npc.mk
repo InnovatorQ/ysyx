@@ -26,7 +26,7 @@ image: image-dep
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
-	$(MAKE) -C $(NPC_HOME) run OBJ_TAR=$(IMAGE).bin
+	$(MAKE) -C $(NPC_HOME) run OBJ_TAR=$(IMAGE).bin ELF_TAR=$(IMAGE).elf
     
 
 .PHONY: insert-arg run

@@ -23,6 +23,7 @@ module top(
     wire [3 : 0]    mem_op;
     wire [31: 0]    mem_addr;
     wire [3 : 0]    load;
+    wire            load_sign;
     wire [3 : 0]    store;
     wire [4 : 0]    rd;
     wire [4 : 0]    rs1;
@@ -30,7 +31,7 @@ module top(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire            alu_op;
+    wire [11 : 0]   alu_op;
     
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;
@@ -48,8 +49,8 @@ module top(
     
     always @(posedge clk) begin
         if(reset) begin
-            //pc <= 32'h80000000;
-            pc <= 32'hfffffffc;
+            pc <= 32'h80000000;
+            //pc <= 32'hfffffffc;
         end else begin
             pc <= next_pc;
         end
@@ -73,6 +74,7 @@ module top(
         .mem_ren    (mem_ren    ),
         .mem_addr   (mem_addr   ),
         .load       (load       ),
+        .load_sign  (load_sign  ),
         .store      (store      ),
         .st_data    (st_data    )
     );
@@ -81,11 +83,13 @@ module top(
         .alu_op         (alu_op     ),
         .src1_data      (src1       ),
         .src2_data      (src2       ),
+        .shamt          (rs2        ),
         .alu_result     (alu_result )
     );
 
     LSU LSU(
         .load       (load       ),
+        .load_sign  (load_sign  ),
         .store      (store      ),
         .st_data    (st_data    ),
         .mem_addr   (mem_addr   ),

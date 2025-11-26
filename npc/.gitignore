@@ -1,3 +1,6 @@
 /build
 /constr
 /ROM
+alu_circuit.dot
+synth_alu.ys
+alu_synth.v
