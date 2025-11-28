@@ -32,6 +32,6 @@ int main(int argc, char *argv[]) {
   
   /* Start engine. */
   engine_start();
-
+  printf("numbers of dummy : %d", dummy);
   return is_exit_status_bad();
 }
