@@ -163,11 +163,12 @@ __instpat_end_: ; }
       case 0x305: csr_reg = &mtvec;   break;
       case 0x341: csr_reg = &mepc;    break;
       case 0x342: csr_reg = &mcause;  break;
-      default: panic("unsupported csr read address = 0x%x", csr_addr);
+      default: panic();
     }
     if(csr_reg){
-      R(rd) = *csr_reg;
+      word_t t = *csr_reg;
       *csr_reg = *csr_reg | src1;
+      R(rd) = t;
     }
   });
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw, I, {
@@ -178,11 +179,12 @@ __instpat_end_: ; }
       case 0x305: csr_reg = &mtvec;   break;
       case 0x341: csr_reg = &mepc;    break;
       case 0x342: csr_reg = &mcause;  break;
-      default: panic("unsupported csr read address = 0x%x", csr_addr);
+      default: panic();
     }
     if(csr_reg){
-      R(rd) = *csr_reg;
+      word_t t = *csr_reg;
       *csr_reg = src1;
+      R(rd) = t;
     }
   });
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = mepc);
