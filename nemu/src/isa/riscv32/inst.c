@@ -189,8 +189,8 @@ __instpat_end_: ; }
   });
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, {
     s->dnpc = mepc;
-    mstatus = (mstatus & ~0x8) | ((mstatus & 0x80) >> 4);  // MIE = MPIE
-    mstatus &= ~0x80;  // MPIE = 0
+    word_t mpie = (mstatus >> 7) & 1;  // 提取MPIE位
+    mstatus = (mstatus & ~0x88) | (mpie << 3);  // MIE=MPIE, MPIE=0
   });
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(11, s->pc));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
