@@ -18,6 +18,7 @@
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <ftrace.h>
+#include <etrace.h>
 
 #define R(i) gpr(i)
 #define mtvec cpu.mtvec
@@ -188,6 +189,7 @@ __instpat_end_: ; }
     }
   });
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, {
+    etrace_exception_exit(s->pc); //在异常退出时进行函数调用跟踪
     s->dnpc = mepc;
     mstatus = 0x80;
   });
