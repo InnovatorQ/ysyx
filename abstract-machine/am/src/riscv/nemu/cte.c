@@ -8,6 +8,7 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
+      case 11: ev.event = EVENT_YIELD; break;
       default: ev.event = EVENT_ERROR; break;
     }
 
@@ -21,10 +22,10 @@ Context* __am_irq_handle(Context *c) {
 extern void __am_asm_trap(void);
 
 bool cte_init(Context*(*handler)(Event, Context*)) {
-  // initialize exception entry
+  // initialize exception entry设置异常入口地址
   asm volatile("csrw mtvec, %0" : : "r"(__am_asm_trap));
 
-  // register event handler
+  // register event handler注册一个事件处理回调函数
   user_handler = handler;
 
   return true;

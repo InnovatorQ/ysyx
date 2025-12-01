@@ -29,7 +29,7 @@ static const uint32_t img [] = {
 static void restart() {
   /* Set the initial program counter. */
   cpu.pc = RESET_VECTOR;
-
+  cpu.mstatus = 0x00001800; // MIE=1, MPIE=1
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
 }

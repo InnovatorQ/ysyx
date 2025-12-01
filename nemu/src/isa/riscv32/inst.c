@@ -18,8 +18,13 @@
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
 #include <ftrace.h>
+#include <etrace.h>
 
 #define R(i) gpr(i)
+#define mtvec cpu.mtvec
+#define mepc cpu.mepc
+#define mcause cpu.mcause
+#define mstatus cpu.mstatus
 #define Mr vaddr_read
 #define Mw vaddr_write
 
@@ -36,11 +41,12 @@ enum {
 #define immB() do { *imm = (SEXT(BITS(i, 31, 31), 1) << 12) | (BITS(i, 7, 7) << 11) | (BITS(i, 30, 25) << 5) | (BITS(i, 11, 8) << 1); } while(0)
 #define immJ() do { *imm = (SEXT(BITS(i, 31, 31), 1) << 20) | (BITS(i, 19, 12) << 12) | (BITS(i, 20, 20) << 11) | (BITS(i, 30, 21) << 1); } while(0)
 //获取inst中的操作对象或操作数
-static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
+static void decode_operand(Decode *s, int *rd, int *csr_addr, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst;
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
   *rd     = BITS(i, 11, 7);
+  *csr_addr = BITS(i, 31, 20);
   switch (type) {
     case TYPE_R: src1R(); src2R();         break; 
     case TYPE_I: src1R();          immI(); break;
@@ -59,8 +65,9 @@ static int decode_exec(Decode *s) {
 #define INSTPAT_INST(s) ((s)->isa.inst)
 #define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
   int rd = 0; \
+  int csr_addr = 0; \
   word_t src1 = 0, src2 = 0, imm = 0; \
-  decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
+  decode_operand(s, &rd, &csr_addr, &src1, &src2, &imm, concat(TYPE_, type)); \
   __VA_ARGS__ ; \
 }
   /*
@@ -149,6 +156,44 @@ __instpat_end_: ; }
   INSTPAT("??????? ????? ????? 111 ????? 11000 11", bgeu   , B, if (src1 >= src2) s->dnpc = s->pc + imm; ); //增加bgeu
   INSTPAT("??????? ????? ????? 100 ????? 11000 11", blt    , B, if ((sword_t)src1 < (sword_t)src2) s->dnpc = s->pc + imm; ); //增加blt
   INSTPAT("??????? ????? ????? 110 ????? 11000 11", bltu   , B, if (src1 < src2) s->dnpc = s->pc + imm; ); //增加bltu
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, {
+    word_t *csr_reg = NULL;
+    switch (csr_addr)
+    {
+      case 0x300: csr_reg = &mstatus; break;
+      case 0x305: csr_reg = &mtvec;   break;
+      case 0x341: csr_reg = &mepc;    break;
+      case 0x342: csr_reg = &mcause;  break;
+      default: panic();
+    }
+    if(csr_reg){
+      word_t t = *csr_reg;
+      *csr_reg = *csr_reg | src1;
+      R(rd) = t;
+    }
+  });
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw, I, {
+    word_t *csr_reg = NULL;
+    switch (csr_addr)
+    {
+      case 0x300: csr_reg = &mstatus; break;
+      case 0x305: csr_reg = &mtvec;   break;
+      case 0x341: csr_reg = &mepc;    break;
+      case 0x342: csr_reg = &mcause;  break;
+      default: panic();
+    }
+    if(csr_reg){
+      word_t t = *csr_reg;
+      *csr_reg = src1;
+      R(rd) = t;
+    }
+  });
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, {
+    etrace_exception_exit(s->pc); //在异常退出时进行函数调用跟踪
+    s->dnpc = mepc;
+    mstatus = 0x80;
+  });
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(11, s->pc);mstatus = 0x1800;);
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
   INSTPAT_END();

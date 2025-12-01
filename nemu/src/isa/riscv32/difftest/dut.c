@@ -35,6 +35,27 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
       return false;
     }
   }
+  // 检查CSR寄存器
+  if(ref_r->mepc != cpu.mepc) {
+    printf("mepc mismatch at pc = " FMT_WORD ": ref = " FMT_WORD ", dut = " FMT_WORD "\n", 
+           pc, ref_r->mepc, cpu.mepc);
+    return false;
+  }
+  if(ref_r->mcause != cpu.mcause) {
+    printf("mcause mismatch at pc = " FMT_WORD ": ref = " FMT_WORD ", dut = " FMT_WORD "\n", 
+           pc, ref_r->mcause, cpu.mcause);
+    return false;
+  }
+  if(ref_r->mstatus != cpu.mstatus) {
+    printf("mstatus mismatch at pc = " FMT_WORD ": ref = " FMT_WORD ", dut = " FMT_WORD "\n", 
+           pc, ref_r->mstatus, cpu.mstatus);
+    return false;
+  }
+  if(ref_r->mtvec != cpu.mtvec) {
+    printf("mtvec mismatch at pc = " FMT_WORD ": ref = " FMT_WORD ", dut = " FMT_WORD "\n", 
+           pc, ref_r->mtvec, cpu.mtvec);
+    return false;
+  }
   
   return true;
 }
