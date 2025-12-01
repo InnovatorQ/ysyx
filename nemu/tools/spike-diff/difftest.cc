@@ -52,6 +52,8 @@ static state_t *state = NULL;
 void sim_t::diff_init(int port) {
   p = get_core("0");
   state = p->get_state();
+  // 设置CSR初始值与NEMU一致
+  state->csrmap[CSR_MSTATUS]->write(0x00001880);
 }
 
 void sim_t::diff_step(uint64_t n) {
