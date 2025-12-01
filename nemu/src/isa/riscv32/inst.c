@@ -187,7 +187,10 @@ __instpat_end_: ; }
       R(rd) = t;
     }
   });
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, s->dnpc = mepc; mstatus = (mstatus & ~0x8) | ((mstatus & 0x80) >> 7); );
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, {
+    mstatus = (mstatus & ~0x8) | ((mstatus & 0x80) >> 7); // MPIE to MIE
+    s->dnpc = mepc;
+  } );
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, s->dnpc = isa_raise_intr(11, s->pc));
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
