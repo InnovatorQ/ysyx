@@ -39,7 +39,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   assert((kstack.end - (void *)cp) == sizeof(Context));
   cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
   cp->mepc = (uintptr_t)entry; //设置内核线程入口
-  cp->mstatus = 0x00001800; // MIE=1, MPIE=1
+  //cp->mstatus = 0x00001800; // MIE=1, MPIE=1
   return cp;
   //return NULL;
 }
