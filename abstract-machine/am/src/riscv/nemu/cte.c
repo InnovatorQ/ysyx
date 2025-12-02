@@ -37,6 +37,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
   memset(cp, 0, sizeof(Context));
   assert((kstack.end - (void *)cp) == sizeof(Context));
+  cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
   cp->mepc = (uintptr_t)entry; //设置内核线程入口
   cp->mstatus = 0x00001800; // MIE=1, MPIE=1
   return cp;
@@ -47,7 +48,7 @@ void yield() {
 #ifdef __riscv_e
   asm volatile("li a5, -1; ecall");
 #else
-  asm volatile("li a7, -1; ecall");
+  asm volatile("li a7, -1; ecall"); //通过a7寄存器来传递系统调用编号
 #endif
 }
 
