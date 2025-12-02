@@ -35,7 +35,7 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   printf("栈底：%p 栈顶：%p size : %p\n", kstack.end, kstack.start, (kstack.end - kstack.start));
   Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
-  memset(cp, 0, sizeof(Context));
+  //memset(cp, 0, sizeof(Context));
   assert((kstack.end - (void *)cp) == sizeof(Context));
   cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
   cp->mepc = (uintptr_t)entry; //设置内核线程入口
