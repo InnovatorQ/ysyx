@@ -40,15 +40,15 @@ f(30) f(31)
 .align 3
 .globl __am_asm_trap
 __am_asm_trap:
-  addi sp, sp, -CONTEXT_SIZE
+  addi sp, sp, -CONTEXT_SIZE  #分配栈指针
 
-  MAP(REGS, PUSH)
+  MAP(REGS, PUSH) #保存所有通用寄存器到栈中
 
-  csrr t0, mcause
+  csrr t0, mcause #读控制寄存器
   csrr t1, mstatus
   csrr t2, mepc
 
-  STORE t0, OFFSET_CAUSE(sp)
+  STORE t0, OFFSET_CAUSE(sp) #保存控制寄存器在栈中
   STORE t1, OFFSET_STATUS(sp)
   STORE t2, OFFSET_EPC(sp)
 
@@ -60,12 +60,15 @@ __am_asm_trap:
   mv a0, sp
   call __am_irq_handle
 
-  LOAD t1, OFFSET_STATUS(sp)
+  # 上下文切换：将返回的新Context地址设为新的栈指针
+  mv sp, a0
+
+  LOAD t1, OFFSET_STATUS(sp) #系统调用结束，恢复上下文
   LOAD t2, OFFSET_EPC(sp)
   csrw mstatus, t1
   csrw mepc, t2
 
   MAP(REGS, POP)
 
-  addi sp, sp, CONTEXT_SIZE
-  mret
+  addi sp, sp, CONTEXT_SIZE # 释放栈空间
+  mret # 返回

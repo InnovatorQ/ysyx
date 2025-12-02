@@ -1,10 +1,6 @@
 #include <etrace.h>
 
 static const char *exception_names[] = {
-  [0] = "Instruction address misaligned",
-  [1] = "Instruction access fault", 
-  [2] = "Illegal instruction",
-  [3] = "Breakpoint",
   [11] = "Environment call from M-mode"
 };
 

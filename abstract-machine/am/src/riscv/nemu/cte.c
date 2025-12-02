@@ -30,9 +30,17 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 
   return true;
 }
-
+// kstack是栈的范围, entry是内核线程的入口, arg则是内核线程的参数
+// kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  printf("栈底：%p 栈顶：%p size : %p\n", kstack.end, kstack.start, (kstack.end - kstack.start));
+  Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
+  memset(cp, 0, sizeof(Context));
+  assert((kstack.end - (void *)cp) == sizeof(Context));
+  cp->mepc = (uintptr_t)entry; //设置内核线程入口
+  cp->mstatus = 0x00001800; // MIE=1, MPIE=1
+  return cp;
+  //return NULL;
 }
 
 void yield() {
