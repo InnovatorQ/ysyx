@@ -33,7 +33,9 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 // kstack是栈的范围, entry是内核线程的入口, arg则是内核线程的参数
 // kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  printf("栈底：%p 栈顶：%p size : %p\n", kstack.end, kstack.start, (kstack.end - kstack.start));
+  printf("栈底:0x%x 栈顶:0x%x size:%d\n", 
+       (uint32_t)kstack.end, (uint32_t)kstack.start, 
+       (uint32_t)(kstack.end - kstack.start));
   //定位新的上下文结构体在栈顶位置
   Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
   //创建新的线程时需要初始化线程的上下文信息
