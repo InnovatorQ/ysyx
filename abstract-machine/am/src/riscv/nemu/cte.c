@@ -34,9 +34,12 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 // kcontext()要求内核线程不能从entry返回, 否则其行为是未定义的
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   printf("栈底：%p 栈顶：%p size : %p\n", kstack.end, kstack.start, (kstack.end - kstack.start));
+  //定位新的上下文结构体在栈顶位置
   Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
-  //memset(cp, 0, sizeof(Context));
+  //创建新的线程时需要初始化线程的上下文信息
+  memset(cp, 0, sizeof(Context));
   assert((kstack.end - (void *)cp) == sizeof(Context));
+  cp->gpr[2] = (uintptr_t)cp; //设置栈指针寄存器sp
   cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
   cp->mepc = (uintptr_t)entry; //设置内核线程入口
   cp->mstatus = 0x00001800; // MIE=1, MPIE=1
