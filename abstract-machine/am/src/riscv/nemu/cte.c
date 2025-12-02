@@ -39,7 +39,6 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
   //创建新的线程时需要初始化线程的上下文信息
   memset(cp, 0, sizeof(Context));
   assert((kstack.end - (void *)cp) == sizeof(Context));
-  cp->gpr[2] = (uintptr_t)cp; //设置栈指针寄存器sp
   cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
   cp->mepc = (uintptr_t)entry; //设置内核线程入口
   cp->mstatus = 0x00001800; // MIE=1, MPIE=1
