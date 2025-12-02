@@ -50,7 +50,6 @@ void yield() {
 #ifdef __riscv_e
   asm volatile("li a5, -1; ecall");
 #else
-  printf("Yielding...\n");
   asm volatile("li a7, -1; ecall"); //通过a7寄存器来传递系统调用编号
 #endif
 }
