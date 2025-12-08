@@ -11,9 +11,6 @@ Context* __am_irq_handle(Context *c) {
       case 11: ev.event = EVENT_YIELD; c->mepc += 4; break;
       default: ev.event = EVENT_ERROR; break;
     }
-    // for(int i = 0 ; i < 32; i++){
-    //   printf("GPR[%d]=0x%x\n", i, (uint32_t)c->gpr[i]);
-    // }
     c = user_handler(ev, c);
     assert(c != NULL);
   }
