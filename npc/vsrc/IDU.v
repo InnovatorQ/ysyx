@@ -122,7 +122,7 @@ module IDU(
     assign inst_bge  = (opcode == 7'b1100011) && (funct3 == 3'b101);
     assign inst_bgeu = (opcode == 7'b1100011) && (funct3 == 3'b111);
     assign inst_blt  = (opcode == 7'b1100011) && (funct3 == 3'b100);
-    assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
+    //assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
     assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
     assign inst_ecall = (inst == 32'h00000073);
     assign inst_mret  = (inst == 32'h30200073);
