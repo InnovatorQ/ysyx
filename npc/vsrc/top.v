@@ -33,6 +33,7 @@ module top(
     wire [31 : 0]   imm;
     wire [11 : 0]   csr_addr;
     wire [31 : 0]   csr_data;
+    wire [31 : 0]   wr_csr_data;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
     wire [11 : 0]   alu_op;
@@ -109,21 +110,24 @@ module top(
         .reset          (reset      ),
         .rs1            (rs1        ),
         .rs2            (rs2        ),
+        .rd_data        (rd_data    ),
         .rd             (rd         ),
         .rf1_data       (rs1_data   ),
         .rf2_data       (rs2_data   ),
         .wb_data        (wb_data    ),
         .rf_wen         (rf_wen     ),
-        .csr_addr       (csr_addr   ),
-        .csr_wen        (csr_wen    ),
-        .regs           (regs       )
+        .regs           (regs       ),
+        .wr_csr_data    (wr_csr_data)
     );
     
     csr csr(
         .clk        (clk        ),
         .reset      (reset      ),
         .rd_addr    (csr_addr   ),
-        .rd_data    (csr_data   )
+        .rd_data    (csr_data   ),
+        .csr_wr_en  (csr_wr_en  ),
+        .wr_addr    (csr_addr   ),
+        .wr_data    (wr_csr_data)
     );
     // always @(mem_addr) begin
     //     $display("mem_addr : %08x", mem_addr);
