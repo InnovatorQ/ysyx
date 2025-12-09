@@ -32,6 +32,7 @@ module top(
     wire [4 : 0]    rs2;
     wire [31 : 0]   imm;
     wire [11 : 0]   csr_addr;
+    wire [31 : 0]   csr_data;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
     wire [11 : 0]   alu_op;
@@ -46,7 +47,7 @@ module top(
 
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? seq_pc : 
-                      res_from_csr ? rd_data : alu_result;
+                      res_from_csr ? csr_data : alu_result;
 
     assign seq_pc = pc + 32'h4;
     assign next_pc = br_taken ? br_target : seq_pc;
