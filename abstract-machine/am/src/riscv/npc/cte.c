@@ -8,6 +8,7 @@ Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
+      case 11: ev.event = EVENT_YIELD; c->mepc += 4; break;
       default: ev.event = EVENT_ERROR; break;
     }
 
@@ -31,7 +32,15 @@ bool cte_init(Context*(*handler)(Event, Context*)) {
 }
 
 Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
-  return NULL;
+  //定位新的上下文结构体在栈顶位置
+  Context* cp = (Context*)((uintptr_t)kstack.end - sizeof(Context));
+  //创建新的线程时需要初始化线程的上下文信息
+  memset(cp, 0, sizeof(Context));
+  assert((kstack.end - (void *)cp) == sizeof(Context));
+  cp->mepc = (uintptr_t)entry; //设置内核线程入口,硬件机制会在执行mret指令时跳转到该地址
+  cp->gpr[10] = (uintptr_t)arg; //设置a0寄存器传递参数
+  cp->mstatus = 0x00001800; // MIE=1, MPIE=1
+  return cp;
 }
 
 void yield() {
