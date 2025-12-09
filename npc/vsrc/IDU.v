@@ -136,7 +136,7 @@ module IDU(
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_srli | inst_slli | inst_slt | 
                      inst_sra | inst_srl | inst_lhu | inst_csrrs;
-    // assign csr_wen 
+    assign csr_wen = inst_csrrs;
     // assign mem_wen = inst_s;
     assign mem_ren = inst_lw | inst_lbu;
     assign load_sign = inst_lh | inst_lw;
