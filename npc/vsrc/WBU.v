@@ -40,6 +40,6 @@ module WBU(
         end
     end
 
-    assign mcycle = (csr_wen && (csr_addr == 3'hB00)) ? mcycle_r : 32'b0;
-    assign mcycle_h = (csr_wen && (csr_addr == 3'hB80)) ? mcycle_h_r : 32'b0; 
+    assign mcycle = (csr_wen && (csr_addr == 12'hB00)) ? mcycle_r : 32'b0;
+    assign mcycle_h = (csr_wen && (csr_addr == 12'hB80)) ? mcycle_h_r : 32'b0; 
 endmodule
