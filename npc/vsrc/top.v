@@ -110,7 +110,7 @@ module top(
         .reset          (reset      ),
         .rs1            (rs1        ),
         .rs2            (rs2        ),
-        .rd_data        (rd_data    ),
+        .csr_data       (csr_data    ),
         .rd             (rd         ),
         .rf1_data       (rs1_data   ),
         .rf2_data       (rs2_data   ),

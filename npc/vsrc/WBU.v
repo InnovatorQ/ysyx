@@ -3,7 +3,7 @@ module WBU(
     input           clk,
     input           reset,
     input           rf_wen,
-    input  [31: 0]  rd_data,
+    input  [31: 0]  csr_data,
     input  [4 : 0]  rd,
     input  [4 : 0]  rs1,
     input  [4 : 0]  rs2,
@@ -25,5 +25,5 @@ module WBU(
         .wdata      (wb_data    ),
         .regs       (regs       )
     );
-    assign wr_csr_data = rf1_data | rd_data;
+    assign wr_csr_data = rf1_data | csr_data;
 endmodule
