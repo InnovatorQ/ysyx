@@ -26,6 +26,7 @@ module top(
     wire [3 : 0]    load;
     wire            load_sign;
     wire [3 : 0]    store;
+    wire            res_from_csr;
     wire [4 : 0]    rd;
     wire [4 : 0]    rs1;
     wire [4 : 0]    rs2;
@@ -44,7 +45,8 @@ module top(
     wire [31 : 0]   wb_data;    //写入寄存器的值
 
     assign wb_data = (load != 4'h0) ? load_data : 
-                      br_taken ? seq_pc : alu_result;
+                      br_taken ? seq_pc : 
+                      res_from_csr ? rd_data : alu_result;
 
     assign seq_pc = pc + 32'h4;
     assign next_pc = br_taken ? br_target : seq_pc;
@@ -59,28 +61,29 @@ module top(
     end
     
     IDU IDU(
-        .inst       (inst       ),
-        .pc         (pc         ),
-        .rf_wen     (rf_wen     ),
-        .csr_wen    (csr_wen    ),
-        .br_taken   (br_taken   ),
-        .rd         (rd         ),
-        .rs1        (rs1        ),
-        .rs1_data   (rs1_data   ),
-        .rs2        (rs2        ),
-        .rs2_data   (rs2_data   ),
-        .imm        (imm        ),
-        .csr_addr   (csr_addr   ),
-        .src1       (src1       ),
-        .src2       (src2       ),
-        .alu_op     (alu_op     ),
-        .br_target  (br_target  ),
-        .mem_ren    (mem_ren    ),
-        .mem_addr   (mem_addr   ),
-        .load       (load       ),
-        .load_sign  (load_sign  ),
-        .store      (store      ),
-        .st_data    (st_data    )
+        .inst           (inst           ),
+        .pc             (pc             ),
+        .rf_wen         (rf_wen         ),
+        .csr_wen        (csr_wen        ),
+        .br_taken       (br_taken       ),
+        .rd             (rd             ),
+        .rs1            (rs1            ),
+        .rs1_data       (rs1_data       ),
+        .rs2            (rs2            ),
+        .rs2_data       (rs2_data       ),
+        .imm            (imm            ),
+        .csr_addr       (csr_addr       ),
+        .src1           (src1           ),
+        .src2           (src2           ),
+        .alu_op         (alu_op         ),
+        .br_target      (br_target      ),
+        .mem_ren        (mem_ren        ),
+        .mem_addr       (mem_addr       ),
+        .load           (load           ),
+        .load_sign      (load_sign      ),
+        .store          (store          ),
+        .st_data        (st_data        ),
+        .res_from_csr   (res_from_csr   )
     );
 
     EXU EXU(
@@ -115,6 +118,12 @@ module top(
         .regs           (regs       )
     );
     
+    .csr csr(
+        .clk        (clk        ),
+        .reset      (reset      ),
+        .rd_addr    (csr_addr   ),
+        .rd_data    (csr_data   )
+    );
     // always @(mem_addr) begin
     //     $display("mem_addr : %08x", mem_addr);
     // end

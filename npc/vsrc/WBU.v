@@ -13,9 +13,6 @@ module WBU(
     output [31 : 0] rf2_data,
     output [31 : 0] regs [31 : 0]
 );
-    reg [31 : 0] mcycle_r;
-    reg [31 : 0] mcycle_h_r;
-
     regfile rf(
         .clk        (clk        ),
         .reset      (reset      ),
@@ -29,15 +26,4 @@ module WBU(
         .regs       (regs       )
     );
 
-    always @(posedge clk)begin
-        if(mcycle < 32'hffff)begin
-            mcycle_r = mcycle_r + 32'b1;
-        end else begin
-            mcycle_h_r = mcycle_h_r + 32'b1;
-            mcycle_r = 32'b0;
-        end
-    end
-
-    assign mcycle = (csr_wen && (csr_addr == 12'hB00)) ? mcycle_r : 32'b0;
-    assign mcycle_h = (csr_wen && (csr_addr == 12'hB80)) ? mcycle_h_r : 32'b0; 
 endmodule
