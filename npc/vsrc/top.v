@@ -118,7 +118,7 @@ module top(
         .regs           (regs       )
     );
     
-    .csr csr(
+    csr csr(
         .clk        (clk        ),
         .reset      (reset      ),
         .rd_addr    (csr_addr   ),
