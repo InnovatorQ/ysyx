@@ -90,7 +90,7 @@ module IDU(
     assign funct7 = inst[31:25];
 
     assign inst_add  = (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0);
-    assign inst_addi = (opcode == 7'b0010011) && (funct3 == 3'b000);
+    //assign inst_addi = (opcode == 7'b0010011) && (funct3 == 3'b000);
     assign inst_sub  = (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
     assign inst_andi = (opcode == 7'b0010011) && (funct3 == 3'b111);
     assign inst_and  = (opcode == 7'b0110011) && (funct3 == 3'b111) && (funct7 == 7'b0);
@@ -122,7 +122,7 @@ module IDU(
     assign inst_bge  = (opcode == 7'b1100011) && (funct3 == 3'b101);
     assign inst_bgeu = (opcode == 7'b1100011) && (funct3 == 3'b111);
     assign inst_blt  = (opcode == 7'b1100011) && (funct3 == 3'b100);
-    //assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
+    assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
     assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
     assign inst_ecall = (inst == 32'h00000073);
     assign inst_mret  = (inst == 32'h30200073);
