@@ -18,7 +18,7 @@ module top(
     wire [31 : 0] br_target;
     
     wire            rf_wen;
-    wire            csr_wen;
+    wire            csr_wr_en;
     wire            mem_wen;
     wire            mem_ren;
     wire [3 : 0]    mem_op;
