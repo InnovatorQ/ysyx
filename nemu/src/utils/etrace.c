@@ -1,7 +1,7 @@
 #include <etrace.h>
 
 static const char *exception_names[] = {
-  [10] = "Ecall"
+  [1] = "Ecall"
 };
 
 void etrace_exception_entry(word_t cause, vaddr_t pc, vaddr_t handler) {
