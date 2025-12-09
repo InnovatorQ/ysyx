@@ -1,7 +1,7 @@
 #include <etrace.h>
 
 static const char *exception_names[] = {
-  [11] = "Ecall"
+  [10] = "Ecall"
 };
 
 void etrace_exception_entry(word_t cause, vaddr_t pc, vaddr_t handler) {
@@ -14,6 +14,6 @@ void etrace_exception_entry(word_t cause, vaddr_t pc, vaddr_t handler) {
 }
 
 void etrace_exception_exit(vaddr_t pc) {
-  //printf("ETRACE: exception exit at pc = " FMT_WORD "\n", pc);
+  printf("ETRACE: exception exit at pc = " FMT_WORD "\n", pc);
   log_write("ETRACE: exception exit at pc = " FMT_WORD "\n", pc);
 }
