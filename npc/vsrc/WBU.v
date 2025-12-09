@@ -11,9 +11,7 @@ module WBU(
     input  [31 : 0] wb_data,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
-    output [31 : 0] regs [31 : 0],
-    output [31 : 0] mcycle,
-    output [31 : 0] mcycle_h
+    output [31 : 0] regs [31 : 0]
 );
     reg [31 : 0] mcycle_r;
     reg [31 : 0] mcycle_h_r;

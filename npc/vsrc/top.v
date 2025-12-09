@@ -10,9 +10,7 @@ module top(
     input                   reset,
     input       [31 : 0]    inst,
     output reg  [31 : 0]    pc,
-    output reg  [31 : 0]    regs [31 : 0],
-    output reg  [31 : 0]    mcycle,
-    output reg  [31 : 0]    mcycle_h
+    output reg  [31 : 0]    regs [31 : 0]
 );
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
@@ -114,9 +112,7 @@ module top(
         .rf_wen         (rf_wen     ),
         .csr_addr       (csr_addr   ),
         .csr_wen        (csr_wen    ),
-        .regs           (regs       ),
-        .mcycle         (mcycle     ),
-        .mcycle_h       (mcycle_h   )
+        .regs           (regs       )
     );
     
     // always @(mem_addr) begin
