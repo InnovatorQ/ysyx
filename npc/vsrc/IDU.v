@@ -6,10 +6,12 @@ module IDU(
     input  [31 : 0] rs2_data,
     output          br_taken,
     output          rf_wen,
+    output          csr_wen,
     output [4 : 0]  rd,
     output [4 : 0]  rs1,
     output [4 : 0]  rs2,
     output [31 : 0] imm,
+    output [11 : 0] csr_addr,
     output [31 : 0] src1,
     output [31 : 0] src2,
     output [11 : 0] alu_op,
@@ -69,6 +71,7 @@ module IDU(
     wire            inst_blt;
     wire            inst_bltu;
     wire            inst_ebreak;
+    wire            inst_csrrs;
 
     wire [31 : 0]   imm_i;
     wire [31 : 0]   imm_iu;
@@ -117,6 +120,7 @@ module IDU(
     assign inst_bgeu = (opcode == 7'b1100011) && (funct3 == 3'b111);
     assign inst_blt  = (opcode == 7'b1100011) && (funct3 == 3'b100);
     assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
+    assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
     assign inst_ebreak = (inst == 32'h00100073);
 
     assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lh | inst_lhu | inst_lbu | inst_srai | inst_xori | inst_andi | inst_srli | inst_slli;
@@ -131,6 +135,7 @@ module IDU(
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_srli | inst_slli | inst_slt | 
                      inst_sra | inst_srl | inst_lhu;
+    assign csr_wen = inst_csrrs;
     // assign mem_wen = inst_s;
     assign mem_ren = inst_lw | inst_lbu;
     assign load_sign = inst_lh | inst_lw;
@@ -174,6 +179,7 @@ module IDU(
     assign imm_u = {inst[31:12], 12'b0};
     assign imm_s = {{20{inst[31]}}, inst[31:25], inst[11:7]};
     assign imm_j = ({{11{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0});
+    assign csr_addr = inst[31:20];
     assign offset = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
     assign imm = inst_i ? imm_i :
                  inst_iu? imm_iu : 

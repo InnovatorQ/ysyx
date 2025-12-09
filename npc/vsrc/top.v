@@ -10,7 +10,9 @@ module top(
     input                   reset,
     input       [31 : 0]    inst,
     output reg  [31 : 0]    pc,
-    output reg  [31 : 0]    regs [31 : 0]
+    output reg  [31 : 0]    regs [31 : 0],
+    output reg  [31 : 0]    mcycle,
+    output reg  [31 : 0]    mcycle_h
 );
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
@@ -18,6 +20,7 @@ module top(
     wire [31 : 0] br_target;
     
     wire            rf_wen;
+    wire            csr_wen;
     wire            mem_wen;
     wire            mem_ren;
     wire [3 : 0]    mem_op;
@@ -29,6 +32,7 @@ module top(
     wire [4 : 0]    rs1;
     wire [4 : 0]    rs2;
     wire [31 : 0]   imm;
+    wire [11 : 0]   csr_addr;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
     wire [11 : 0]   alu_op;
@@ -60,6 +64,7 @@ module top(
         .inst       (inst       ),
         .pc         (pc         ),
         .rf_wen     (rf_wen     ),
+        .csr_wen    (csr_wen    ),
         .br_taken   (br_taken   ),
         .rd         (rd         ),
         .rs1        (rs1        ),
@@ -67,6 +72,7 @@ module top(
         .rs2        (rs2        ),
         .rs2_data   (rs2_data   ),
         .imm        (imm        ),
+        .csr_addr   (csr_addr   ),
         .src1       (src1       ),
         .src2       (src2       ),
         .alu_op     (alu_op     ),
@@ -106,7 +112,11 @@ module top(
         .rf2_data       (rs2_data   ),
         .wb_data        (wb_data    ),
         .rf_wen         (rf_wen     ),
-        .regs           (regs       )
+        .csr_addr       (csr_addr   ),
+        .csr_wen        (csr_wen    ),
+        .regs           (regs       ),
+        .mcycle         (mcycle     ),
+        .mcycle_h       (mcycle_h   )
     );
     
     // always @(mem_addr) begin
