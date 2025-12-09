@@ -65,6 +65,25 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
         while(--len >= 0) *pbuf++ = temp[len];
         break;
       }
+      case 'u': {
+        unsigned int num = va_arg(ap, unsigned int);
+        char temp[12];
+        int len = 0;
+        
+        if(num == 0) temp[len++] = '0';
+        while(num > 0) {
+          temp[len++] = '0' + num % 10;
+          num /= 10;
+        }
+        
+        while(width > len) {
+          *pbuf++ = ' ';
+          width--;
+        }
+        
+        while(--len >= 0) *pbuf++ = temp[len];
+        break;
+      }
       case 'x': {
         unsigned int num = va_arg(ap, unsigned int);
         char temp[10];
