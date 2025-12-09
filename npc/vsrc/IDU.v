@@ -90,7 +90,7 @@ module IDU(
     assign funct7 = inst[31:25];
 
     assign inst_add  = (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0);
-    assign inst_addi = (opcode == 7'b0010011) && (funct3 == 3'b000);
+    //assign inst_addi = (opcode == 7'b0010011) && (funct3 == 3'b000);
     assign inst_sub  = (opcode == 7'b0110011) && (funct3 == 3'b000) && (funct7 == 7'b0100000);
     assign inst_andi = (opcode == 7'b0010011) && (funct3 == 3'b111);
     assign inst_and  = (opcode == 7'b0110011) && (funct3 == 3'b111) && (funct7 == 7'b0);
