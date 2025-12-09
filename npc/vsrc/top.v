@@ -66,7 +66,7 @@ module top(
         .inst           (inst           ),
         .pc             (pc             ),
         .rf_wen         (rf_wen         ),
-        .csr_wen        (csr_wen        ),
+        .csr_wen        (csr_wr_en      ),
         .br_taken       (br_taken       ),
         .rd             (rd             ),
         .rs1            (rs1            ),
