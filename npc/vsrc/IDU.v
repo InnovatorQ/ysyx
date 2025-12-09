@@ -72,6 +72,8 @@ module IDU(
     wire            inst_blt;
     wire            inst_bltu;
     wire            inst_ebreak;
+    wire            inst_ecall;
+    wire            inst_mret;
     wire            inst_csrrs;
 
     wire [31 : 0]   imm_i;
@@ -122,7 +124,9 @@ module IDU(
     assign inst_blt  = (opcode == 7'b1100011) && (funct3 == 3'b100);
     assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
     assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
-    assign inst_ebreak = (inst == 32'h00100073);
+    assign inst_ecall = (inst == 32'h00000073);
+    assign inst_mret  = (inst == 32'h30200073);
+    assign inst_ebreak= (inst == 32'h00100073);
 
     assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lh | inst_lhu | inst_lbu | inst_srai | inst_xori | inst_andi | inst_srli | inst_slli;
     assign inst_iu = inst_sltiu;
