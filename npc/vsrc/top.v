@@ -16,6 +16,7 @@ module top(
     wire [31 : 0] next_pc;
     wire          br_taken;
     wire [31 : 0] br_target;
+    wire          ecall;
     
     wire            rf_wen;
     wire            csr_wr_en;
@@ -37,7 +38,8 @@ module top(
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
     wire [11 : 0]   alu_op;
-    
+    wire [1 : 0]    csr_op;
+
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;
     
@@ -51,7 +53,8 @@ module top(
                       res_from_csr ? csr_data : alu_result;
 
     assign seq_pc = pc + 32'h4;
-    assign next_pc = br_taken ? br_target : seq_pc;
+    assign next_pc =ecall   ? csr_mtvec : 
+                    br_taken? br_target : seq_pc;
     
     always @(posedge clk) begin
         if(reset) begin
@@ -78,6 +81,7 @@ module top(
         .src1           (src1           ),
         .src2           (src2           ),
         .alu_op         (alu_op         ),
+        .csr_op         (csr_op         ),
         .br_target      (br_target      ),
         .mem_ren        (mem_ren        ),
         .mem_addr       (mem_addr       ),
@@ -85,7 +89,8 @@ module top(
         .load_sign      (load_sign      ),
         .store          (store          ),
         .st_data        (st_data        ),
-        .res_from_csr   (res_from_csr   )
+        .res_from_csr   (res_from_csr   ),
+        .inst_ecall     (ecall          ) 
     );
 
     EXU EXU(
@@ -110,7 +115,8 @@ module top(
         .reset          (reset      ),
         .rs1            (rs1        ),
         .rs2            (rs2        ),
-        .csr_data       (csr_data    ),
+        .csr_op         (csr_op     ),
+        .csr_data       (csr_data   ),
         .rd             (rd         ),
         .rf1_data       (rs1_data   ),
         .rf2_data       (rs2_data   ),
@@ -127,7 +133,10 @@ module top(
         .rd_data    (csr_data   ),
         .csr_wr_en  (csr_wr_en  ),
         .wr_addr    (csr_addr   ),
-        .wr_data    (wr_csr_data)
+        .wr_data    (wr_csr_data),
+        .csr_mepc   (csr_mepc   ),
+        .csr_mcause (csr_mcause ),
+        .csr_mtvec  (csr_mtvec  )
     );
     // always @(mem_addr) begin
     //     $display("mem_addr : %08x", mem_addr);
