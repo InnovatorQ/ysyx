@@ -16,7 +16,7 @@ module top(
     wire [31 : 0] next_pc;
     wire          br_taken;
     wire [31 : 0] br_target;
-    wire          ecall;
+    wire          inst_ecall;
     
     wire            rf_wen;
     wire            csr_wr_en;
@@ -48,13 +48,17 @@ module top(
     wire [31 : 0]   st_data;
     wire [31 : 0]   wb_data;    //写入寄存器的值
 
+    reg [31 : 0] csr_mepc;
+    reg [31 : 0] csr_mtvec;
+    reg [31 : 0] csr_mcause;
+
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? seq_pc : 
                       res_from_csr ? csr_data : alu_result;
 
     assign seq_pc = pc + 32'h4;
-    assign next_pc =ecall   ? csr_mtvec : 
-                    br_taken? br_target : seq_pc;
+    assign next_pc =inst_ecall  ? csr_mtvec : 
+                    br_taken    ? br_target : seq_pc;
     
     always @(posedge clk) begin
         if(reset) begin
@@ -64,7 +68,7 @@ module top(
             pc <= next_pc;
         end
     end
-    
+
     IDU IDU(
         .inst           (inst           ),
         .pc             (pc             ),
@@ -90,7 +94,7 @@ module top(
         .store          (store          ),
         .st_data        (st_data        ),
         .res_from_csr   (res_from_csr   ),
-        .inst_ecall     (ecall          ) 
+        .inst_ecall     (inst_ecall     ) 
     );
 
     EXU EXU(
@@ -127,8 +131,10 @@ module top(
     );
     
     csr csr(
+        .pc         (pc         ),
         .clk        (clk        ),
         .reset      (reset      ),
+        .ecall      (inst_ecall ),
         .rd_addr    (csr_addr   ),
         .rd_data    (csr_data   ),
         .csr_wr_en  (csr_wr_en  ),

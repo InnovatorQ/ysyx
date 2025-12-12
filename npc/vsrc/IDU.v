@@ -74,7 +74,6 @@ module IDU(
     wire            inst_blt;
     wire            inst_bltu;
     wire            inst_ebreak;
-    wire            inst_ecall;
     wire            inst_mret;
     wire            inst_csrrs;
     wire            inst_csrrw;

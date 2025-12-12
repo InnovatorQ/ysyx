@@ -43,6 +43,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     
     if( waddr >= 0x10000000) {
         putchar((char)(wdata & 0xff));
+        fflush(stdout);  // 强制刷新
         return;
     }
     
