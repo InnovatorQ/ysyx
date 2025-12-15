@@ -24,7 +24,8 @@ module IDU(
     output [3 : 0]  store,
     output [31 : 0] st_data,
     output          res_from_csr,
-    output          inst_ecall
+    output          inst_ecall,
+    output          inst_mret
 );
     
     wire [6:0]      opcode;
@@ -74,7 +75,6 @@ module IDU(
     wire            inst_blt;
     wire            inst_bltu;
     wire            inst_ebreak;
-    wire            inst_mret;
     wire            inst_csrrs;
     wire            inst_csrrw;
 
@@ -142,8 +142,8 @@ module IDU(
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_srli | inst_slli | inst_slt | 
-                     inst_sra | inst_srl | inst_lhu | inst_csrrs;
-    assign csr_wen = inst_csrrs;
+                     inst_sra | inst_srl | inst_lhu | inst_csrrs | inst_csrrw;
+    assign csr_wen = inst_csrrs | inst_csrrw;
     // assign mem_wen = inst_s;
     assign mem_ren = inst_lw | inst_lbu;
     assign load_sign = inst_lh | inst_lw;
@@ -154,7 +154,7 @@ module IDU(
                     inst_sh ? 4'h3 : 
                     inst_sb ? 4'h1 : 4'h0;
 
-    assign res_from_csr = inst_csrrs;
+    assign res_from_csr = inst_csrrs | inst_csrrw;
 
     assign rs1_lt_rd_sign = (rs1_data[31] ^ rs2_data[31]) ? rs1_data[31] : 
                             (rs1_data < rs2_data);

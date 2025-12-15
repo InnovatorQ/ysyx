@@ -10,12 +10,14 @@ module top(
     input                   reset,
     input       [31 : 0]    inst,
     output reg  [31 : 0]    pc,
-    output reg  [31 : 0]    regs [31 : 0]
+    output reg  [31 : 0]    regs [31 : 0],
+    output      [31 : 0]    csr_mcause
 );
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
     wire          br_taken;
     wire [31 : 0] br_target;
+    wire          mret;
     wire          inst_ecall;
     
     wire            rf_wen;
@@ -50,14 +52,14 @@ module top(
 
     reg [31 : 0] csr_mepc;
     reg [31 : 0] csr_mtvec;
-    reg [31 : 0] csr_mcause;
 
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? seq_pc : 
                       res_from_csr ? csr_data : alu_result;
 
     assign seq_pc = pc + 32'h4;
-    assign next_pc =inst_ecall  ? csr_mtvec : 
+    assign next_pc =inst_ecall  ? csr_mtvec :
+                    mret        ? csr_mepc  : 
                     br_taken    ? br_target : seq_pc;
     
     always @(posedge clk) begin
@@ -94,7 +96,8 @@ module top(
         .store          (store          ),
         .st_data        (st_data        ),
         .res_from_csr   (res_from_csr   ),
-        .inst_ecall     (inst_ecall     ) 
+        .inst_ecall     (inst_ecall     ),
+        .inst_mret      (mret           ) 
     );
 
     EXU EXU(
