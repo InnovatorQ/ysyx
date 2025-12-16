@@ -25,7 +25,7 @@ module LSU(
 
     assign load_data = (load == 4'hf) ? mem_rdata :
                        (load == 4'h3) ? (load_sign ? {{16{selected_halfword[15]}}, selected_halfword} : {16'b0, selected_halfword}) :
-                       (load == 4'h1) ? {24'b0, selected_byte} :
+                       (load == 4'h1) ? (load_sign ? {{24{selected_byte[7]}}, selected_byte} : {24'b0, selected_byte}) :
                        32'b0;
 
     always @(*) begin

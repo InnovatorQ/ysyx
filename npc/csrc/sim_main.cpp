@@ -4,6 +4,7 @@
 #include"verilated_fst_c.h"
 #include"monitor/sdb/sdb.h"
 #include"common.h"
+#include"difftest.h"
 
 #include<stdio.h>
 #include<time.h>
@@ -21,6 +22,10 @@ VerilatedFstC* tfp;
 //全局
 bool is_ebreak = false;
 word_t pmem[MSIZE];
+
+extern "C" void skip_ref(){
+    difftest_skip_ref();
+}
 
 extern "C" void ebreak(){
     is_ebreak = true;
@@ -44,6 +49,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     if( waddr >= 0x10000000) {
         putchar((char)(wdata & 0xff));
         fflush(stdout);  // 强制刷新
+        difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
         return;
     }
     
@@ -67,6 +73,8 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 extern "C" word_t pmem_read(int raddr) {
     // 处理RTC设备 - 返回当前系统时间（不缓存）
     if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
+        difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
+        
         // 获取微秒级时间用于AM_TIMER_UPTIME
         uint64_t uptime_us = get_time();
         

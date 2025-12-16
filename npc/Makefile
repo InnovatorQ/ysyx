@@ -10,7 +10,7 @@ NEMU_SO = ../nemu/build/riscv32-nemu-interpreter-so
 VERILATOR_CFLAGS += -MMD --build -cc --trace-fst \
 		    -O3 --x-assign fast --x-initial fast --noassert \
 		    -Wno-UNOPTFLAT -LDFLAGS "-lreadline -ldl" \
-		    -CFLAGS "-I$(abspath ./include) -I$(abspath ../nemu/tools/capstone/repo/include)" #-DCONFIG_DIFFTEST"
+		    -CFLAGS "-I$(abspath ./include) -I$(abspath ../nemu/tools/capstone/repo/include) -DCONFIG_DIFFTEST"
 
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
@@ -43,7 +43,6 @@ $(NEMU_SO):
 
 run: $(BIN)
 	@$^  --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) --elf=$(ELF_TAR) $(OBJ_TAR) 
-
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)

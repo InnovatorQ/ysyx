@@ -1,4 +1,5 @@
 import "DPI-C" function void ebreak();
+import "DPI-C" function void skip_ref();
 import "DPI-C" function int pmem_read(input int raddr);
 import "DPI-C" function void pmem_write(
   input int waddr, input int wdata, input byte wmask);
@@ -52,6 +53,12 @@ module top(
 
     reg [31 : 0] csr_mepc;
     reg [31 : 0] csr_mtvec;
+
+    always @(posedge clk) begin
+        if(inst_ecall | mret | csr_op[0] | csr_op[1]) begin
+            skip_ref();  // 跳过REF执行，因为外设行为不同
+        end
+    end
 
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? seq_pc : 
