@@ -42,7 +42,7 @@ $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
 run: $(BIN)
-	@$^  --log=$(BUILD_DIR)/npc-log.txt --diff=$(NEMU_SO) --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^  --log=$(BUILD_DIR)/npc-log.txt  --elf=$(ELF_TAR) $(OBJ_TAR) 
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)
