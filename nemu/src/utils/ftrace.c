@@ -238,9 +238,9 @@ void ftrace_ret(vaddr_t pc) {
     const char *func_name = (call_depth < MAX_CALL_DEPTH) ? call_stack[call_depth] : "unknown";
     
     // 输出缩进，表示调用层次
-    for (int i = 0; i < call_depth; i++) printf("  ");
+    //for (int i = 0; i < call_depth; i++) printf("  ");
     // 输出函数返回信息，包含函数名
-    printf("ret  [" FMT_WORD "] %s\n", pc, func_name);
+    //printf("ret  [" FMT_WORD "] %s\n", pc, func_name);
     
     // 同时输出到日志文件（如果启用了日志）
     log_write("FTRACE: ");
