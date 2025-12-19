@@ -40,16 +40,65 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
       pf++;
     }
     
+    int is_long = 0;
+    if(*pf == 'l') {
+      is_long = 1;
+      pf++;
+    }
+    
     switch (*pf) {
       case 'd': {
-        int num = va_arg(ap, int);
+        if(is_long) {
+          long num = va_arg(ap, long);
+          char temp[21];
+          int len = 0;
+          
+          if(num < 0) {
+            *pbuf++ = '-';
+            num = -num;
+          }
+          
+          if(num == 0) temp[len++] = '0';
+          while(num > 0) {
+            temp[len++] = '0' + num % 10;
+            num /= 10;
+          }
+          
+          while(width > len) {
+            *pbuf++ = ' ';
+            width--;
+          }
+          
+          while(--len >= 0) *pbuf++ = temp[len];
+        } else {
+          int num = va_arg(ap, int);
+          char temp[12];
+          int len = 0;
+          
+          if(num < 0) {
+            *pbuf++ = '-';
+            num = -num;
+          }
+          
+          if(num == 0) temp[len++] = '0';
+          while(num > 0) {
+            temp[len++] = '0' + num % 10;
+            num /= 10;
+          }
+          
+          while(width > len) {
+            *pbuf++ = ' ';
+            width--;
+          }
+          
+          while(--len >= 0) *pbuf++ = temp[len];
+        }
+        break;
+      }
+      case 'u': {
+        unsigned int num = va_arg(ap, unsigned int);
         char temp[12];
         int len = 0;
-        
-        if(num < 0) {
-          *pbuf++ = '-';
-          num = -num;
-        }
         
         if(num == 0) temp[len++] = '0';
         while(num > 0) {

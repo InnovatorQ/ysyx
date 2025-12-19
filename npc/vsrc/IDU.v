@@ -6,20 +6,26 @@ module IDU(
     input  [31 : 0] rs2_data,
     output          br_taken,
     output          rf_wen,
+    output          csr_wen,
     output [4 : 0]  rd,
     output [4 : 0]  rs1,
     output [4 : 0]  rs2,
     output [31 : 0] imm,
+    output [11 : 0] csr_addr,
     output [31 : 0] src1,
     output [31 : 0] src2,
     output [11 : 0] alu_op,
+    output [1 : 0]  csr_op,
     output [31 : 0] br_target,
     output          mem_ren,
     output [31 : 0] mem_addr,
     output [3 : 0]  load,
     output          load_sign,
     output [3 : 0]  store,
-    output [31 : 0] st_data
+    output [31 : 0] st_data,
+    output          res_from_csr,
+    output          inst_ecall,
+    output          inst_mret
 );
     
     wire [6:0]      opcode;
@@ -40,10 +46,12 @@ module IDU(
     wire            inst_andi;
     wire            inst_and;
     wire            inst_or;
+    wire            inst_ori;
     wire            inst_xori;
     wire            inst_xor;
     wire            inst_lui;
     wire            inst_jalr;
+    wire            inst_lb;
     wire            inst_lw;
     wire            inst_lh;
     wire            inst_lhu;
@@ -69,6 +77,8 @@ module IDU(
     wire            inst_blt;
     wire            inst_bltu;
     wire            inst_ebreak;
+    wire            inst_csrrs;
+    wire            inst_csrrw;
 
     wire [31 : 0]   imm_i;
     wire [31 : 0]   imm_iu;
@@ -89,9 +99,11 @@ module IDU(
     assign inst_andi = (opcode == 7'b0010011) && (funct3 == 3'b111);
     assign inst_and  = (opcode == 7'b0110011) && (funct3 == 3'b111) && (funct7 == 7'b0);
     assign inst_or   = (opcode == 7'b0110011) && (funct3 == 3'b110) && (funct7 == 7'b0);
+    assign inst_ori  = (opcode == 7'b0010011) && (funct3 == 3'b110);
     assign inst_xor  = (opcode == 7'b0110011) && (funct3 == 3'b100) && (funct7 == 7'b0);
     assign inst_xori = (opcode == 7'b0010011) && (funct3 == 3'b100);
     assign inst_jalr = (opcode == 7'b1100111) && (funct3 == 3'b000);
+    assign inst_lb   = (opcode == 7'b0000011) && (funct3 == 3'b000);
     assign inst_lw   = (opcode == 7'b0000011) && (funct3 == 3'b010);
     assign inst_lh   = (opcode == 7'b0000011) && (funct3 == 3'b001);
     assign inst_lhu  = (opcode == 7'b0000011) && (funct3 == 3'b101);
@@ -117,9 +129,13 @@ module IDU(
     assign inst_bgeu = (opcode == 7'b1100011) && (funct3 == 3'b111);
     assign inst_blt  = (opcode == 7'b1100011) && (funct3 == 3'b100);
     assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
-    assign inst_ebreak = (inst == 32'h00100073);
+    assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
+    assign inst_csrrw = (opcode == 7'b1110011) && (funct3 == 3'b001);
+    assign inst_ecall = (inst == 32'h00000073);
+    assign inst_mret  = (inst == 32'h30200073);
+    assign inst_ebreak= (inst == 32'h00100073);
 
-    assign inst_i = inst_addi | inst_jalr | inst_lw | inst_lh | inst_lhu | inst_lbu | inst_srai | inst_xori | inst_andi | inst_srli | inst_slli;
+    assign inst_i = inst_addi | inst_jalr | inst_lb | inst_lw | inst_lh | inst_lhu | inst_lbu | inst_srai | inst_xori | inst_andi | inst_srli | inst_slli | inst_ori;
     assign inst_iu = inst_sltiu;
     assign inst_r = inst_add | inst_sub | inst_xor | inst_and | inst_sltu | inst_sll | inst_or | inst_slt | inst_sra | inst_srl;
     assign inst_u = inst_lui | inst_auipc;
@@ -127,22 +143,28 @@ module IDU(
     assign inst_b = inst_bne | inst_bge | inst_beq | inst_bgeu | inst_bltu | inst_blt;
     assign inst_j = inst_jal;
 
-    assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lui | inst_auipc |
+    assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
-                     inst_sll | inst_xori | inst_andi | inst_or | inst_srli | inst_slli | inst_slt | 
-                     inst_sra | inst_srl | inst_lhu;
+                     inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 
+                     inst_sra | inst_srl | inst_lhu | inst_csrrs | inst_csrrw;
+    assign csr_wen = inst_csrrs | inst_csrrw;
     // assign mem_wen = inst_s;
-    assign mem_ren = inst_lw | inst_lbu;
-    assign load_sign = inst_lh | inst_lw;
+    assign mem_ren = inst_lw | inst_lbu | inst_lb;
+    assign load_sign = inst_lh | inst_lw | inst_lb;
     assign load = inst_lw ? 4'hf :
                   (inst_lh | inst_lhu) ? 4'h3 :
-                  inst_lbu ? 4'h1 : 4'h0;
+                  (inst_lbu | inst_lb) ? 4'h1 : 4'h0;
     assign store =  inst_sw ? 4'hf :
                     inst_sh ? 4'h3 : 
                     inst_sb ? 4'h1 : 4'h0;
 
+    assign res_from_csr = inst_csrrs | inst_csrrw;
+
     assign rs1_lt_rd_sign = (rs1_data[31] ^ rs2_data[31]) ? rs1_data[31] : 
                             (rs1_data < rs2_data);
+
+    assign csr_op[0] = inst_csrrs;
+    assign csr_op[1] = inst_csrrw;
 
     assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc;
     assign alu_op[1] = inst_sltiu | inst_sltu;
@@ -151,7 +173,7 @@ module IDU(
     assign alu_op[4] = inst_srai;
     assign alu_op[5] = inst_and | inst_andi;
     assign alu_op[6] = inst_sll | inst_slli;
-    assign alu_op[7] = inst_or;
+    assign alu_op[7] = inst_or | inst_ori;
     assign alu_op[8] = inst_srli;
     assign alu_op[9] = inst_slt;
     assign alu_op[10] = inst_sra;
@@ -174,9 +196,10 @@ module IDU(
     assign imm_u = {inst[31:12], 12'b0};
     assign imm_s = {{20{inst[31]}}, inst[31:25], inst[11:7]};
     assign imm_j = ({{11{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0});
+    assign csr_addr = inst[31:20];
     assign offset = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
     assign imm = inst_i ? imm_i :
-                 inst_iu? imm_iu : 
+                 inst_iu? imm_i : 
                  inst_u ? imm_u : 
                  inst_s ? imm_s : 
                  inst_j ? imm_j : 32'b0;
