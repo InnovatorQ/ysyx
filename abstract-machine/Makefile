@@ -16,7 +16,7 @@ endif
 
 ### Override checks when `make clean/clean-all/html`
 ### 如果用户执行的是清理命令，就跳过一堆检查
-ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html),)
+ifeq ($(findstring $(MAKECMDGOALS),clean|clean-all|html|sim),)
 
 ### Print build info message
 $(info # Building $(NAME)-$(MAKECMDGOALS) [$(ARCH)])
@@ -164,7 +164,7 @@ endif
 image: image-dep
 archive: $(ARCHIVE)
 image-dep: $(IMAGE).elf
-.PHONY: image image-dep archive run
+.PHONY: image image-dep archive run sim
 
 ### Force to rebuild a rule
 force:
