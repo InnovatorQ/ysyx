@@ -66,7 +66,7 @@ $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
 run: $(BIN)
-	@$^  --log=$(DST_DIR)/npc-log.txt $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^  --log=$(DST_DIR)/npc-log.txt -b $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR)
 
 $(SIM_BIN): $(BIN)
 	@$^  --log=$(DST_DIR)/npc-log.txt $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR)
