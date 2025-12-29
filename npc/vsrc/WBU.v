@@ -19,5 +19,5 @@ module WBU(
                       br_taken ? seq_pc : 
                       res_from_csr ? csr_data : alu_result;
     assign wr_csr_data ={32{csr_op[0]}} & (rs1_data | csr_data) |
-                        {32{csr_op[1]}} & rs2_data;
+                        {32{csr_op[1]}} & rs1_data;
 endmodule
