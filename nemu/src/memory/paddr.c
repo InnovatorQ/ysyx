@@ -17,7 +17,6 @@
 #include <memory/paddr.h>
 #include <device/mmio.h>
 #include <device/map.h>
-#include <cpu/difftest.h> 
 #include <isa.h>
 
 #if   defined(CONFIG_PMEM_MALLOC)
@@ -72,7 +71,6 @@ word_t paddr_read(paddr_t addr, int len) {
     word_t ret = mmio_read(addr, len);
     log_write("DTRACE: READ  [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " [%s]\n",
       addr, ret, len, cpu.pc, map ? map->name : "UNKNOWN");
-    difftest_skip_ref();
     return ret);
   out_of_bound(addr);
   return 0;
@@ -96,6 +94,6 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     IOMap *map = fetch_mmio_map(addr);
     log_write("DTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " [%s]\n",
       addr, data, len, cpu.pc, map ? map->name : "UNKNOWN");
-    mmio_write(addr, len, data); difftest_skip_ref(); return);
+    mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }
