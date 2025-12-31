@@ -14,16 +14,6 @@ module top(
     output reg  [31 : 0]    regs [31 : 0],
     output      [31 : 0]    csr_mcause
 );
-    wire          fs_valid;
-    wire          ds_valid;
-    wire          ds_ready;
-    wire          ws_ready;
-    wire          ws_valid;
-    wire          ms_ready;
-    wire          ms_valid;
-    wire          es_ready;
-    wire          es_valid;
-
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
     wire          br_taken;
@@ -69,27 +59,28 @@ module top(
             skip_ref();  // 跳过REF执行，因为外设行为不同
         end
     end
+
+    assign wb_data = (load != 4'h0) ? load_data : 
+                      br_taken ? seq_pc : 
+                      res_from_csr ? csr_data : alu_result;
+
+    assign seq_pc = pc + 32'h4;
+    assign next_pc =inst_ecall  ? csr_mtvec :
+                    mret        ? csr_mepc  : 
+                    br_taken    ? br_target : seq_pc;
     
-    IFU IFU(
-        .clk        (clk        ),
-        .reset      (reset      ),
-        .fs_valid   (fs_valid   ),
-        .br_taken   (br_taken   ),
-        .br_target  (br_target  ),
-        .inst_ecall (inst_ecall ),
-        .mret       (mret       ),
-        .csr_mtvec  (csr_mtvec  ),
-        .csr_mepc   (csr_mepc   ),
-        .seq_pc     (seq_pc     ),
-        .pc         (pc         )
-    );
+    always @(posedge clk) begin
+        if(reset) begin
+            pc <= 32'h80000000;
+            //pc <= 32'hfffffffc;
+        end else begin
+            pc <= next_pc;
+        end
+    end
 
     IDU IDU(
         .inst           (inst           ),
         .pc             (pc             ),
-        .fs_valid       (fs_valid       ),
-        .ds_ready       (ds_ready       ),
-        .ds_valid       (ds_valid       ),
         .rf_wen         (rf_wen         ),
         .csr_wen        (csr_wr_en      ),
         .br_taken       (br_taken       ),
@@ -143,12 +134,7 @@ module top(
         .rd             (rd         ),
         .rf1_data       (rs1_data   ),
         .rf2_data       (rs2_data   ),
-        .load           (load       ),
-        .br_taken       (br_taken   ),
-        .res_from_csr   (res_from_csr),
-        .seq_pc         (seq_pc     ),
-        .alu_result     (alu_result ),
-        .load_data      (load_data  ),
+        .wb_data        (wb_data    ),
         .rf_wen         (rf_wen     ),
         .regs           (regs       ),
         .wr_csr_data    (wr_csr_data)
