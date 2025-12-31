@@ -119,12 +119,12 @@ __instpat_end_: ; }
     s->dnpc = s->pc + imm;       // 跳转到目标地址
     #ifdef CONFIG_FTRACE
       if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc);
-    #endif
+    #endif 
   });
   INSTPAT("??????? ????? ????? 000 ????? 11001 11", jalr   , I, { 
     word_t t = s->pc + 4;                    // 计算返回地址
     s->dnpc = (src1 + imm) & ~1;             // 计算跳转目标地址（清除最低位确保地址对齐）
-    R(rd) = t;
+    R(rd) = t;                               // 将返回地址保存到rd
     #ifdef CONFIG_FTRACE
       // 函数调用检测：rd为1(ra)或5(t0)时认为是函数调用
       if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc);
@@ -193,7 +193,7 @@ __instpat_end_: ; }
     }
   });
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, {
-    etrace_exception_exit(s->pc); //在异常退出时进行函数调用跟踪
+    // etrace_exception_exit(s->pc); //在异常退出时进行函数调用跟踪
     s->dnpc = mepc;
     mstatus = 0x80;
   });
