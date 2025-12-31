@@ -4,3 +4,7 @@
 alu_circuit.dot
 synth_alu.ys
 alu_synth.v
+.gitignore
+.config
+.config.old
+Kconfig 

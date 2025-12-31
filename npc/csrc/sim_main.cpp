@@ -1,10 +1,14 @@
 #include"svdpi.h"
 #include"Vtop.h"
 #include"verilated.h"
+#ifdef CONFIG_WAVE
 #include"verilated_fst_c.h"
+#endif
 #include"monitor/sdb/sdb.h"
 #include"common.h"
+#ifdef CONFIG_DIFFTEST
 #include"difftest.h"
+#endif
 
 #include<stdio.h>
 #include<time.h>
@@ -15,7 +19,9 @@
 extern void init_monitor(int argc, char *argv[]);
 
 Vtop* top;
+#ifdef CONFIG_WAVE
 VerilatedFstC* tfp;
+#endif
 //宏
 #define MSIZE (128 * 1024 * 1024) //128MB
 #define RTC_ADDR 0xa0000048
@@ -23,9 +29,13 @@ VerilatedFstC* tfp;
 bool is_ebreak = false;
 word_t pmem[MSIZE];
 
+
 extern "C" void skip_ref(){
+#ifdef CONFIG_DIFFTEST
     difftest_skip_ref();
+#endif
 }
+
 
 extern "C" void ebreak(){
     is_ebreak = true;
@@ -44,15 +54,17 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     last_waddr = waddr;
     last_wdata = wdata;
     last_wmask = wmask;
-    
-    
+
+#ifdef CONFIG_DEVICE
     if( waddr >= 0x10000000) {
         putchar((char)(wdata & 0xff));
         fflush(stdout);  // 强制刷新
+    #ifdef CONFIG_DIFFTEST
         difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
+    #endif
         return;
     }
-    
+#endif
     int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
     //int addr = (waddr & ~0x3u) >> 2;
     if (addr < 0 || addr >= MSIZE) return;
@@ -65,16 +77,20 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
         }
     }
     // 记录内存写入日志
+#ifdef CONFIG_MTRACE
     log_write("MTRACE: WRITE [0x%08x] = 0x%08x (mask=0x%02x) at pc=0x%08x\n", 
               waddr, wdata, wmask & 0xff, top->pc);
+#endif
 }
 
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
 extern "C" word_t pmem_read(int raddr) {
     // 处理RTC设备 - 返回当前系统时间（不缓存）
+    #ifdef CONFIG_DEVICE
     if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
+    #ifdef CONFIG_DIFFTEST
         difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
-        
+    #endif
         // 获取微秒级时间用于AM_TIMER_UPTIME
         uint64_t uptime_us = get_time();
         
@@ -94,6 +110,7 @@ extern "C" word_t pmem_read(int raddr) {
         }
         
     }
+    #endif
     // 将物理地址映射到pmem数组索引
     int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
     //int addr = (raddr & ~0x3u) >> 2;
@@ -105,8 +122,10 @@ extern "C" word_t pmem_read(int raddr) {
         static word_t last_data = 0;
         static word_t last_pc = 0;
         if (raddr != last_raddr || data != last_data || top->pc != last_pc) {
+#ifdef CONFIG_MTRACE
             log_write("MTRACE: READ [0x%08x] = 0x%08x at pc=0x%08x\n", 
                       raddr, data, top->pc);
+#endif
             last_raddr = raddr;
             last_data = data;
             last_pc = top->pc;
@@ -127,13 +146,17 @@ word_t get_rf(int n){
 
 void single_cycle(){
     top->clk = 0; top->eval();
+#ifdef CONFIG_WAVE
     tfp->dump(Verilated::time());
+#endif
     Verilated::timeInc(1);
     top->clk = 1; top->eval();
     //确保上升沿更新PC的同时得到inst
     top->inst = pmem_read(top->pc);
     //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
+#ifdef CONFIG_WAVE
     tfp->dump(Verilated::time());
+#endif
     Verilated::timeInc(1);
 }
 
@@ -148,11 +171,13 @@ static void reset(int n){
 
 int main(int argc, char **argv){
     Verilated::commandArgs(argc, argv);
-    Verilated::traceEverOn(true);
     top = new Vtop;
+#ifdef CONFIG_WAVE
+    Verilated::traceEverOn(true);
     tfp = new VerilatedFstC;
     top->trace(tfp, 99);
-    tfp->open("./build/wave.fst");
+    tfp->open(DST_DIR "/wave.fst");
+#endif
     //reset10个周期
     reset(1);
 
@@ -160,9 +185,10 @@ int main(int argc, char **argv){
     
     // 进入sdb主循环
     sdb_mainloop();
-    
+#ifdef CONFIG_WAVE
     tfp->close();
     delete tfp;
+#endif
     delete top;
     return 0;
 }
