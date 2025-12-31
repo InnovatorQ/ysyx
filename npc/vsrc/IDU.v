@@ -4,6 +4,9 @@ module IDU(
     input  [31 : 0] pc,
     input  [31 : 0] rs1_data,
     input  [31 : 0] rs2_data,
+    input           fs_valid,
+    output          ds_ready,
+    output          ds_valid,  
     output          br_taken,
     output          rf_wen,
     output          csr_wen,
@@ -27,7 +30,8 @@ module IDU(
     output          inst_ecall,
     output          inst_mret
 );
-    
+    wire            ds_ready;
+
     wire [6:0]      opcode;
     wire [2:0]      funct3;
     wire [6:0]      funct7;
@@ -211,6 +215,8 @@ module IDU(
                 inst_auipc ? pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
+
+    assign ds_ready = 1'b1;
     always @(*) begin
         if(inst_ebreak) begin
             ebreak();
