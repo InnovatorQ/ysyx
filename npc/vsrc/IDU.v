@@ -1,13 +1,11 @@
 // 负责对当前指令进行译码, 准备执行阶段需要使用的数据和控制信号
 module IDU(
-    input           clk,
-    input           reset,
     input  [31 : 0] inst,
     input  [31 : 0] pc,
-    input  [31 : 0] wb_data,
-    output [31 : 0] rs1_data,
-    output [31 : 0] rs2_data,
+    input  [31 : 0] rs1_data,
+    input  [31 : 0] rs2_data,
     output          br_taken,
+    output          rf_wen,
     output          csr_wen,
     output [4 : 0]  rd,
     output [4 : 0]  rs1,
@@ -27,10 +25,9 @@ module IDU(
     output [31 : 0] st_data,
     output          res_from_csr,
     output          inst_ecall,
-    output          inst_mret,
-    output [31 : 0] regs [31 : 0]
+    output          inst_mret
 );
-    wire            rf_wen;
+    
     wire [6:0]      opcode;
     wire [2:0]      funct3;
     wire [6:0]      funct7;
@@ -91,7 +88,6 @@ module IDU(
     wire [31 : 0]   offset;
 
     wire rs1_lt_rd_sign;
-    
     //得到指令类型
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -215,20 +211,6 @@ module IDU(
                 inst_auipc ? pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
-
-    regfile rf(
-        .clk        (clk        ),
-        .reset      (reset      ),
-        .raddr1     (rs1        ),
-        .raddr2     (rs2        ),
-        .rdata1     (rs1_data   ),
-        .rdata2     (rs2_data   ),
-        .wen        (rf_wen     ),
-        .waddr      (rd         ),
-        .wdata      (wb_data    ),
-        .regs       (regs       )
-    );
-
     always @(*) begin
         if(inst_ebreak) begin
             ebreak();
