@@ -117,16 +117,20 @@ __instpat_end_: ; }
   INSTPAT("??????? ????? ????? ??? ????? 11011 11", jal    , J, { 
     R(rd) = s->pc + 4;           // 将返回地址（下一条指令地址）保存到rd
     s->dnpc = s->pc + imm;       // 跳转到目标地址
-    if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc); 
+    #ifdef CONFIG_FTRACE
+      if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc);
+    #endif
   });
   INSTPAT("??????? ????? ????? 000 ????? 11001 11", jalr   , I, { 
     word_t t = s->pc + 4;                    // 计算返回地址
     s->dnpc = (src1 + imm) & ~1;             // 计算跳转目标地址（清除最低位确保地址对齐）
-    R(rd) = t;                               // 将返回地址保存到rd
-    // 函数调用检测：rd为1(ra)或5(t0)时认为是函数调用
-    if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc);
-    // 函数返回检测：rd为0(不保存返回地址)且源寄存器是ra(x1)时认为是函数返回
-    else if (rd == 0 && src1 == gpr(1)) ftrace_ret(s->pc);
+    R(rd) = t;
+    #ifdef CONFIG_FTRACE
+      // 函数调用检测：rd为1(ra)或5(t0)时认为是函数调用
+      if (rd == 1 || rd == 5) ftrace_call(s->pc, s->dnpc);
+      // 函数返回检测：rd为0(不保存返回地址)且源寄存器是ra(x1)时认为是函数返回
+      else if (rd == 0 && src1 == gpr(1)) ftrace_ret(s->pc);
+    #endif
   });
   INSTPAT("0000000 ????? ????? 001 ????? 00100 11", slli   , I, R(rd) = src1 << (imm & 0x1f)); //增加slli
   INSTPAT("0000000 ????? ????? 101 ????? 00100 11", srli   , I, R(rd) = src1 >> (imm & 0x1f)); //增加srli 
