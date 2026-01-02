@@ -14,6 +14,13 @@ module top(
     output reg  [31 : 0]    regs [31 : 0],
     output      [31 : 0]    csr_mcause
 );
+    wire          fs_to_ds_valid;
+    wire          ds_allowin;
+    wire          ds_to_es_valid;
+    wire          es_allowin;
+    wire          es_to_ws_valid;
+    wire          ws_allowin;;
+
     wire [31 : 0] seq_pc;
     wire [31 : 0] next_pc;
     wire          br_taken;
@@ -59,28 +66,31 @@ module top(
             skip_ref();  // 跳过REF执行，因为外设行为不同
         end
     end
-
-    assign wb_data = (load != 4'h0) ? load_data : 
-                      br_taken ? seq_pc : 
-                      res_from_csr ? csr_data : alu_result;
-
-    assign seq_pc = pc + 32'h4;
-    assign next_pc =inst_ecall  ? csr_mtvec :
-                    mret        ? csr_mepc  : 
-                    br_taken    ? br_target : seq_pc;
     
-    always @(posedge clk) begin
-        if(reset) begin
-            pc <= 32'h80000000;
-            //pc <= 32'hfffffffc;
-        end else begin
-            pc <= next_pc;
-        end
-    end
+    IFU IFU(
+        .clk            (clk            ),
+        .reset          (reset          ),
+        .ds_allowin     (ds_allowin     ),
+        .fs_to_ds_valid (fs_to_ds_valid ),
+        .br_taken       (br_taken       ),
+        .br_target      (br_target      ),
+        .inst_ecall     (inst_ecall     ),
+        .mret           (mret           ),
+        .csr_mtvec      (csr_mtvec      ),
+        .csr_mepc       (csr_mepc       ),
+        .seq_pc         (seq_pc         ),
+        .pc             (pc             )
+    );
 
     IDU IDU(
+        .clk            (clk            ),
+        .reset          (reset          ),
         .inst           (inst           ),
         .pc             (pc             ),
+        .fs_to_ds_valid (fs_to_ds_valid ),
+        .ds_allowin     (ds_allowin     ),
+        .ds_to_es_valid (ds_to_es_valid ),
+        .es_allowin     (es_allowin     ),
         .rf_wen         (rf_wen         ),
         .csr_wen        (csr_wr_en      ),
         .br_taken       (br_taken       ),
@@ -108,11 +118,17 @@ module top(
     );
 
     EXU EXU(
-        .alu_op         (alu_op     ),
-        .src1_data      (src1       ),
-        .src2_data      (src2       ),
-        .shamt          (rs2        ),
-        .alu_result     (alu_result )
+        .clk            (clk            ),
+        .reset          (reset          ),
+        .ds_to_es_valid (ds_to_es_valid ),
+        .ws_allowin     (ws_allowin     ),
+        .es_allowin     (es_allowin     ),
+        .es_to_ws_valid (es_to_ws_valid ),
+        .alu_op         (alu_op         ),
+        .src1_data      (src1           ),
+        .src2_data      (src2           ),
+        .shamt          (rs2            ),
+        .alu_result     (alu_result     )
     );
 
     LSU LSU(
@@ -125,19 +141,26 @@ module top(
     );
 
     WBU WBU(
-        .clk            (clk        ),
-        .reset          (reset      ),
-        .rs1            (rs1        ),
-        .rs2            (rs2        ),
-        .csr_op         (csr_op     ),
-        .csr_data       (csr_data   ),
-        .rd             (rd         ),
-        .rf1_data       (rs1_data   ),
-        .rf2_data       (rs2_data   ),
-        .wb_data        (wb_data    ),
-        .rf_wen         (rf_wen     ),
-        .regs           (regs       ),
-        .wr_csr_data    (wr_csr_data)
+        .clk            (clk            ),
+        .reset          (reset          ),
+        .es_to_ws_valid (es_to_ws_valid ),
+        .ws_allowin     (ws_allowin     ),
+        .rs1            (rs1            ),
+        .rs2            (rs2            ),
+        .csr_op         (csr_op         ),
+        .csr_data       (csr_data       ),
+        .rd             (rd             ),
+        .rf1_data       (rs1_data       ),
+        .rf2_data       (rs2_data       ),
+        .load           (load           ),
+        .br_taken       (br_taken       ),
+        .res_from_csr   (res_from_csr   ),
+        .seq_pc         (seq_pc         ),
+        .alu_result     (alu_result     ),
+        .load_data      (load_data      ),
+        .rf_wen         (rf_wen         ),
+        .regs           (regs           ),
+        .wr_csr_data    (wr_csr_data    )
     );
     
     csr csr(
