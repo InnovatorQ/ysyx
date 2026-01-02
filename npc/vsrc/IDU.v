@@ -1,9 +1,15 @@
 // 负责对当前指令进行译码, 准备执行阶段需要使用的数据和控制信号
 module IDU(
+    input           clk,
+    input           reset,
     input  [31 : 0] inst,
     input  [31 : 0] pc,
     input  [31 : 0] rs1_data,
     input  [31 : 0] rs2_data,
+    input           fs_to_ds_valid,
+    input           es_allowin,
+    output          ds_allowin,
+    output          ds_to_es_valid,  
     output          br_taken,
     output          rf_wen,
     output          csr_wen,
@@ -27,7 +33,9 @@ module IDU(
     output          inst_ecall,
     output          inst_mret
 );
-    
+    reg             ds_valid;   //译码阶段有效信号
+    wire            ds_ready_go;
+
     wire [6:0]      opcode;
     wire [2:0]      funct3;
     wire [6:0]      funct7;
@@ -211,6 +219,19 @@ module IDU(
                 inst_auipc ? pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
+
+    assign ds_ready_go = 1'b1;
+    assign ds_allowin = !ds_valid || ds_ready_go && es_allowin;
+    assign ds_to_es_valid = ds_valid && ds_ready_go;
+
+    always @(posedge clk) begin
+        if(reset) begin
+            ds_valid <= 1'b0;
+        end else if(ds_allowin) begin
+            ds_valid <= fs_to_ds_valid;
+        end
+    end
+
     always @(*) begin
         if(inst_ebreak) begin
             ebreak();
