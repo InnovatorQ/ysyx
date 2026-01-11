@@ -1,9 +1,7 @@
 #include"svdpi.h"
 #include"Vtop.h"
 #include"verilated.h"
-#ifdef CONFIG_WAVE
 #include"verilated_fst_c.h"
-#endif
 #include"monitor/sdb/sdb.h"
 #include"common.h"
 #ifdef CONFIG_DIFFTEST
@@ -151,8 +149,6 @@ void single_cycle(){
 #endif
     Verilated::timeInc(1);
     top->clk = 1; top->eval();
-    //确保上升沿更新PC的同时得到inst
-    top->inst = pmem_read(top->pc);
     //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
 #ifdef CONFIG_WAVE
     tfp->dump(Verilated::time());
@@ -177,6 +173,7 @@ int main(int argc, char **argv){
     tfp = new VerilatedFstC;
     top->trace(tfp, 99);
     tfp->open(DST_DIR "/wave.fst");
+    printf("Wave output to " DST_DIR "/wave.fst\n");
 #endif
     //reset10个周期
     reset(1);
@@ -192,4 +189,3 @@ int main(int argc, char **argv){
     delete top;
     return 0;
 }
-

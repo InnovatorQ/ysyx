@@ -9,20 +9,31 @@ import "DPI-C" function void pmem_write(
 module top(
     input                   clk,
     input                   reset,
-    input       [31 : 0]    inst,
+    output                  done,
+    output      [31 : 0]    next_pc,
+    output reg  [31 : 0]    ws_pc,
+    output reg  [31 : 0]    ds_pc,
     output reg  [31 : 0]    pc,
     output reg  [31 : 0]    regs [31 : 0],
     output      [31 : 0]    csr_mcause
 );
-    wire          fs_to_ds_valid;
+    reg           fs_to_ds_valid;
     wire          ds_allowin;
-    wire          ds_to_es_valid;
+    reg           ds_to_es_valid;
     wire          es_allowin;
-    wire          es_to_ws_valid;
-    wire          ws_allowin;;
+    reg           es_to_ws_valid;
+    wire          ws_allowin;
+
+    reg          fs_state;
+    reg          ds_state;
+    reg          es_state;
+    reg          ws_state;
+
+    wire [31  : 0]     fs_to_ds_bus;
+    wire [124 : 0]     ds_to_es_bus;
+    wire [107 : 0]     es_to_ws_bus;
 
     wire [31 : 0] seq_pc;
-    wire [31 : 0] next_pc;
     wire          br_taken;
     wire [31 : 0] br_target;
     wire          mret;
@@ -41,7 +52,6 @@ module top(
     wire [4 : 0]    rd;
     wire [4 : 0]    rs1;
     wire [4 : 0]    rs2;
-    wire [31 : 0]   imm;
     wire [11 : 0]   csr_addr;
     wire [31 : 0]   csr_data;
     wire [31 : 0]   wr_csr_data;
@@ -60,59 +70,72 @@ module top(
 
     reg [31 : 0] csr_mepc;
     reg [31 : 0] csr_mtvec;
+    reg [31 : 0] ifu_rdata;
 
     always @(posedge clk) begin
-        if(inst_ecall | mret | csr_op[0] | csr_op[1]) begin
+        if(inst_ecall | mret | csr_op[0] | csr_op[1] | reset) begin
             skip_ref();  // 跳过REF执行，因为外设行为不同
         end
     end
     
+    assign pc = fs_to_ds_bus;
+    assign ds_pc = ds_to_es_bus[124:93];
     IFU IFU(
         .clk            (clk            ),
         .reset          (reset          ),
+        .done           (done           ),
+        .next_pc        (next_pc        ),
+
         .ds_allowin     (ds_allowin     ),
         .fs_to_ds_valid (fs_to_ds_valid ),
+        .fs_to_ds_bus   (fs_to_ds_bus   ),
+        .fs_state       (fs_state      ),
+
         .br_taken       (br_taken       ),
         .br_target      (br_target      ),
         .inst_ecall     (inst_ecall     ),
         .mret           (mret           ),
         .csr_mtvec      (csr_mtvec      ),
         .csr_mepc       (csr_mepc       ),
-        .seq_pc         (seq_pc         ),
-        .pc             (pc             )
+
+        .ifu_rdata      (ifu_rdata      )
     );
 
     IDU IDU(
         .clk            (clk            ),
         .reset          (reset          ),
-        .inst           (inst           ),
-        .pc             (pc             ),
+        .inst           (ifu_rdata      ),
+        .done           (done           ),
+
         .fs_to_ds_valid (fs_to_ds_valid ),
+        .fs_state       (fs_state       ),
+        .fs_to_ds_bus   (fs_to_ds_bus   ),
+
         .ds_allowin     (ds_allowin     ),
-        .ds_to_es_valid (ds_to_es_valid ),
         .es_allowin     (es_allowin     ),
-        .rf_wen         (rf_wen         ),
-        .csr_wen        (csr_wr_en      ),
-        .br_taken       (br_taken       ),
-        .rd             (rd             ),
+
+        .ds_to_es_valid (ds_to_es_valid ),
+        .ds_state       (ds_state       ),
+        .ds_to_es_bus   (ds_to_es_bus   ),
+        
         .rs1            (rs1            ),
         .rs1_data       (rs1_data       ),
         .rs2            (rs2            ),
         .rs2_data       (rs2_data       ),
-        .imm            (imm            ),
+
+        .csr_wen        (csr_wr_en      ),
         .csr_addr       (csr_addr       ),
-        .src1           (src1           ),
-        .src2           (src2           ),
-        .alu_op         (alu_op         ),
         .csr_op         (csr_op         ),
-        .br_target      (br_target      ),
+
         .mem_ren        (mem_ren        ),
         .mem_addr       (mem_addr       ),
         .load           (load           ),
         .load_sign      (load_sign      ),
         .store          (store          ),
         .st_data        (st_data        ),
-        .res_from_csr   (res_from_csr   ),
+
+        .br_taken       (br_taken       ),
+        .br_target      (br_target      ),
         .inst_ecall     (inst_ecall     ),
         .inst_mret      (mret           ) 
     );
@@ -120,18 +143,25 @@ module top(
     EXU EXU(
         .clk            (clk            ),
         .reset          (reset          ),
+        .done           (done           ),
+
         .ds_to_es_valid (ds_to_es_valid ),
+        .ds_state       (ds_state       ),
+        .ds_to_es_bus   (ds_to_es_bus   ),
+
+        .load_data      (load_data      ),
+
         .ws_allowin     (ws_allowin     ),
         .es_allowin     (es_allowin     ),
+
         .es_to_ws_valid (es_to_ws_valid ),
-        .alu_op         (alu_op         ),
-        .src1_data      (src1           ),
-        .src2_data      (src2           ),
-        .shamt          (rs2            ),
-        .alu_result     (alu_result     )
+        .es_state       (es_state       ),
+        .es_to_ws_bus   (es_to_ws_bus   )
     );
 
     LSU LSU(
+        .clk        (clk        ),
+        .reset      (reset      ),
         .load       (load       ),
         .load_sign  (load_sign  ),
         .store      (store      ),
@@ -143,24 +173,28 @@ module top(
     WBU WBU(
         .clk            (clk            ),
         .reset          (reset          ),
+        .ws_pc          (ws_pc          ), 
+
         .es_to_ws_valid (es_to_ws_valid ),
+        .es_state       (es_state       ),
+        .es_to_ws_bus   (es_to_ws_bus   ),
+
         .ws_allowin     (ws_allowin     ),
+        .ws_state       (ws_state       ),
+
         .rs1            (rs1            ),
         .rs2            (rs2            ),
-        .csr_op         (csr_op         ),
-        .csr_data       (csr_data       ),
-        .rd             (rd             ),
         .rf1_data       (rs1_data       ),
         .rf2_data       (rs2_data       ),
-        .load           (load           ),
-        .br_taken       (br_taken       ),
-        .res_from_csr   (res_from_csr   ),
-        .seq_pc         (seq_pc         ),
-        .alu_result     (alu_result     ),
-        .load_data      (load_data      ),
-        .rf_wen         (rf_wen         ),
+
+        .csr_op         (csr_op         ),
+        .csr_data       (csr_data       ),
+       
+        //.load_data      (load_data      ),
+
         .regs           (regs           ),
-        .wr_csr_data    (wr_csr_data    )
+        .wr_csr_data    (wr_csr_data    ),
+        .done           (done           )
     );
     
     csr csr(

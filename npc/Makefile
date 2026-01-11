@@ -2,8 +2,7 @@ TOPNAME = top
 VERILATOR = verilator
 NPC_HOME = $(shell pwd)
 
--include $(NPC_HOME)/include/config/auto.conf
-include $(NPC_HOME)/scripts/config.mk
+
 # 去除引号的函数
 remove_quote = $(patsubst "%",%,$(1))
 
@@ -20,6 +19,9 @@ CFLAGS_CONFIG += $(if $(CONFIG_MTRACE),-DCONFIG_MTRACE,)
 CFLAGS_CONFIG += $(if $(CONFIG_FTRACE),-DCONFIG_FTRACE,)
 CFLAGS_CONFIG += $(if $(CONFIG_DEVICE),-DCONFIG_DEVICE,)
 
+include $(NPC_HOME)/scripts/config.mk
+-include $(NPC_HOME)/include/config/auto.conf
+-include $(NPC_HOME)/include/config/auto.conf.cmd
 
 OPT_LEVEL := -O2
 ifeq ($(CONFIG_OPT_O0),y)
@@ -31,13 +33,11 @@ endif
 
 DST_DIR ?= $(shell pwd)/build
 
-VERILATOR_CFLAGS += -MMD --build -cc \
+VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert \
 		    -Wno-UNOPTFLAT -LDFLAGS "-lreadline -ldl" \
 		    -CFLAGS "-I$(abspath ./include) -I$(abspath ../nemu/tools/capstone/repo/include) $(CFLAGS_CONFIG) -DDST_DIR=\\\"$(DST_DIR)\\\""
 
-# Add trace if enabled
-VERILATOR_CFLAGS += $(if $(CONFIG_WAVE),--trace-fst,)
 
 OBJ_DIR = $(DST_DIR)/obj_dir
 BIN = $(DST_DIR)/$(TOPNAME)
@@ -65,11 +65,11 @@ $(LIBCAPSTONE):
 $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
+yosys: 
+	cd ~/ysyx/yosys-sta && $(MAKE) -j8 sta
+	 
 run: $(BIN)
 	@$^  --log=$(DST_DIR)/npc-log.txt -b $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
-
-$(SIM_BIN): $(BIN)
-	@$^  --log=$(DST_DIR)/npc-log.txt $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR)
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)
@@ -77,4 +77,4 @@ sim: $(SIM_BIN)
 clean:
 	rm -rf $(DST_DIR)
 
-.PHONY: default clean run sim menuconfig
+.PHONY: default yosys clean run sim menuconfig
