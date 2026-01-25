@@ -4,8 +4,7 @@ module IDU(
     input           reset,
     input           done,
     //fs->ds
-    input  [31 : 0] inst,
-    input  [31 : 0] fs_to_ds_bus,
+    input  [63 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
     input           fs_state,
     // rf->ds | ds->rf
@@ -18,14 +17,7 @@ module IDU(
     //ds->es
     output reg          ds_to_es_valid,
     output reg          ds_state,
-    output [124 : 0]    ds_to_es_bus,
-    //ds->mem
-    output          mem_ren,
-    output [31 : 0] mem_addr,
-    output [3 : 0]  load,
-    output          load_sign,
-    output [3 : 0]  store,
-    output [31 : 0] st_data,
+    output [193 : 0]    ds_to_es_bus,
     //ds->fs
     output          ds_allowin,
     output          br_taken,
@@ -41,7 +33,7 @@ module IDU(
     reg             ds_valid;   //译码阶段有效信号
     wire            ds_ready_go;
 
-    reg  [31 : 0]   fs_to_ds_bus_r;
+    reg  [63 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
 
     wire [6  : 0]   opcode;
@@ -50,11 +42,18 @@ module IDU(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
+    wire [31 : 0]   mem_addr;
+    wire [31 : 0]   st_data;
     wire [11 : 0]   alu_op;
     wire [4  : 0]   rd;
+    wire [3  : 0]   load;
+    wire [3  : 0]   store;
+    wire            load_sign;
+    wire            mem_ren;
     wire            res_from_csr;
     wire            rf_wen;
 
+    wire [31 : 0]   inst;
     wire            inst_i;
     wire            inst_iu;
     wire            inst_u;
@@ -143,19 +142,26 @@ module IDU(
     end
 
     assign ds_to_es_bus = {
-        ds_pc,           //124 : 93
-        src1,           //92 : 61
-        src2,           //60 : 29
-        alu_op,         //28 : 17
-        rs2,            //16 : 12
-        rd,             //11 : 7
-        load,           //6 : 3
+        ds_pc,           //193 : 162
+        src1,           //161 : 130
+        src2,           //129 : 98
+        mem_addr,       //97 : 66
+        st_data,        //65 : 34
+        alu_op,         //33 : 22
+        rs2,            //21 : 17
+        rd,             //16 : 12
+        load,           //11 : 8
+        store,          //7 : 4
+        load_sign,      //3
         res_from_csr,   //2
         rf_wen,         //1
         br_taken        //0 
     };
 
-    assign ds_pc = fs_to_ds_bus_r;
+    assign {
+        ds_pc,
+        inst
+    } = fs_to_ds_bus_r;
     //得到指令类型
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -293,7 +299,7 @@ module IDU(
     // end
 
     always @(posedge clk) begin
-        if(fs_state == 1'b1 && ds_allowin) begin
+        if(fs_to_ds_valid && ds_allowin) begin
             fs_to_ds_bus_r <= fs_to_ds_bus;
         end
     end

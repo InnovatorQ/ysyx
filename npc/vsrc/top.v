@@ -17,21 +17,25 @@ module top(
     output reg  [31 : 0]    regs [31 : 0],
     output      [31 : 0]    csr_mcause
 );
-    reg           fs_to_ds_valid;
-    wire          ds_allowin;
-    reg           ds_to_es_valid;
-    wire          es_allowin;
-    reg           es_to_ws_valid;
-    wire          ws_allowin;
+    reg             fs_to_ds_valid;
+    wire            ds_allowin;
+    reg             ds_to_es_valid;//mem->exe
+    wire            es_allowin;
+    reg             es_to_ms_valid;
+    wire            ms_allowin;
+    reg             ms_to_ws_valid;
+    wire            ws_allowin;
 
     reg          fs_state;
     reg          ds_state;
     reg          es_state;
+    reg          ms_state;
     reg          ws_state;
 
-    wire [31  : 0]     fs_to_ds_bus;
-    wire [124 : 0]     ds_to_es_bus;
-    wire [107 : 0]     es_to_ws_bus;
+    wire [63  : 0]     fs_to_ds_bus;
+    wire [193 : 0]     ds_to_es_bus;
+    wire [144 : 0]     es_to_ms_bus;
+    wire [107 : 0]     ms_to_ws_bus;
 
     wire [31 : 0] seq_pc;
     wire          br_taken;
@@ -78,7 +82,7 @@ module top(
         end
     end
     
-    assign pc = fs_to_ds_bus;
+    assign pc = fs_to_ds_bus[63:32];
     assign ds_pc = ds_to_es_bus[124:93];
     IFU IFU(
         .clk            (clk            ),
@@ -96,15 +100,12 @@ module top(
         .inst_ecall     (inst_ecall     ),
         .mret           (mret           ),
         .csr_mtvec      (csr_mtvec      ),
-        .csr_mepc       (csr_mepc       ),
-
-        .ifu_rdata      (ifu_rdata      )
+        .csr_mepc       (csr_mepc       )
     );
 
     IDU IDU(
         .clk            (clk            ),
         .reset          (reset          ),
-        .inst           (ifu_rdata      ),
         .done           (done           ),
 
         .fs_to_ds_valid (fs_to_ds_valid ),
@@ -127,13 +128,6 @@ module top(
         .csr_addr       (csr_addr       ),
         .csr_op         (csr_op         ),
 
-        .mem_ren        (mem_ren        ),
-        .mem_addr       (mem_addr       ),
-        .load           (load           ),
-        .load_sign      (load_sign      ),
-        .store          (store          ),
-        .st_data        (st_data        ),
-
         .br_taken       (br_taken       ),
         .br_target      (br_target      ),
         .inst_ecall     (inst_ecall     ),
@@ -149,25 +143,28 @@ module top(
         .ds_state       (ds_state       ),
         .ds_to_es_bus   (ds_to_es_bus   ),
 
-        .load_data      (load_data      ),
-
-        .ws_allowin     (ws_allowin     ),
+        .ms_allowin     (ms_allowin     ),
         .es_allowin     (es_allowin     ),
 
-        .es_to_ws_valid (es_to_ws_valid ),
+        .es_to_ms_valid (es_to_ms_valid ),
         .es_state       (es_state       ),
-        .es_to_ws_bus   (es_to_ws_bus   )
+        .es_to_ms_bus   (es_to_ms_bus   )
     );
 
     LSU LSU(
-        .clk        (clk        ),
-        .reset      (reset      ),
-        .load       (load       ),
-        .load_sign  (load_sign  ),
-        .store      (store      ),
-        .st_data    (st_data    ),
-        .mem_addr   (mem_addr   ),
-        .load_data  (load_data  )
+        .clk                (clk            ),
+        .reset              (reset          ),
+
+        .es_to_ms_valid     (es_to_ms_valid ),
+        .es_state           (es_state       ),
+        .es_to_ms_bus       (es_to_ms_bus   ),
+
+        .ms_allowin         (ms_allowin     ),
+        .ws_allowin         (ws_allowin     ),
+
+        .ms_to_ws_valid     (ms_to_ws_valid ),
+        .ms_state           (ms_state       ),
+        .ms_to_ws_bus       (ms_to_ws_bus   )
     );
 
     WBU WBU(
@@ -175,9 +172,9 @@ module top(
         .reset          (reset          ),
         .ws_pc          (ws_pc          ), 
 
-        .es_to_ws_valid (es_to_ws_valid ),
-        .es_state       (es_state       ),
-        .es_to_ws_bus   (es_to_ws_bus   ),
+        .ms_to_ws_valid (ms_to_ws_valid ),
+        .ms_state       (ms_state       ),
+        .ms_to_ws_bus   (ms_to_ws_bus   ),
 
         .ws_allowin     (ws_allowin     ),
         .ws_state       (ws_state       ),

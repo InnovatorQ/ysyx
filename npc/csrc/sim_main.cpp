@@ -39,6 +39,27 @@ extern "C" void ebreak(){
     is_ebreak = true;
 } 
 
+void single_cycle(){
+    top->clk = 0; top->eval();
+#ifdef CONFIG_WAVE
+    tfp->dump(Verilated::time());
+#endif
+    Verilated::timeInc(1);
+    top->clk = 1; top->eval();
+    //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
+#ifdef CONFIG_WAVE
+    tfp->dump(Verilated::time());
+#endif
+    Verilated::timeInc(1);
+}
+
+static void reset(int n){
+    top->reset = 1;
+    while(n-- > 0) single_cycle();
+    top->reset = 0;
+    
+}
+
 // 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
 // `wmask`中每比特表示`wdata`中1个字节的掩码,
 // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
@@ -114,6 +135,7 @@ extern "C" word_t pmem_read(int raddr) {
     //int addr = (raddr & ~0x3u) >> 2;
     
     if (addr >= 0 && addr < MSIZE) {
+
         word_t data = pmem[addr];
         // 避免重复记录相同地址的读取
         static int last_raddr = -1;
@@ -141,29 +163,6 @@ word_t get_rf(int n){
         return 0;
     }
 }
-
-void single_cycle(){
-    top->clk = 0; top->eval();
-#ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
-#endif
-    Verilated::timeInc(1);
-    top->clk = 1; top->eval();
-    //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
-#ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
-#endif
-    Verilated::timeInc(1);
-}
-
-static void reset(int n){
-    top->reset = 1;
-    while(n-- > 0) single_cycle();
-    top->reset = 0;
-    
-}
-
-
 
 int main(int argc, char **argv){
     Verilated::commandArgs(argc, argv);

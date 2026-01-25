@@ -3,9 +3,9 @@ module WBU(
     input           clk,
     input           reset,
     //es->ws
-    input           es_to_ws_valid,
-    input           es_state,
-    input  [107 : 0] es_to_ws_bus,
+    input           ms_to_ws_valid,
+    input           ms_state,
+    input  [107 :0] ms_to_ws_bus,
     //ws->es
     output          ws_allowin,
     output reg      ws_state,
@@ -14,8 +14,6 @@ module WBU(
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
-    //mem->ws
-    //input  [31 : 0] load_data,
     //ws->csr
     input  [1 : 0]  csr_op,
     input  [31: 0]  csr_data,
@@ -25,7 +23,7 @@ module WBU(
     output [31 : 0] ws_pc,
     output reg [31 : 0] regs [31 : 0]
 );
-    reg  [107 : 0] es_to_ws_bus_r;
+    reg  [107 :0] ms_to_ws_bus_r;
 
     wire [31 : 0] alu_result;
     wire [3  : 0] load;
@@ -51,13 +49,13 @@ module WBU(
             ws_state <= ws_idle;
         end else begin
             ws_state <= next_state;
-            ws_valid <= es_to_ws_valid;
+            ws_valid <= ms_to_ws_valid;
         end
     end
     always @(*)begin
        case(ws_state)
             ws_idle:begin
-                next_state = es_to_ws_valid ? ws_wait_ready : ws_idle;
+                next_state = ms_to_ws_valid ? ws_wait_ready : ws_idle;
             end
             ws_wait_ready:begin
                 next_state = ws_idle;
@@ -76,7 +74,7 @@ module WBU(
         res_from_csr,
         rf_wen,
         br_taken
-    } = es_to_ws_bus_r;
+    } = ms_to_ws_bus_r;
 
     regfile rf(
         .clk        (clk        ),
@@ -110,7 +108,7 @@ module WBU(
     // end
 
     always @(posedge clk) begin
-        if(es_state == 1'b1 && ws_allowin)
-            es_to_ws_bus_r <= es_to_ws_bus;
+        if(ms_to_ws_valid && ws_allowin)
+            ms_to_ws_bus_r <= ms_to_ws_bus;
     end
 endmodule
