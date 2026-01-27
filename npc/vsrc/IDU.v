@@ -6,7 +6,6 @@ module IDU(
     //fs->ds
     input  [63 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
-    input           fs_state,
     // rf->ds | ds->rf
     output [4 : 0]  rs1,
     output [4 : 0]  rs2,

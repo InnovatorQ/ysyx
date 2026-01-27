@@ -4,7 +4,6 @@ module WBU(
     input           reset,
     //es->ws
     input           ms_to_ws_valid,
-    input           ms_state,
     input  [107 :0] ms_to_ws_bus,
     //ws->es
     output          ws_allowin,

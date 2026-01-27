@@ -26,11 +26,11 @@ module top(
     reg             ms_to_ws_valid;
     wire            ws_allowin;
 
-    reg          fs_state;
-    reg          ds_state;
-    reg          es_state;
-    reg          ms_state;
-    reg          ws_state;
+    reg   [1 : 0]   fs_state;
+    reg             ds_state;
+    reg             es_state;
+    reg   [1 : 0]   ms_state;
+    reg             ws_state;
 
     wire [63  : 0]     fs_to_ds_bus;
     wire [193 : 0]     ds_to_es_bus;
@@ -74,7 +74,14 @@ module top(
 
     reg [31 : 0] csr_mepc;
     reg [31 : 0] csr_mtvec;
-    reg [31 : 0] ifu_rdata;
+    // AXI4-Lite signals for IFU
+    wire        ifu_arvalid;
+    wire [31:0] ifu_araddr;
+    wire        ifu_arready;
+    wire        ifu_rvalid;
+    wire [31:0] ifu_rdata;
+    wire [1:0]  ifu_rresp;
+    wire        ifu_rready;
 
     always @(posedge clk) begin
         if(inst_ecall | mret | csr_op[0] | csr_op[1] | reset) begin
@@ -100,7 +107,16 @@ module top(
         .inst_ecall     (inst_ecall     ),
         .mret           (mret           ),
         .csr_mtvec      (csr_mtvec      ),
-        .csr_mepc       (csr_mepc       )
+        .csr_mepc       (csr_mepc       ),
+        
+        // AXI4-Lite interface
+        .arvalid        (ifu_arvalid    ),
+        .araddr         (ifu_araddr     ),
+        .arready        (ifu_arready    ),
+        .rvalid         (ifu_rvalid     ),
+        .rdata          (ifu_rdata      ),
+        .rresp          (ifu_rresp      ),
+        .rready         (ifu_rready     )
     );
 
     IDU IDU(
@@ -109,7 +125,6 @@ module top(
         .done           (done           ),
 
         .fs_to_ds_valid (fs_to_ds_valid ),
-        .fs_state       (fs_state       ),
         .fs_to_ds_bus   (fs_to_ds_bus   ),
 
         .ds_allowin     (ds_allowin     ),
@@ -163,8 +178,66 @@ module top(
         .ws_allowin         (ws_allowin     ),
 
         .ms_to_ws_valid     (ms_to_ws_valid ),
-        .ms_state           (ms_state       ),
-        .ms_to_ws_bus       (ms_to_ws_bus   )
+        .ms_to_ws_bus       (ms_to_ws_bus   ),
+        
+        // AXI4-Lite interface (connect to pmem)
+        .arvalid            (lsu_arvalid    ),
+        .araddr             (lsu_araddr     ),
+        .arready            (lsu_arready    ),
+        .rvalid             (lsu_rvalid     ),
+        .rdata              (lsu_rdata      ),
+        .rresp              (lsu_rresp      ),
+        .rready             (lsu_rready     ),
+        .awvalid            (lsu_awvalid    ),
+        .awaddr             (lsu_awaddr     ),
+        .awready            (lsu_awready    ),
+        .wvalid             (lsu_wvalid     ),
+        .wdata              (lsu_wdata      ),
+        .wstrb              (lsu_wstrb      ),
+        .wready             (lsu_wready     ),
+        .bvalid             (lsu_bvalid     ),
+        .bresp              (lsu_bresp      ),
+        .bready             (lsu_bready     )
+    );
+
+    // AXI4-Lite signals for LSU
+    wire        lsu_arvalid, lsu_arready, lsu_rvalid, lsu_rready;
+    wire        lsu_awvalid, lsu_awready, lsu_wvalid, lsu_wready, lsu_bvalid, lsu_bready;
+    wire [31:0] lsu_araddr, lsu_rdata, lsu_awaddr, lsu_wdata;
+    wire [1:0]  lsu_rresp, lsu_bresp;
+    wire [3:0]  lsu_wstrb;
+
+    pmem pmem(
+        .clk            (clk            ),
+        .reset          (reset          ),
+        
+        // IFU AXI4-Lite interface
+        .ifu_arvalid    (ifu_arvalid    ),
+        .ifu_araddr     (ifu_araddr     ),
+        .ifu_arready    (ifu_arready    ),
+        .ifu_rvalid     (ifu_rvalid     ),
+        .ifu_rdata      (ifu_rdata      ),
+        .ifu_rresp      (ifu_rresp      ),
+        .ifu_rready     (ifu_rready     ),
+        
+        // LSU AXI4-Lite interface
+        .lsu_arvalid    (lsu_arvalid    ),
+        .lsu_araddr     (lsu_araddr     ),
+        .lsu_arready    (lsu_arready    ),
+        .lsu_rvalid     (lsu_rvalid     ),
+        .lsu_rdata      (lsu_rdata      ),
+        .lsu_rresp      (lsu_rresp      ),
+        .lsu_rready     (lsu_rready     ),
+        .lsu_awvalid    (lsu_awvalid    ),
+        .lsu_awaddr     (lsu_awaddr     ),
+        .lsu_awready    (lsu_awready    ),
+        .lsu_wvalid     (lsu_wvalid     ),
+        .lsu_wdata      (lsu_wdata      ),
+        .lsu_wstrb      (lsu_wstrb      ),
+        .lsu_wready     (lsu_wready     ),
+        .lsu_bvalid     (lsu_bvalid     ),
+        .lsu_bresp      (lsu_bresp      ),
+        .lsu_bready     (lsu_bready     )
     );
 
     WBU WBU(
@@ -173,7 +246,6 @@ module top(
         .ws_pc          (ws_pc          ), 
 
         .ms_to_ws_valid (ms_to_ws_valid ),
-        .ms_state       (ms_state       ),
         .ms_to_ws_bus   (ms_to_ws_bus   ),
 
         .ws_allowin     (ws_allowin     ),

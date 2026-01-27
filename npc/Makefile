@@ -46,8 +46,8 @@ default: $(BIN)
 
 $(shell mkdir -p $(DST_DIR))
 
-VSRCS = $(shell find $(abspath ./vsrc) -name "*.v") $(shell find $(abspath ./vsrc) -name "*.sv")
-CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp")
+VSRCS = $(shell find $(abspath ./vsrc) -name "*.v") 
+CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp") $(shell find $(abspath ./isa) -name "*.cpp")
 
 # 构建目标依赖Capstone库和NEMU库
 $(BIN): $(VSRCS) $(CSRCS) $(LIBCAPSTONE) $(NEMU_SO)

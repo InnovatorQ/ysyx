@@ -1,5 +1,3 @@
-*.*
-*
 !*/
 !/nemu/*
 !/nexus-am/*
@@ -13,3 +11,9 @@
 /fceux-am
 /am-kernels
 /nvboard
+/temp
+/image.png
+/框图*
+/ysyx_2511*
+/am-kernels
+/.vscode

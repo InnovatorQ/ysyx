@@ -2,21 +2,46 @@
 module LSU(
     input           clk,
     input           reset,
-
+    //ar
+    output          arvalid,
+    output [31 :0]  araddr,
+    input           arready,
+    //r
+    input           rvalid,
+    input  [31 :0]  rdata,
+    input  [1 : 0]  rresp,
+    output reg      rready,
+    //aw
+    output          awvalid,
+    output [31 :0]  awaddr,
+    input           awready,
+    //w
+    output          wvalid,
+    output [31 :0]  wdata,
+    output [3  :0]  wstrb,
+    input           wready,
+    //b
+    input           bvalid,
+    input  [1  :0]  bresp,
+    output          bready,
+    //es->ms
     input           es_to_ms_valid,
     input           es_state,
     input [144 : 0] es_to_ms_bus,
 
     output reg      ms_to_ws_valid,
-    output reg      ms_state,
     output [107 :0] ms_to_ws_bus,
 
     input           ws_allowin,
     output          ms_allowin
 );  
-    localparam ms_idle = 1'b0;
-    localparam ms_wait_ready = 1'b1;
-    reg        next_state;
+    reg [1 : 0]  ms_state;
+    reg [1 : 0]  next_state;
+
+    localparam ms_idle = 2'b00;
+    localparam ms_wait_ready = 2'b01;
+    localparam ms_addr_ready = 2'b10;
+    localparam ms_data_ready = 2'b11;
 
     reg [7 : 0]     lfsr;
     reg [4 : 0]     lsu_req_delay;
@@ -64,45 +89,65 @@ module LSU(
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
             delay_count <= 5'b0;
-            lsu_req_delay <= 5'b0;
-            lsu_resp_delay <= 5'b0;
+            // lsu_req_delay <= 5'b0;
+            // lsu_resp_delay <= 5'b0;
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state;
-            if(ms_state == ms_idle && next_state == ms_wait_ready) begin
-                //delay_count <= lfsr[4:0]; // 使用LFSR的低5位作为随机延迟
-                delay_count <= 5'b1;
-                lsu_req_delay <= 5'd5;
-                lsu_resp_delay <= 5'd20;
-            end else if(ms_reqReady & delay_count != 5'b0) begin
+            if(ms_state == ms_wait_ready && next_state == ms_addr_ready) begin
+                delay_count <= lfsr[4:0]; // 使用LFSR的低5位作为随机延迟
+            //     delay_count <= 5'b1;
+            //     lsu_req_delay <= 5'd5;
+            //     lsu_resp_delay <= 5'd20;
+            end else if(rvalid & delay_count != 5'b0) begin
                 delay_count <= delay_count - 5'b1;
-            end else if(lsu_req_delay != 5'b0) begin
-                lsu_req_delay <= lsu_req_delay - 5'b1;
-            end else if(lsu_resp_delay != 5'b0) begin
-                lsu_resp_delay <= lsu_resp_delay - 5'b1;
-            end
+            end 
+            //      else if(lsu_req_delay != 5'b0) begin
+            //     lsu_req_delay <= lsu_req_delay - 5'b1;
+            // end else if(lsu_resp_delay != 5'b0) begin
+            //     lsu_resp_delay <= lsu_resp_delay - 5'b1;
+            // end
         end
     end
 
-    assign ms_allowin = 1'b1;
     always @(*)begin
         case(ms_state)
             ms_idle : begin
-                ms_to_ws_valid = 1'b0;
-                ms_reqValid = 1'b0;
                 next_state = es_to_ms_valid  ? ms_wait_ready : ms_idle;
             end
             ms_wait_ready : begin
-                ms_reqReady = (lsu_req_delay == 5'b0) ? 1'b1 : 1'b0;
-                ms_respReady = (lsu_resp_delay == 5'b0) ? 1'b1 : 1'b0;
-                ms_to_ws_valid = (ms_respValid & ms_respReady & delay_count == 5'b0) ? 1'b1 : 1'b0;
-                ms_reqValid = 1'b1;
-                next_state = (ws_allowin & ms_respValid & ms_respReady & delay_count == 5'b0) ? ms_idle : ms_wait_ready;
+                if(arvalid | awvalid) begin
+                    next_state = (arready | awready) ? ms_addr_ready : ms_wait_ready;
+                end else begin
+                    next_state = ms_data_ready;
+                end
+            end
+            ms_addr_ready: begin
+                next_state = (rvalid & rready) | (wvalid & wready) ? ms_data_ready : ms_addr_ready;
+            end
+            ms_data_ready : begin
+                next_state = ws_allowin ? ms_idle : ms_data_ready;
             end
             default : next_state = ms_idle;
         endcase
     end
 
+    assign arvalid = (|load) & (ms_state == ms_wait_ready);
+    assign rready  = (ms_state == ms_addr_ready) & (delay_count == 5'b0);
+    assign araddr = arvalid ? mem_addr : 32'b0;
+    assign ms_to_ws_valid = (ms_state == ms_data_ready);
+
+    assign awvalid = mem_wen & (ms_state == ms_wait_ready);
+    assign wvalid  = mem_wen & (ms_state == ms_addr_ready);
+    assign awaddr = awvalid ? mem_addr : 32'b0;
+    assign wdata  = wvalid  ? (store == 4'hf) ? st_data :
+                            (store == 4'h3) ? (st_data << (byte_offset * 8)) :
+                            (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0 : 32'b0;
+    assign wstrb  = wvalid ? (store == 4'hf) ? 4'b1111 :
+                            (store == 4'h3) ? (3 << byte_offset) :
+                            (store == 4'h1) ? (1 << byte_offset) : 4'b0 : 4'b0;
+
+    assign ms_allowin = 1'b1;
     assign {
         ms_pc,
         ms_alu_result,
@@ -153,18 +198,8 @@ module LSU(
                        32'b0;
 
     always @(posedge clk)begin
-        if(delay_count == 5'b0) begin
-            mem_rdata <= (|load & ms_reqValid & ms_reqReady) ? pmem_read(mem_addr) : 32'b0;
-            ms_respValid <= ms_reqValid & ms_reqReady;
-        
-            if(mem_wen) begin
-                case (store)
-                    4'hf: pmem_write(mem_addr, st_data, 8'b1111);
-                    4'h3: pmem_write(mem_addr, st_data << (byte_offset * 8), 3 << byte_offset);
-                    4'h1: pmem_write(mem_addr, st_data << (byte_offset * 8), 1 << byte_offset);
-                    default: ;
-                endcase
-            end
+        if(rvalid & rready) begin
+            mem_rdata <= rdata;
         end
     end
 
