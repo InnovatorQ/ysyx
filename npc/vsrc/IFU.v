@@ -111,7 +111,7 @@ module IFU(
     assign araddr = pc;
     assign seq_pc = pc + 32'h4;
     assign next_pc =inst_ecall  ? csr_mtvec :
-                    mret        ? csr_mepc + 32'h4 : 
+                    mret        ? csr_mepc  : 
                     br_taken    ? br_target : seq_pc;
 
     // assign to_fs_valid = ~reset ;

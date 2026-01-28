@@ -3,6 +3,8 @@ module IDU(
     input           clk,
     input           reset,
     input           done,
+    output [31 : 0] inst,
+    output [31 : 0] mem_addr,
     //fs->ds
     input  [63 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
@@ -42,7 +44,7 @@ module IDU(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire [31 : 0]   mem_addr;
+    //wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
     wire [31 : 0]   csr_result;
     wire [11 : 0]   alu_op;
@@ -55,7 +57,6 @@ module IDU(
     wire            res_from_csr;
     wire            rf_wen;
 
-    wire [31 : 0]   inst;
     wire            inst_i;
     wire            inst_iu;
     wire            inst_u;

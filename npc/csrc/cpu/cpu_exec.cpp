@@ -8,7 +8,7 @@
 extern Vtop* top;
 extern bool is_ebreak;
 extern void single_cycle();
-extern void difftest_step(uint32_t pc, uint32_t npc);
+extern void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst);
 
 #ifdef CONFIG_FTRACE
 // 检测函数调用和返回的辅助函数
@@ -59,6 +59,7 @@ void cpu_exec(int n) {
     word_t last_inst = 0;
     while (!is_ebreak) {
       word_t pc = get_rf(32);
+      word_t inst = pmem_read(pc);
       bool done = top->done;
       single_cycle();
       word_t npc = get_rf(32);
@@ -66,7 +67,7 @@ void cpu_exec(int n) {
       // DiffTest
       if(done) {
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
-        difftest_step(pc, npc);
+        difftest_step(pc, npc, inst);
       }
       #endif
       if (check_watchpoints()){
@@ -119,7 +120,7 @@ void cpu_exec(int n) {
       // DiffTest
       if(done) {
         printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
-        difftest_step(pc, npc);
+        difftest_step(pc, npc, inst);
       }
       #endif
       if (check_watchpoints()){

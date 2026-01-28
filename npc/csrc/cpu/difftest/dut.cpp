@@ -1,6 +1,9 @@
 #include "common.h"
 #include "difftest.h"
+#include "Vtop.h"
 #include <dlfcn.h>
+
+extern Vtop* top;
 
 #define CONFIG_MSIZE (128 * 1024 * 1024)  // 128MB，与sim_main.cpp中MSIZE保持一致
 
@@ -17,7 +20,7 @@ static long q_img_size = 0;
 
 // 检查内存状态
 static void init_checkmem(long img_size) {
-  if (!isa_difftest_checkmem(img_size)) {
+  if (!isa_init_checkmem(img_size)) {
     printf("init Memory DiffTest failed \n");
     exit(1);
   }
@@ -30,8 +33,8 @@ void init_checkregs(CPU_state *init_cpu) {
   }
 }
 
-void checkmem(long img_size, uint32_t pc) {
-  if (!isa_difftest_checkmem(img_size)) {
+void checkmem(uint32_t addr, uint32_t pc) {
+  if (!isa_difftest_checkmem(addr)) {
     printf("Memory DiffTest failed at PC = 0x%08x\n", pc);
     exit(1);
   }
@@ -85,16 +88,16 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 初始化REF
   ref_difftest_init(0);
 
-  static char zero_buf[4096];
+  char zero_buf[4096] ;
   memset(zero_buf, 0, sizeof(zero_buf));
+  // 清空REF的内存
   size_t total_size = CONFIG_MSIZE;
   uint32_t addr = 0x80000000;
-  while(total_size > 0) {
-    size_t chunk = (total_size > sizeof(zero_buf)) ? sizeof(zero_buf) : total_size;
-    // 将REF中超出img_size的内存区域清零
-    ref_difftest_memcpy(addr , zero_buf, chunk, DIFFTEST_TO_REF);
-    addr += chunk;
-    total_size -= chunk;
+  while (total_size > 0) {
+    size_t chunk_size = total_size > sizeof(zero_buf) ? sizeof(zero_buf) : total_size;
+    ref_difftest_memcpy(addr, zero_buf, chunk_size, DIFFTEST_TO_REF);
+    addr += chunk_size;
+    total_size -= chunk_size;
   }
 
   // 同步内存到REF - pmem[0]对应物理地址0x80000000
@@ -130,10 +133,13 @@ static void checkregs(CPU_state *ref, uint32_t pc) {
 
 
 // 执行一步并检查
-void difftest_step(uint32_t pc, uint32_t npc) {
+void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 #ifdef CONFIG_DIFFTEST
   //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
-
+  uint8_t opcode = inst & 0x7f;
+  uint8_t func3 = (inst >> 12) & 0x7;
+  uint32_t mem_addr = top->mem_addr;
+  bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
   CPU_state ref_r;
@@ -174,9 +180,11 @@ void difftest_step(uint32_t pc, uint32_t npc) {
   
   // 获取REF的寄存器状态
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-  // 每执行检测一次内存
-  // q_img_size += 4;
-  // checkmem(q_img_size, pc);
+  //每执行检测一次内存
+
+  if(is_store){
+    checkmem(mem_addr, pc);
+  }
   
   // 检查寄存器状态
   checkregs(&ref_r, pc);
