@@ -39,6 +39,7 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
     // 外部向NEMU写入寄存器状态
     memcpy(&cpu, dut, sizeof(cpu));
   } else {
+    printf("DEBUG : mepc = 0x%08x\n", cpu.mepc);
     // 外部从NEMU读取寄存器状态
     memcpy(dut, &cpu, sizeof(cpu));
   }
