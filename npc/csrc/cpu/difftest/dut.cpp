@@ -159,6 +159,10 @@ void difftest_step(uint32_t pc, uint32_t npc) {
     for (int i = 0; i < 32; i++) {
       cpu_state.gpr[i] = get_rf(i);
     }
+    cpu_state.mepc = get_csr(0x341);
+    cpu_state.mstatus = get_csr(0x300);
+    cpu_state.mcause = get_csr(0x342);
+    cpu_state.mtvec = get_csr(0x305);
     cpu_state.pc = npc;
     ref_difftest_regcpy(&cpu_state, DIFFTEST_TO_REF);
     is_skip_ref = false;
