@@ -32,6 +32,7 @@ static void restart() {
   cpu.mstatus = 0x00001800; // MIE=1, MPIE=1
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
+  
 }
 
 void init_isa() {

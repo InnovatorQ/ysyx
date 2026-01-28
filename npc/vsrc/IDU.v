@@ -3,6 +3,8 @@ module IDU(
     input           clk,
     input           reset,
     input           done,
+    output [31 : 0] inst,
+    output [31 : 0] mem_addr,
     //fs->ds
     input  [63 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
@@ -16,15 +18,16 @@ module IDU(
     //ds->es
     output reg          ds_to_es_valid,
     output reg          ds_state,
-    output [193 : 0]    ds_to_es_bus,
+    output [270 : 0]    ds_to_es_bus,
     //ds->fs
     output          ds_allowin,
     output          br_taken,
     output [31 : 0] br_target,
     output          inst_ecall,
     output          inst_mret,
+    //csr->ds
+    input [31 : 0]  csr_data,
     //ds->csr
-    output          csr_wen,
     output [11 : 0] csr_addr,
     output [1 : 0]  csr_op
 );
@@ -41,18 +44,19 @@ module IDU(
     wire [31 : 0]   imm;
     wire [31 : 0]   src1;
     wire [31 : 0]   src2;
-    wire [31 : 0]   mem_addr;
+    //wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
+    wire [31 : 0]   csr_result;
     wire [11 : 0]   alu_op;
     wire [4  : 0]   rd;
     wire [3  : 0]   load;
     wire [3  : 0]   store;
+    wire            csr_wen;
     wire            load_sign;
     wire            mem_ren;
     wire            res_from_csr;
     wire            rf_wen;
 
-    wire [31 : 0]   inst;
     wire            inst_i;
     wire            inst_iu;
     wire            inst_u;
@@ -141,16 +145,20 @@ module IDU(
     end
 
     assign ds_to_es_bus = {
-        ds_pc,           //193 : 162
-        src1,           //161 : 130
-        src2,           //129 : 98
-        mem_addr,       //97 : 66
-        st_data,        //65 : 34
-        alu_op,         //33 : 22
-        rs2,            //21 : 17
-        rd,             //16 : 12
-        load,           //11 : 8
-        store,          //7 : 4
+        ds_pc,           //270 : 239
+        src1,           //238 : 207
+        src2,           //206 : 175
+        mem_addr,       //174 : 143
+        st_data,        //142 : 111
+        csr_result,     //110 : 79
+        csr_data,       //78 : 47
+        csr_addr,      //46 : 35
+        alu_op,         //34 : 23
+        rs2,            //22 : 18
+        rd,             //17 : 13
+        load,           //12 : 9
+        store,          //8 : 5
+        csr_wen,        //4
         load_sign,      //3
         res_from_csr,   //2
         rf_wen,         //1
@@ -284,7 +292,8 @@ module IDU(
                 inst_auipc ? ds_pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
-
+    assign csr_result = {32{csr_op[0]}} & (rs1_data | csr_data) |
+                        {32{csr_op[1]}} & rs1_data;
     // assign ds_ready_go = 1'b1;
     // assign ds_allowin = ~ds_valid || done;
     // assign ds_to_es_valid = ds_valid && ds_ready_go;

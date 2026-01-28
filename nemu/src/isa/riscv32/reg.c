@@ -34,6 +34,10 @@ void isa_reg_display() {
   for (int i = 0; i < 32; i ++) {
     printf("%s\t" FMT_WORD "\n", regs[i], cpu.gpr[i]);
   }
+  printf("mepc\t" FMT_WORD "\n", cpu.mepc);
+  printf("mstatus\t" FMT_WORD "\n", cpu.mstatus);
+  printf("mcause\t" FMT_WORD "\n", cpu.mcause);
+  printf("mtvec\t" FMT_WORD "\n", cpu.mtvec);
   printf("pc\t" FMT_WORD "\n", cpu.pc);
 }
 

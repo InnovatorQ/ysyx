@@ -75,15 +75,14 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     last_wmask = wmask;
 
 #ifdef CONFIG_DEVICE
-    if( waddr >= 0x10000000) {
+    if( waddr >= 0x10000000 && waddr < 0x80000000) {
         putchar((char)(wdata & 0xff));
         fflush(stdout);  // 强制刷新
-    #ifdef CONFIG_DIFFTEST
-        difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
-    #endif
+    
         return;
     }
 #endif
+
     int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
     //int addr = (waddr & ~0x3u) >> 2;
     if (addr < 0 || addr >= MSIZE) return;
@@ -161,6 +160,18 @@ word_t get_rf(int n){
     else {
         printf("Invalid register number: %d\n", n);
         return 0;
+    }
+}
+
+word_t get_csr(int n){
+    switch(n){
+        case 0x305: return top->csr_mtvec;
+        case 0x341: return top->csr_mepc;
+        case 0x300: return top->csr_mstatus;
+        case 0x342: return top->csr_mcause;
+        default:
+            printf("Invalid CSR number: 0x%03x\n", n);
+            return 0;
     }
 }
 

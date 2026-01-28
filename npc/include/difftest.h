@@ -19,13 +19,15 @@ typedef struct {
 
 // DiffTest相关函数声明
 extern void init_difftest(const char *ref_so_file, long img_size);
-extern void difftest_step(uint32_t pc, uint32_t npc);
+extern void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst);
 extern void difftest_skip_ref();
 extern void difftest_skip_dut(int nr_ref, int nr_dut);
 
 // 内部函数声明
+extern bool isa_init_checkregs(CPU_state *init_cpu);
+extern bool isa_init_checkmem(long img_size);
 extern bool isa_difftest_checkregs(CPU_state *ref, uint32_t pc);
-extern bool isa_difftest_checkmem(long img_size);
+extern bool isa_difftest_checkmem(uint32_t addr);
 extern void difftest_sync_mem(uint32_t addr, void *buf, size_t n);
 extern void difftest_sync_regs(CPU_state *regs);
 

@@ -1,6 +1,11 @@
 #include "common.h"
 #include "difftest.h"
+#include "Vtop.h"
 #include <dlfcn.h>
+
+extern Vtop* top;
+
+#define CONFIG_MSIZE (128 * 1024 * 1024)  // 128MB，与sim_main.cpp中MSIZE保持一致
 
 // 函数指针声明
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) = NULL;
@@ -14,9 +19,23 @@ static int skip_dut_nr_inst = 0;
 static long q_img_size = 0;
 
 // 检查内存状态
-static void checkmem(long img_size) {
-  if (!isa_difftest_checkmem(img_size)) {
+static void init_checkmem(long img_size) {
+  if (!isa_init_checkmem(img_size)) {
     printf("init Memory DiffTest failed \n");
+    exit(1);
+  }
+}
+
+void init_checkregs(CPU_state *init_cpu) {
+  if (!isa_init_checkregs(init_cpu)) {
+    printf("init Regs DiffTest failed \n");
+    exit(1);
+  }
+}
+
+void checkmem(uint32_t addr, uint32_t pc) {
+  if (!isa_difftest_checkmem(addr)) {
+    printf("Memory DiffTest failed at PC = 0x%08x\n", pc);
     exit(1);
   }
 }
@@ -69,18 +88,30 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 初始化REF
   ref_difftest_init(0);
 
+  char zero_buf[4096] ;
+  memset(zero_buf, 0, sizeof(zero_buf));
+  // 清空REF的内存
+  size_t total_size = CONFIG_MSIZE;
+  uint32_t addr = 0x80000000;
+  while (total_size > 0) {
+    size_t chunk_size = total_size > sizeof(zero_buf) ? sizeof(zero_buf) : total_size;
+    ref_difftest_memcpy(addr, zero_buf, chunk_size, DIFFTEST_TO_REF);
+    addr += chunk_size;
+    total_size -= chunk_size;
+  }
+
   // 同步内存到REF - pmem[0]对应物理地址0x80000000
   ref_difftest_memcpy(0x80000000, pmem, img_size, DIFFTEST_TO_REF);
 
   // 初始化内存检查
-  checkmem(img_size);
+  init_checkmem(img_size);
   
   // 同步初始寄存器状态到REF
   CPU_state init_cpu;
   memset(&init_cpu, 0, sizeof(init_cpu));
   init_cpu.pc = 0x80000000;  // 设置初始PC
   ref_difftest_regcpy(&init_cpu, DIFFTEST_TO_REF);
-  
+  init_checkregs(&init_cpu);
   printf("DiffTest initialized successfully\n");
 #endif
 }
@@ -92,16 +123,23 @@ static void checkregs(CPU_state *ref, uint32_t pc) {
     for(int i = 0; i < 32; i++) {
       printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
     }
+    printf("MCAUSE DUT=0x%08x REF=0x%08x\n", get_csr(0x342), ref->mcause);
+    printf("MEPC   DUT=0x%08x REF=0x%08x\n", get_csr(0x341), ref->mepc);
+    printf("MSTATUS DUT=0x%08x REF=0x%08x\n", get_csr(0x300), ref->mstatus);
+    printf("MTVEC  DUT=0x%08x REF=0x%08x\n", get_csr(0x305), ref->mtvec);
     exit(1);
   }
 }
 
 
 // 执行一步并检查
-void difftest_step(uint32_t pc, uint32_t npc) {
+void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 #ifdef CONFIG_DIFFTEST
-  //printf("Difftest check at pc = %08x \n", pc);
-
+  //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
+  uint8_t opcode = inst & 0x7f;
+  uint8_t func3 = (inst >> 12) & 0x7;
+  uint32_t mem_addr = top->mem_addr;
+  bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
   CPU_state ref_r;
@@ -127,7 +165,11 @@ void difftest_step(uint32_t pc, uint32_t npc) {
     for (int i = 0; i < 32; i++) {
       cpu_state.gpr[i] = get_rf(i);
     }
-    cpu_state.pc = get_rf(32);
+    cpu_state.mepc = get_csr(0x341);
+    cpu_state.mstatus = get_csr(0x300);
+    cpu_state.mcause = get_csr(0x342);
+    cpu_state.mtvec = get_csr(0x305);
+    cpu_state.pc = npc;
     ref_difftest_regcpy(&cpu_state, DIFFTEST_TO_REF);
     is_skip_ref = false;
     return;
@@ -138,8 +180,11 @@ void difftest_step(uint32_t pc, uint32_t npc) {
   
   // 获取REF的寄存器状态
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-  // 每执行检测一次内存
-  checkmem(q_img_size);
+  //每执行检测一次内存
+
+  if(is_store){
+    checkmem(mem_addr, pc);
+  }
   
   // 检查寄存器状态
   checkregs(&ref_r, pc);

@@ -6,7 +6,7 @@ module EXU(
     //ds->es
     input               ds_to_es_valid,
     input               ds_state,
-    input  [193 : 0]    ds_to_es_bus,
+    input  [270 : 0]    ds_to_es_bus,
     //ws->es
     input               ms_allowin,
     //es->ds
@@ -14,9 +14,9 @@ module EXU(
     //es->ms
     output reg          es_to_ms_valid,
     output reg          es_state,
-    output [144 : 0]    es_to_ms_bus
+    output [221 : 0]    es_to_ms_bus
 );
-    reg  [193 : 0]      ds_to_es_bus_r;
+    reg  [270 : 0]      ds_to_es_bus_r;
     reg                 es_valid;
     wire                es_ready_go;
 
@@ -34,6 +34,10 @@ module EXU(
     wire [4 : 0]        shamt;
     wire [4 : 0]        dest;
     wire                load_sign;
+    wire                csr_wen;
+    wire [11 : 0]       csr_wr_addr;
+    wire [31 : 0]       csr_data;
+    wire [31 : 0]       csr_result;
     wire [31 : 0]       es_pc;
     wire [31 : 0]       alu_result;
 
@@ -67,13 +71,17 @@ module EXU(
     end
 
     assign es_to_ms_bus = {
-        es_pc,      //144 : 113
-        alu_result, //112 : 81
-        mem_addr,   //80 : 49
-        st_data,    //48 : 17
-        dest,       //16 : 12
-        load,       //11 : 8
-        store,      //7 : 4
+        es_pc,      //221 : 190
+        alu_result, //189 : 158
+        mem_addr,   //157 : 126
+        st_data,    //125 : 94
+        csr_result, //93  : 62
+        csr_data,   //61  : 30
+        csr_wr_addr, //29  : 18
+        dest,       //17  : 13
+        load,       //12 : 9
+        store,      //8 : 5
+        csr_wen,    //4
         load_sign,  //3
         res_from_csr,//2
         rf_wen,     //1
@@ -86,11 +94,15 @@ module EXU(
         alu_src2,
         mem_addr,
         st_data,
+        csr_result,
+        csr_data,
+        csr_wr_addr,
         alu_op,
         shamt,
         dest,
         load,
         store,
+        csr_wen,
         load_sign,
         res_from_csr,
         rf_wen,

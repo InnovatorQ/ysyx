@@ -93,7 +93,7 @@ module IFU(
     end
     
     assign arvalid = (fs_state == fs_wait_ready);
-    assign rready  = (fs_state == fs_addr_ready) & (delay_count == 5'b0);
+    assign rready  = (fs_state == fs_addr_ready) ;
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
 
     reg  [31 : 0]   pc;

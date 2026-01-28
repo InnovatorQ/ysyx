@@ -4,7 +4,7 @@ module WBU(
     input           reset,
     //es->ws
     input           ms_to_ws_valid,
-    input  [107 :0] ms_to_ws_bus,
+    input  [184 :0] ms_to_ws_bus,
     //ws->es
     output          ws_allowin,
     output reg      ws_state,
@@ -13,16 +13,15 @@ module WBU(
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
-    //ws->csr
-    input  [1 : 0]  csr_op,
-    input  [31: 0]  csr_data,
-    output [31 : 0] wr_csr_data,
     //diff
     output          done,
     output [31 : 0] ws_pc,
+    output          csr_wen,
+    output [11 : 0] wr_csr_addr,
+    output [31 : 0] csr_result,
     output reg [31 : 0] regs [31 : 0]
 );
-    reg  [107 :0] ms_to_ws_bus_r;
+    reg  [184 :0] ms_to_ws_bus_r;
 
     wire [31 : 0] alu_result;
     wire [3  : 0] load;
@@ -31,6 +30,7 @@ module WBU(
     wire          res_from_csr;
     wire          rf_wen;
     wire          br_taken;
+    wire [31 : 0] csr_data;
     wire [31 : 0] wb_data;
 
     wire          ws_ready_go;
@@ -68,8 +68,12 @@ module WBU(
         ws_pc,
         load_data,
         alu_result,
+        csr_result,
+        csr_data,
+        wr_csr_addr,
         dest,
         load,
+        csr_wen,
         res_from_csr,
         rf_wen,
         br_taken
@@ -90,9 +94,6 @@ module WBU(
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? ws_pc + 32'h4 : 
                       res_from_csr ? csr_data : alu_result;
-
-    assign wr_csr_data ={32{csr_op[0]}} & (rf1_data | csr_data) |
-                        {32{csr_op[1]}} & rf1_data;
 
     // assign ws_ready_go = 1'b1;
     // assign ws_allowin  = ~ws_valid || done;

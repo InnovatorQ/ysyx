@@ -71,6 +71,7 @@ extern bool is_ebreak;
 extern FILE* log_fp;
 extern long loaded_img_size; // 加载的镜像大小
 extern word_t get_rf(int n);
+extern word_t get_csr(int n);
 extern "C" word_t pmem_read(int raddr);
 extern "C" void pmem_write(int waddr, int wdata, char wmask);
 extern void init_log(const char *log_file);

@@ -27,10 +27,10 @@ module LSU(
     //es->ms
     input           es_to_ms_valid,
     input           es_state,
-    input [144 : 0] es_to_ms_bus,
+    input [221 : 0] es_to_ms_bus,
 
     output reg      ms_to_ws_valid,
-    output [107 :0] ms_to_ws_bus,
+    output [184 :0] ms_to_ws_bus,
 
     input           ws_allowin,
     output          ms_allowin
@@ -52,7 +52,7 @@ module LSU(
     reg             ms_respReady;
     reg             ms_respValid;
 
-    reg [144 : 0]   es_to_ms_bus_r;
+    reg [221 : 0]   es_to_ms_bus_r;
     wire            ms_ready_go;
     reg             ms_valid;
 
@@ -61,9 +61,13 @@ module LSU(
     wire [31 : 0]   ms_alu_result;
     wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
+    wire [31 : 0]   csr_result;
+    wire [31 : 0]   csr_data;
+    wire [11 : 0]   csr_wr_addr;
     wire [4  : 0]   dest;
     wire [3  : 0]   load;
     wire [3  : 0]   store;
+    wire            csr_wen;
     wire            load_sign;
     wire            res_from_csr;
     wire            rf_wen;
@@ -133,7 +137,7 @@ module LSU(
     end
 
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
-    assign rready  = (ms_state == ms_addr_ready) & (delay_count == 5'b0);
+    assign rready  = (ms_state == ms_addr_ready) ;
     assign araddr = arvalid ? mem_addr : 32'b0;
     assign ms_to_ws_valid = (ms_state == ms_data_ready);
 
@@ -153,9 +157,13 @@ module LSU(
         ms_alu_result,
         mem_addr,
         st_data,
+        csr_result,
+        csr_data,
+        csr_wr_addr,
         dest,
         load,
         store,
+        csr_wen,
         load_sign,
         res_from_csr,
         rf_wen,
@@ -163,11 +171,15 @@ module LSU(
     } = es_to_ms_bus_r;
 
     assign ms_to_ws_bus = {
-        ms_pc,          //107 : 76
-        load_data,      //75 ： 44
-        ms_alu_result,  //43 : 12
-        dest,           //11 : 7
-        load,           //6 : 3
+        ms_pc,          //184 : 153
+        load_data,      //152 : 121
+        ms_alu_result,  //120 : 89
+        csr_result,     //88 : 57
+        csr_data,       //56 : 25
+        csr_wr_addr,    //24 : 13
+        dest,           //12 : 8
+        load,           //7 : 4
+        csr_wen,        //3
         res_from_csr,   //2
         rf_wen,         //1
         br_taken        //0
