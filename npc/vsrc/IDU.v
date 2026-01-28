@@ -2,44 +2,60 @@
 module IDU(
     input           clk,
     input           reset,
-    input  [31 : 0] inst,
-    input  [31 : 0] pc,
-    input  [31 : 0] rs1_data,
-    input  [31 : 0] rs2_data,
+    input           done,
+    //fs->ds
+    input  [63 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
-    input           es_allowin,
-    output          ds_allowin,
-    output          ds_to_es_valid,  
-    output          br_taken,
-    output          rf_wen,
-    output          csr_wen,
-    output [4 : 0]  rd,
+    // rf->ds | ds->rf
     output [4 : 0]  rs1,
     output [4 : 0]  rs2,
-    output [31 : 0] imm,
-    output [11 : 0] csr_addr,
-    output [31 : 0] src1,
-    output [31 : 0] src2,
-    output [11 : 0] alu_op,
-    output [1 : 0]  csr_op,
+    input  [31 : 0] rs1_data,
+    input  [31 : 0] rs2_data,
+    //es->ds
+    input           es_allowin,
+    //ds->es
+    output reg          ds_to_es_valid,
+    output reg          ds_state,
+    output [270 : 0]    ds_to_es_bus,
+    //ds->fs
+    output          ds_allowin,
+    output          br_taken,
     output [31 : 0] br_target,
-    output          mem_ren,
-    output [31 : 0] mem_addr,
-    output [3 : 0]  load,
-    output          load_sign,
-    output [3 : 0]  store,
-    output [31 : 0] st_data,
-    output          res_from_csr,
     output          inst_ecall,
-    output          inst_mret
+    output          inst_mret,
+    //csr->ds
+    input [31 : 0]  csr_data,
+    //ds->csr
+    output [11 : 0] csr_addr,
+    output [1 : 0]  csr_op
 );
+
     reg             ds_valid;   //译码阶段有效信号
     wire            ds_ready_go;
 
-    wire [6:0]      opcode;
-    wire [2:0]      funct3;
-    wire [6:0]      funct7;
+    reg  [63 : 0]   fs_to_ds_bus_r;
+    wire [31 : 0]   ds_pc;
 
+    wire [6  : 0]   opcode;
+    wire [2  : 0]   funct3;
+    wire [6  : 0]   funct7;
+    wire [31 : 0]   imm;
+    wire [31 : 0]   src1;
+    wire [31 : 0]   src2;
+    wire [31 : 0]   mem_addr;
+    wire [31 : 0]   st_data;
+    wire [31 : 0]   csr_result;
+    wire [11 : 0]   alu_op;
+    wire [4  : 0]   rd;
+    wire [3  : 0]   load;
+    wire [3  : 0]   store;
+    wire            csr_wen;
+    wire            load_sign;
+    wire            mem_ren;
+    wire            res_from_csr;
+    wire            rf_wen;
+
+    wire [31 : 0]   inst;
     wire            inst_i;
     wire            inst_iu;
     wire            inst_u;
@@ -95,7 +111,63 @@ module IDU(
     wire [31 : 0]   imm_j;
     wire [31 : 0]   offset;
 
-    wire rs1_lt_rd_sign;
+    wire            rs1_lt_rd_sign;
+
+    localparam ds_idle = 1'b0;
+    localparam ds_wait_ready = 1'b1;
+    reg        next_state;
+
+    assign ds_allowin = 1'b1;
+
+    always @(posedge clk) begin
+        if(reset) begin
+            ds_state <= ds_idle;
+            ds_valid <= 1'b0;
+        end else begin
+            ds_state <= next_state;
+            ds_valid <= fs_to_ds_valid;
+        end
+    end
+
+    always @(*) begin
+        case(ds_state)
+            ds_idle: begin
+                ds_to_es_valid = 1'b0;
+                next_state = fs_to_ds_valid ? ds_wait_ready : ds_idle;
+            end
+            ds_wait_ready: begin
+                ds_to_es_valid = 1'b1;
+                next_state = es_allowin ? ds_idle : ds_wait_ready;
+            end
+            default: next_state = ds_idle;
+        endcase
+    end
+
+    assign ds_to_es_bus = {
+        ds_pc,           //270 : 239
+        src1,           //238 : 207
+        src2,           //206 : 175
+        mem_addr,       //174 : 143
+        st_data,        //142 : 111
+        csr_result,     //110 : 79
+        csr_data,       //78 : 47
+        csr_addr,      //46 : 35
+        alu_op,         //34 : 23
+        rs2,            //22 : 18
+        rd,             //17 : 13
+        load,           //12 : 9
+        store,          //8 : 5
+        csr_wen,        //4
+        load_sign,      //3
+        res_from_csr,   //2
+        rf_wen,         //1
+        br_taken        //0 
+    };
+
+    assign {
+        ds_pc,
+        inst
+    } = fs_to_ds_bus_r;
     //得到指令类型
     assign opcode = inst[6:0];
     assign funct3 = inst[14:12];
@@ -212,23 +284,30 @@ module IDU(
                  inst_s ? imm_s : 
                  inst_j ? imm_j : 32'b0;
     assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
-                        inst_jal ? (pc + imm_j) :
-                        inst_b ? (pc + offset) : 32'b0;  
+                        inst_jal ? (ds_pc + imm_j) :
+                        inst_b ? (ds_pc + offset) : 32'b0;  
     assign mem_addr = rs1_data + imm;
     assign src1 = inst_lui ? 32'b0 : 
-                inst_auipc ? pc :rs1_data;  // lui时src1为0
+                inst_auipc ? ds_pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
     assign st_data = rs2_data;
+    assign csr_result = {32{csr_op[0]}} & (rs1_data | csr_data) |
+                        {32{csr_op[1]}} & rs1_data;
+    // assign ds_ready_go = 1'b1;
+    // assign ds_allowin = ~ds_valid || done;
+    // assign ds_to_es_valid = ds_valid && ds_ready_go;
 
-    assign ds_ready_go = 1'b1;
-    assign ds_allowin = !ds_valid || ds_ready_go && es_allowin;
-    assign ds_to_es_valid = ds_valid && ds_ready_go;
+    // always @(posedge clk) begin
+    //     if(reset) begin
+    //         ds_valid <= 1'b0;
+    //     end else if(ds_allowin) begin
+    //         ds_valid <= fs_to_ds_valid;
+    //     end
+    // end
 
     always @(posedge clk) begin
-        if(reset) begin
-            ds_valid <= 1'b0;
-        end else if(ds_allowin) begin
-            ds_valid <= fs_to_ds_valid;
+        if(fs_to_ds_valid && ds_allowin) begin
+            fs_to_ds_bus_r <= fs_to_ds_bus;
         end
     end
 
