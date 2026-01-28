@@ -66,6 +66,7 @@ word_t paddr_read(paddr_t addr, int len) {
     return ret;
   }
   IFDEF(CONFIG_DEVICE, 
+    difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);
     IOMap *map = fetch_mmio_map(addr);
     word_t ret = mmio_read(addr, len);
@@ -90,6 +91,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     return; 
   }
   IFDEF(CONFIG_DEVICE,
+    difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);
     IOMap *map = fetch_mmio_map(addr);
     log_write("DTRACE: WRITE [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " [%s]\n",
