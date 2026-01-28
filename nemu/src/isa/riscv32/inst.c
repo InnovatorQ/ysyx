@@ -161,18 +161,18 @@ __instpat_end_: ; }
   INSTPAT("??????? ????? ????? 100 ????? 11000 11", blt    , B, if ((sword_t)src1 < (sword_t)src2) s->dnpc = s->pc + imm; ); //增加blt
   INSTPAT("??????? ????? ????? 110 ????? 11000 11", bltu   , B, if (src1 < src2) s->dnpc = s->pc + imm; ); //增加bltu
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, {
-    word_t *csr_reg = NULL;
+    word_t csr_reg = 0;
     switch (csr_addr)
     {
-      case 0x300: csr_reg = &mstatus; break;
-      case 0x305: csr_reg = &mtvec;   break;
-      case 0x341: csr_reg = &mepc;    break;
-      case 0x342: csr_reg = &mcause;  break;
+      case 0x300: csr_reg = mstatus; break;
+      case 0x305: csr_reg = mtvec;   break;
+      case 0x341: csr_reg = mepc;    break;
+      case 0x342: csr_reg = mcause;  break;
       default: panic();
     }
     if(csr_reg){
-      word_t t = *csr_reg;
-      *csr_reg = *csr_reg | src1;
+      word_t t = csr_reg;
+      csr_reg = csr_reg | src1;
       R(rd) = t;
     }
   });
