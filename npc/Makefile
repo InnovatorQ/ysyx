@@ -77,4 +77,7 @@ sim: $(SIM_BIN)
 clean:
 	rm -rf $(DST_DIR)
 
+sta_clean:
+	rm -rf ./result
+
 .PHONY: default yosys clean run sim menuconfig

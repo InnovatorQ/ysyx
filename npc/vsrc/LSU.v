@@ -10,7 +10,7 @@ module LSU(
     input           rvalid,
     input  [31 :0]  rdata,
     input  [1 : 0]  rresp,
-    output reg      rready,
+    output          rready,
     //aw
     output          awvalid,
     output [31 :0]  awaddr,
@@ -29,7 +29,7 @@ module LSU(
     input           es_state,
     input [221 : 0] es_to_ms_bus,
 
-    output reg      ms_to_ws_valid,
+    output          ms_to_ws_valid,
     output [184 :0] ms_to_ws_bus,
 
     input           ws_allowin,
@@ -216,7 +216,7 @@ module LSU(
     end
 
     always @(posedge clk)begin
-        if(es_state == 1'b1 && ms_allowin)
+        if(es_to_ms_valid && ms_allowin)
             es_to_ms_bus_r <= es_to_ms_bus;
     end
 endmodule

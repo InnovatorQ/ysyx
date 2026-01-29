@@ -24,13 +24,15 @@ module pmem(
     output reg [1  :0]  bresp,
     input               bready
 );
+    //reg [7 : 0] mem [0 : 4095];   //1KB
     wire [7 : 0] wmask = {4'b0, wstrb};
 
     reg [31 : 0] wr_addr;
     reg          wr_addr_valid;
 
     reg [31 : 0] rd_addr;
-    
+    // wire [31 : 0] raddr = rd_addr & ~32'h3;
+    // wire [31 : 0] waddr = wr_addr & ~32'h3;
     //读地址
     always @(posedge clk)begin
         if(reset) begin
@@ -57,6 +59,11 @@ module pmem(
                     skip_ref();
                 end
                 rdata <= pmem_read(rd_addr);
+
+                // rdata[7 : 0] <= mem[raddr];
+                // rdata[15: 8] <= mem[raddr + 1];
+                // rdata[23:16] <= mem[raddr + 2];
+                // rdata[31:24] <= mem[raddr + 4];
                 rresp <= 2'b0;
                 rvalid <= 1;
             end else if(rready) begin
@@ -93,6 +100,10 @@ module pmem(
                     skip_ref();
                 end 
                 pmem_write(wr_addr, wdata, wmask);
+                // if(wstrb[0]) mem[waddr]   <= wdata[7 : 0];
+                // if(wstrb[1]) mem[waddr + 1]   <= wdata[15: 8];
+                // if(wstrb[2]) mem[waddr + 2]   <= wdata[23:16];
+                // if(wstrb[3]) mem[waddr + 3]   <= wdata[31:24];
             end else begin
                 wready <= 0;
             end

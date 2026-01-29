@@ -12,7 +12,7 @@ module EXU(
     //es->ds
     output              es_allowin,
     //es->ms
-    output reg          es_to_ms_valid,
+    output              es_to_ms_valid,
     output reg          es_state,
     output [221 : 0]    es_to_ms_bus
 );
@@ -59,11 +59,9 @@ module EXU(
     always @(*)begin
         case(es_state)
             es_idle : begin
-                es_to_ms_valid = 1'b0;
                 next_state = ds_to_es_valid ? es_wait_ready : es_idle;
             end
             es_wait_ready: begin
-                es_to_ms_valid = 1'b1;
                 next_state = ms_allowin ? es_idle : es_wait_ready;
             end
             default:    next_state = es_idle;
@@ -128,9 +126,9 @@ module EXU(
     //         es_valid <= ds_to_es_valid;
     //     end
     // end
-
+    assign es_to_ms_valid = (es_state == es_wait_ready) ? 1'b1 : 1'b0;
     always @(posedge clk) begin
-        if(ds_state == 1'b1 && es_allowin) begin
+        if(ds_to_es_valid && es_allowin) begin
             ds_to_es_bus_r <= ds_to_es_bus;
         end
     end

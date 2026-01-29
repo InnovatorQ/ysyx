@@ -18,8 +18,8 @@ module WBU(
     output [31 : 0] ws_pc,
     output          csr_wen,
     output [11 : 0] wr_csr_addr,
-    output [31 : 0] csr_result,
-    output reg [31 : 0] regs [31 : 0]
+    output [31 : 0] csr_result
+    // output reg [31 : 0] regs [31 : 0]
 );
     reg  [184 :0] ms_to_ws_bus_r;
 
@@ -88,8 +88,8 @@ module WBU(
         .rdata2     (rf2_data   ),
         .wen        (rf_wen     ),
         .waddr      (dest       ),
-        .wdata      (wb_data    ),
-        .regs       (regs       )
+        .wdata      (wb_data    )
+        // .regs       (regs       )
     );
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? ws_pc + 32'h4 : 

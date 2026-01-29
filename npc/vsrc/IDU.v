@@ -16,9 +16,10 @@ module IDU(
     //es->ds
     input           es_allowin,
     //ds->es
-    output reg          ds_to_es_valid,
-    output reg          ds_state,
+    output              ds_to_es_valid,
     output [270 : 0]    ds_to_es_bus,
+    output reg          ds_state,
+    
     //ds->fs
     output          ds_allowin,
     output          br_taken,
@@ -133,11 +134,9 @@ module IDU(
     always @(*) begin
         case(ds_state)
             ds_idle: begin
-                ds_to_es_valid = 1'b0;
                 next_state = fs_to_ds_valid ? ds_wait_ready : ds_idle;
             end
             ds_wait_ready: begin
-                ds_to_es_valid = 1'b1;
                 next_state = es_allowin ? ds_idle : ds_wait_ready;
             end
             default: next_state = ds_idle;
@@ -305,6 +304,7 @@ module IDU(
     //         ds_valid <= fs_to_ds_valid;
     //     end
     // end
+    assign ds_to_es_valid = (ds_state == ds_wait_ready) ? 1'b1 : 1'b0;
 
     always @(posedge clk) begin
         if(fs_to_ds_valid && ds_allowin) begin

@@ -11,16 +11,16 @@ module top(
     input                   reset,
     output                  done,
     output      [31 : 0]    next_pc,
-    output reg  [31 : 0]    ws_pc,
-    output reg  [31 : 0]    ds_pc,
-    output reg  [31 : 0]    pc,
+    output      [31 : 0]    ws_pc,
+    output      [31 : 0]    ds_pc,
+    output      [31 : 0]    pc,
     output reg  [31 : 0]    regs [31 : 0],
     output      [31 : 0]    inst,
     output      [31 : 0]    mem_addr,
-    output      [31 : 0]    csr_mtvec,
-    output      [31 : 0]    csr_mepc,
-    output      [31 : 0]    csr_mstatus,
-    output      [31 : 0]    csr_mcause
+    output reg  [31 : 0]    csr_mtvec,
+    output reg  [31 : 0]    csr_mepc,
+    output reg  [31 : 0]    csr_mstatus,
+    output reg  [31 : 0]    csr_mcause
 );
     wire            arvalid;
     wire [31 : 0]   araddr;
@@ -39,13 +39,13 @@ module top(
     wire            bvalid;
     wire [1  : 0]   bresp;
     wire            bready;
-    reg             fs_to_ds_valid;
+    wire            fs_to_ds_valid;
     wire            ds_allowin;
-    reg             ds_to_es_valid;//mem->exe
+    wire            ds_to_es_valid;
     wire            es_allowin;
-    reg             es_to_ms_valid;
+    wire            es_to_ms_valid;
     wire            ms_allowin;
-    reg             ms_to_ws_valid;
+    wire            ms_to_ws_valid;
     wire            ws_allowin;
 
     reg   [1 : 0]   fs_state;
