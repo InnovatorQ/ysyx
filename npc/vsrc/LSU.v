@@ -121,7 +121,7 @@ module LSU(
             end
             ms_wait_ready : begin
                 if(arvalid | awvalid) begin
-                    next_state = (arready | awready) ? ms_addr_ready : ms_wait_ready;
+                    next_state = ((arready & arvalid) | (awready & awvalid)) ? ms_addr_ready : ms_wait_ready;
                 end else begin
                     next_state = ms_data_ready;
                 end
@@ -137,7 +137,7 @@ module LSU(
     end
 
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
-    assign rready  = (ms_state == ms_addr_ready) ;
+    assign rready  = (|load) & (ms_state == ms_addr_ready) ;
     assign araddr = arvalid ? mem_addr : 32'b0;
     assign ms_to_ws_valid = (ms_state == ms_data_ready);
 

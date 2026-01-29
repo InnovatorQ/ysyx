@@ -93,6 +93,7 @@ module IFU(
         endcase
     end
     
+    assign araddr = arvalid ? pc : 32'b0;
     assign arvalid = (fs_state == fs_wait_ready);
     assign rready  = (fs_state == fs_addr_ready) ;
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
@@ -109,7 +110,6 @@ module IFU(
         pc,
         ifu_rdata
     };
-    assign araddr = pc;
     assign seq_pc = pc + 32'h4;
     assign next_pc =inst_ecall  ? csr_mtvec :
                     mret        ? csr_mepc  : 
@@ -134,10 +134,12 @@ module IFU(
             //pc <= 32'hfffffffc;
         end else if(fs_state == fs_idle && next_state == fs_wait_ready) begin
             pc <= next_pc;
+            //$display("IFU FETCH ADDR: %h", pc);
         end
         // 在AXI读握手成功时缓存数据
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
+            //$display("IFU READ DATA: %h", rdata);
         end
     end
     

@@ -249,6 +249,24 @@ module top(
         .lsu_rdata      (lsu_rdata      ),
         .lsu_rresp      (lsu_rresp      ),
         .lsu_rready     (lsu_rready     ),
+        
+        // UART
+        .uart_awvalid   (uart_awvalid   ),
+        .uart_awaddr    (uart_awaddr    ),
+        .uart_awready   (uart_awready   ),
+        .uart_wvalid    (uart_wvalid    ),
+        .uart_wdata     (uart_wdata     ),
+        .uart_wstrb     (uart_wstrb     ),
+        .uart_wready    (uart_wready    ),
+
+        //pmem
+        .pmem_awvalid   (pmem_awvalid   ),
+        .pmem_awaddr    (pmem_awaddr    ),
+        .pmem_awready   (pmem_awready   ),
+        .pmem_wvalid    (pmem_wvalid    ),
+        .pmem_wdata     (pmem_wdata     ),
+        .pmem_wstrb     (pmem_wstrb     ),
+        .pmem_wready    (pmem_wready    ),
 
         // AXI4-Lite interface to pmem
         .arvalid        (arvalid        ),
@@ -257,7 +275,30 @@ module top(
         .rvalid         (rvalid         ),
         .rdata          (rdata          ),
         .rresp          (rresp          ),
-        .rready         (rready         )
+        .rready         (rready         ),
+        .awvalid        (awvalid        ),
+        .awaddr         (awaddr         ),
+        .awready        (awready        ),
+        .wvalid         (wvalid         ),
+        .wdata          (wdata          ),
+        .wstrb          (wstrb          ),
+        .wready         (wready         )
+    );
+    wire uart_awvalid, uart_awready, uart_wvalid, uart_wready;
+    wire [31 : 0] uart_awaddr, uart_wdata;
+    wire [3 : 0] uart_wstrb;
+    UART UART(
+        .clk                 (clk            ),
+        .reset               (reset          ),
+
+        .uart_awvalid        (uart_awvalid        ),
+        .uart_awaddr         (uart_awaddr         ),
+        .uart_awready        (uart_awready        ),
+        .uart_wvalid         (uart_wvalid         ),
+
+        .uart_wdata          (uart_wdata          ),
+        .uart_wstrb          (uart_wstrb          ),
+        .uart_wready         (uart_wready         )
     );
 
     pmem pmem(
@@ -274,14 +315,14 @@ module top(
         .rresp          (rresp      ),
         .rready         (rready     ),
 
-        .awvalid       (awvalid    ),
-        .awaddr        (awaddr     ),
-        .awready       (awready    ),
-        .wvalid        (wvalid     ),
+        .pmem_awvalid       (pmem_awvalid    ),
+        .pmem_awaddr        (pmem_awaddr     ),
+        .pmem_awready       (pmem_awready    ),
+        .pmem_wvalid        (pmem_wvalid     ),
 
-        .wdata         (wdata      ),
-        .wstrb         (wstrb      ),
-        .wready        (wready     ),
+        .pmem_wdata         (pmem_wdata      ),
+        .pmem_wstrb         (pmem_wstrb      ),
+        .pmem_wready        (pmem_wready     ),
 
         .bvalid        (bvalid     ),
         .bresp         (bresp      ),

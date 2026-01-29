@@ -75,7 +75,7 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     last_wmask = wmask;
 
 #ifdef CONFIG_DEVICE
-    if( waddr >= 0x10000000 && waddr < 0x80000000) {
+    if( waddr >= 0x10000000 && waddr < 0x10000fff) {
         putchar((char)(wdata & 0xff));
         fflush(stdout);  // 强制刷新
     
