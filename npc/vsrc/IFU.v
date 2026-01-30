@@ -14,20 +14,21 @@ module IFU(
     input   [31:0] csr_mtvec        ,
     input   [31:0] csr_mepc         ,
     //fs->ds
-    output reg     fs_to_ds_valid   ,
-    output reg [1 : 0]    fs_state  ,   
+    output          fs_to_ds_valid  ,
     output [63 : 0] fs_to_ds_bus    ,
     
+    output reg [1 : 0]    fs_state  ,   
+    
     // AXI4-Lite Read Address Channel
-    output reg     arvalid          ,
-    output [31:0]  araddr           ,
-    input          arready          ,
+    output          arvalid          ,
+    output [31:0]   araddr           ,
+    input           arready          ,
     
     // AXI4-Lite Read Data Channel
     input          rvalid           ,
     input  [31:0]  rdata            ,
     input  [1:0]   rresp            ,
-    output reg     rready    
+    output         rready           
 );
     localparam fs_idle = 2'b00;
     localparam fs_wait_ready = 2'b01;
@@ -92,6 +93,7 @@ module IFU(
         endcase
     end
     
+    assign araddr = arvalid ? pc : 32'b0;
     assign arvalid = (fs_state == fs_wait_ready);
     assign rready  = (fs_state == fs_addr_ready) ;
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
@@ -108,7 +110,6 @@ module IFU(
         pc,
         ifu_rdata
     };
-    assign araddr = pc;
     assign seq_pc = pc + 32'h4;
     assign next_pc =inst_ecall  ? csr_mtvec :
                     mret        ? csr_mepc  : 
@@ -133,10 +134,12 @@ module IFU(
             //pc <= 32'hfffffffc;
         end else if(fs_state == fs_idle && next_state == fs_wait_ready) begin
             pc <= next_pc;
+            //$display("IFU FETCH ADDR: %h", pc);
         end
         // 在AXI读握手成功时缓存数据
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
+            //$display("IFU READ DATA: %h", rdata);
         end
     end
     

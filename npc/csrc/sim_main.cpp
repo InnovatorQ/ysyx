@@ -74,14 +74,14 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
     last_wdata = wdata;
     last_wmask = wmask;
 
-#ifdef CONFIG_DEVICE
-    if( waddr >= 0x10000000 && waddr < 0x80000000) {
-        putchar((char)(wdata & 0xff));
-        fflush(stdout);  // 强制刷新
+// #ifdef CONFIG_DEVICE
+//     if( waddr >= 0x10000000 && waddr < 0x10000fff) {
+//         putchar((char)(wdata & 0xff));
+//         fflush(stdout);  // 强制刷新
     
-        return;
-    }
-#endif
+//         return;
+//     }
+// #endif
 
     int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
     //int addr = (waddr & ~0x3u) >> 2;
@@ -104,31 +104,31 @@ extern "C" void pmem_write(int waddr, int wdata, char wmask) {
 // 总是读取地址为`raddr & ~0x3u`的4字节返回
 extern "C" word_t pmem_read(int raddr) {
     // 处理RTC设备 - 返回当前系统时间（不缓存）
-    #ifdef CONFIG_DEVICE
-    if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
-    #ifdef CONFIG_DIFFTEST
-        difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
-    #endif
-        // 获取微秒级时间用于AM_TIMER_UPTIME
-        uint64_t uptime_us = get_time();
+    //#ifdef CONFIG_DEVICE
+    // if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
+    // #ifdef CONFIG_DIFFTEST
+    //     difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
+    // #endif
+    //     // // 获取微秒级时间用于AM_TIMER_UPTIME
+    //     // uint64_t uptime_us = get_time();
         
-        // 获取实际时间用于AM_TIMER_RTC
-        time_t now = time(NULL);
-        struct tm *tm_info = localtime(&now);
+    //     // // 获取实际时间用于AM_TIMER_RTC
+    //     // time_t now = time(NULL);
+    //     // struct tm *tm_info = localtime(&now);
         
-        switch(raddr - RTC_ADDR) {
-            case 0: return uptime_us & 0xFFFFFFFF;        // uptime低32位(微秒)
-            case 4: return (uptime_us >> 32) & 0xFFFFFFFF; // uptime高32位(微秒)
-            case 8: return tm_info->tm_sec;               // 秒
-            case 12: return tm_info->tm_min;              // 分
-            case 16: return tm_info->tm_hour;             // 时
-            case 20: return tm_info->tm_mday;             // 日
-            case 24: return tm_info->tm_mon + 1;          // 月
-            case 28: return tm_info->tm_year + 1900;      // 年
-        }
+    //     // switch(raddr - RTC_ADDR) {
+    //     //     case 0: return uptime_us & 0xFFFFFFFF;        // uptime低32位(微秒)
+    //     //     case 4: return (uptime_us >> 32) & 0xFFFFFFFF; // uptime高32位(微秒)
+    //     //     case 8: return tm_info->tm_sec;               // 秒
+    //     //     case 12: return tm_info->tm_min;              // 分
+    //     //     case 16: return tm_info->tm_hour;             // 时
+    //     //     case 20: return tm_info->tm_mday;             // 日
+    //     //     case 24: return tm_info->tm_mon + 1;          // 月
+    //     //     case 28: return tm_info->tm_year + 1900;      // 年
+    //     // }
         
-    }
-    #endif
+    // }
+    // #endif
     // 将物理地址映射到pmem数组索引
     int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
     //int addr = (raddr & ~0x3u) >> 2;

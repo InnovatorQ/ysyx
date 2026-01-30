@@ -10,7 +10,7 @@ module regfile(
     input  [31 : 0] wdata,
     output reg [31 : 0] regs [31 : 0]
 );
-    
+    //reg [31 : 0] regs [31 : 0];
     always @(posedge clk) begin
         if(wen && waddr != 0) begin
             regs[waddr] <= wdata;
