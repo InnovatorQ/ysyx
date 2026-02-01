@@ -93,7 +93,7 @@ module ysyx_25110269(
     assign  io_master_arid = 4'b0;
     assign  io_master_arburst = 2'b0;
 
-    wire            inst_finish;
+    reg             inst_finish;
     wire            fs_to_ds_valid;
     wire            ds_allowin;
     wire            ds_to_es_valid;

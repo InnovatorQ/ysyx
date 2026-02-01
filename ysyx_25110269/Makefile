@@ -34,7 +34,7 @@ endif
 DST_DIR ?= $(shell pwd)/build
 
 VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
-			--timescale "1ns/1ns" --no-timing\
+			--timescale "1ns/1ns" --no-timing  --autoflush\
 		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert \
 		    -Wno-UNOPTFLAT -LDFLAGS "-lreadline -ldl" \
 		    -CFLAGS "-I$(abspath ./include) -I$(abspath ../ysyxSoC/perip/uart16550/rtl) \

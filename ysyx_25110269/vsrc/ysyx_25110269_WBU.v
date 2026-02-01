@@ -21,7 +21,6 @@ module ysyx_25110269_WBU(
     //output reg [31 : 0] regs [31 : 0]
 );
     reg  [184 :0] ms_to_ws_bus_r;
-
     wire [31 : 0] ws_pc;
     wire [31 : 0] alu_result;
     wire [3  : 0] load;
@@ -41,7 +40,7 @@ module ysyx_25110269_WBU(
     reg         next_state;
 
     assign ws_allowin = 1'b1;
-    assign inst_finish = (ws_state == ws_wait_ready);
+    //assign inst_finish = (ws_state == ws_wait_ready);
     always @(posedge clk)begin
         if(reset)begin
             ws_valid <= 1'b0;
@@ -54,9 +53,11 @@ module ysyx_25110269_WBU(
     always @(*)begin
        case(ws_state)
             ws_idle:begin
+                inst_finish = 1'b0;
                 next_state = ms_to_ws_valid ? ws_wait_ready : ws_idle;
             end
             ws_wait_ready:begin
+                inst_finish = 1'b1;
                 next_state = ws_idle;
             end
             default: next_state = ws_idle;

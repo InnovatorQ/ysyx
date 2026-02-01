@@ -57,6 +57,8 @@ module ysyx_25110269_LSU(
     wire            ms_ready_go;
     reg             ms_valid;
 
+    reg  [31 : 0]   mem_addr_r;     //difftest
+
     wire [31 : 0]   ms_pc;
     wire [31 : 0]   load_data;
     wire [31 : 0]   ms_alu_result;
@@ -86,6 +88,7 @@ module ysyx_25110269_LSU(
             lfsr <= 8'b10110001;
         end else begin
             lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};
+            mem_addr_r <= mem_addr;
         end
     end
 
