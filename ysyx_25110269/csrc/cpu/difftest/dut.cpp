@@ -87,17 +87,6 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 初始化REF
   ref_difftest_init(0);
 
-  char zero_buf[4096] ;
-  memset(zero_buf, 0, sizeof(zero_buf));
-  // 清空REF的内存
-  size_t total_size = CONFIG_MSIZE;
-  uint32_t addr = 0x20000000;
-  while (total_size > 0) {
-    size_t chunk_size = total_size > sizeof(zero_buf) ? sizeof(zero_buf) : total_size;
-    ref_difftest_memcpy(addr, zero_buf, chunk_size, DIFFTEST_TO_REF);
-    addr += chunk_size;
-    total_size -= chunk_size;
-  }
   printf("img[0] :" FMT_WORD "\n", pmem[0]);
   // 同步内存到REF 
   ref_difftest_memcpy(0x20000000, pmem, img_size, DIFFTEST_TO_REF);
