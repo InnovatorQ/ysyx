@@ -59,9 +59,6 @@ module pmem(
             rvalid <= 0;
         end else begin
             if(arvalid & arready) begin
-                if(rd_addr >= 32'ha0000048 & rd_addr < 32'ha0000068) begin
-                    skip_ref();
-                end
                 rdata <= pmem_read(rd_addr);
                 //$display("PMEM READ ADDR: %h DATA: %h", rd_addr, pmem_read(rd_addr));
                 // rdata[7 : 0] <= mem[raddr];
@@ -94,10 +91,6 @@ module pmem(
             
         end else begin
             if(wvalid & wready) begin
-                
-                if(wr_addr >= 32'h10000000 && wr_addr < 32'h10000fff) begin
-                    skip_ref();
-                end
                 //$display("PMEM WRITE ADDR: %h DATA: %h WSTRB: %b", wr_addr, wdata, wstrb); 
                 pmem_write(wr_addr, wdata, wmask);
                 // if(wstrb[0]) mem[waddr]   <= wdata[7 : 0];

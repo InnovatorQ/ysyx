@@ -249,6 +249,15 @@ module top(
         .lsu_rdata      (lsu_rdata      ),
         .lsu_rresp      (lsu_rresp      ),
         .lsu_rready     (lsu_rready     ),
+
+        //CLINT
+        .clint_arvalid  (clint_arvalid  ),
+        .clint_araddr   (clint_araddr   ),
+        .clint_arready  (clint_arready  ),
+        .clint_rvalid   (clint_rvalid   ),
+        .clint_rdata    (clint_rdata    ),
+        .clint_rresp    (clint_rresp    ),
+        .clint_rready   (clint_rready   ),
         
         // UART
         .uart_awvalid   (uart_awvalid   ),
@@ -269,13 +278,14 @@ module top(
         .pmem_wready    (pmem_wready    ),
 
         // AXI4-Lite interface to pmem
-        .arvalid        (arvalid        ),
-        .araddr         (araddr         ),
-        .arready        (arready        ),
-        .rvalid         (rvalid         ),
-        .rdata          (rdata          ),
-        .rresp          (rresp          ),
-        .rready         (rready         ),
+        .pmem_arvalid   (pmem_arvalid   ),
+        .pmem_araddr    (pmem_araddr    ),
+        .pmem_arready   (pmem_arready   ),
+        .pmem_rvalid    (pmem_rvalid    ),
+        .pmem_rdata     (pmem_rdata     ),
+        .pmem_rresp     (pmem_rresp     ),
+        .pmem_rready    (pmem_rready    ),
+
         .awvalid        (awvalid        ),
         .awaddr         (awaddr         ),
         .awready        (awready        ),
@@ -284,6 +294,7 @@ module top(
         .wstrb          (wstrb          ),
         .wready         (wready         )
     );
+
     wire uart_awvalid, uart_awready, uart_wvalid, uart_wready;
     wire [31 : 0] uart_awaddr, uart_wdata;
     wire [3 : 0] uart_wstrb;
@@ -301,32 +312,53 @@ module top(
         .uart_wready         (uart_wready         )
     );
 
+    wire clint_arvalid, clint_arready, clint_rvalid, clint_rready;
+    wire [31 : 0] clint_araddr, clint_rdata;
+    wire [1 : 0] clint_rresp;
+    CLINT CLINT(
+        .clk            (clk            ),
+        .reset          (reset          ),
+        .clint_arvalid  (clint_arvalid  ),
+        .clint_araddr   (clint_araddr   ),
+        .clint_arready  (clint_arready  ),
+        .clint_rvalid   (clint_rvalid   ),
+        .clint_rdata    (clint_rdata    ),
+        .clint_rresp    (clint_rresp    ),
+        .clint_rready   (clint_rready   )
+    );
+
+    wire pmem_awvalid, pmem_awready, pmem_wvalid, pmem_wready;
+    wire pmem_arvalid, pmem_arready, pmem_rvalid, pmem_rready;
+    wire [31 : 0] pmem_araddr, pmem_rdata;
+    wire [31 : 0] pmem_awaddr, pmem_wdata;
+    wire [3 : 0] pmem_wstrb;
+    wire [1 : 0] pmem_rresp;
     pmem pmem(
         .clk            (clk            ),
         .reset          (reset          ),
         
         // AXI4-Lite interface
-        .arvalid        (arvalid    ),
-        .araddr         (araddr     ),
-        .arready        (arready    ),
+        .arvalid        (pmem_arvalid    ),
+        .araddr         (pmem_araddr     ),
+        .arready        (pmem_arready    ),
 
-        .rvalid         (rvalid     ),
-        .rdata          (rdata      ),
-        .rresp          (rresp      ),
-        .rready         (rready     ),
+        .rvalid         (pmem_rvalid     ),
+        .rdata          (pmem_rdata      ),
+        .rresp          (pmem_rresp      ),
+        .rready         (pmem_rready     ),
 
-        .pmem_awvalid       (pmem_awvalid    ),
-        .pmem_awaddr        (pmem_awaddr     ),
-        .pmem_awready       (pmem_awready    ),
-        .pmem_wvalid        (pmem_wvalid     ),
+        .awvalid        (pmem_awvalid    ),
+        .awaddr         (pmem_awaddr     ),
+        .awready        (pmem_awready    ),
+        .wvalid         (pmem_wvalid     ),
 
-        .pmem_wdata         (pmem_wdata      ),
-        .pmem_wstrb         (pmem_wstrb      ),
-        .pmem_wready        (pmem_wready     ),
+        .wdata          (pmem_wdata      ),
+        .wstrb          (pmem_wstrb      ),
+        .wready         (pmem_wready     ),
 
-        .bvalid        (bvalid     ),
-        .bresp         (bresp      ),
-        .bready        (bready     )
+        .bvalid         (bvalid     ),
+        .bresp          (bresp      ),
+        .bready         (bready     )
     );
 
     WBU WBU(
