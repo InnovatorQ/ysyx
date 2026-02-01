@@ -89,7 +89,7 @@ void init_difftest(const char *ref_so_file, long img_size) {
 
   printf("img[0] :" FMT_WORD "\n", pmem[0]);
   // 同步内存到REF 
-  ref_difftest_memcpy(0x20000000, pmem, img_size, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(MEM_BASE, pmem, img_size, DIFFTEST_TO_REF);
 
   // 初始化内存检查
   init_checkmem(img_size);

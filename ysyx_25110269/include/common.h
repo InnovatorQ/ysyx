@@ -22,6 +22,7 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 // 共享宏定义
 #define MSIZE (128 * 1024 * 1024)
 #define RTC_ADDR 0xa0000048
+#define MEM_BASE CONFIG_MBASE
 
 // ANSI颜色定义
 #define ANSI_FG_BLACK   "\33[1;30m"
