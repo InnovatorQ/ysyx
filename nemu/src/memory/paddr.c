@@ -24,6 +24,9 @@ static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
+
+static uint8_t mrom[0x1000] = {};
+static uint8_t sram[0x2000] = {};
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
@@ -38,6 +41,22 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
 }
 
+static word_t mrom_read(paddr_t addr, int len) {
+  return host_read(mrom + (addr - MROM_LEFT), len);
+}
+
+static void mrom_write(paddr_t addr, int len, word_t data) {
+  // MROM is read-only
+}
+
+static word_t sram_read(paddr_t addr, int len) {
+  return host_read(sram + (addr - SRAM_LEFT), len);
+}
+
+static void sram_write(paddr_t addr, int len, word_t data) {
+  host_write(sram + (addr - SRAM_LEFT), len, data);
+}
+
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -50,19 +69,39 @@ void init_mem() {
 #endif
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+  Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
+  Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
 }
 
 word_t paddr_read(paddr_t addr, int len) {
   if (likely(in_pmem(addr))){ 
     word_t ret = pmem_read(addr, len);
-    #ifdef CONFIG_MTRACE
     #ifdef CONFIG_MTRACE_COND
     if(MTRACE_COND){
       log_write("MTRACE: READ [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
       addr, ret, len, cpu.pc);
     }
     #endif
-    #endif 
+    return ret;
+  }
+  if (in_mrom(addr)) {
+    word_t ret = mrom_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ MROM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if (in_sram(addr)) {
+    word_t ret = sram_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
     return ret;
   }
   IFDEF(CONFIG_DEVICE, 
@@ -89,6 +128,30 @@ void paddr_write(paddr_t addr, int len, word_t data) {
       #endif
     #endif
     return; 
+  }
+  if (in_mrom(addr)) {
+    mrom_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE MROM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD " (ignored)\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_sram(addr)) {
+    sram_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE SRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
   }
   IFDEF(CONFIG_DEVICE,
     difftest_skip_ref();
