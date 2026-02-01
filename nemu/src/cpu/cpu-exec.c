@@ -82,6 +82,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
+  assert(pc == 0x20000000);
   s->pc = pc;
   s->snpc = pc;
   isa_exec_once(s);
