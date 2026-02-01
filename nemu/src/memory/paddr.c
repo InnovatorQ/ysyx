@@ -74,7 +74,8 @@ void init_mem() {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  Assert((addr == 0x20000000), "111");
+  printf("addr" FMT_PADDR, addr);
+  assert(addr == 0x20000000);
   if (likely(in_pmem(addr))){ 
     word_t ret = pmem_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
