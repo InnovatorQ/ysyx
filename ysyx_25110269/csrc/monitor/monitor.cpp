@@ -8,7 +8,9 @@
 #include <cstring>
 #include <cctype>
 // pmem初始化
-word_t pmem[MSIZE];
+uint8_t flash[CONFIG_FLASH_SIZE];
+uint8_t mrom[CONFIG_MROM_SIZE];
+uint8_t sram[CONFIG_SRAM_SIZE];
 void sdb_set_batch_mode();
 
 static char *log_file = NULL;
@@ -24,26 +26,25 @@ static void welcome(){
 }
 
 static long load_img() {
-  if (img_file == NULL) {
-    printf("No image is given.\n");
-    return 0;
+   if (img_file == NULL) {
+    Log("No image is given. Use the default build-in image.");
+    return 4096; // built-in image size
   }
 
-  FILE *fp = NULL;  // 在函数开始声明
-  long total_bytes = 0;  // 统一使用字节数
-    // 以bin格式加载镜像
-    fp = fopen(img_file, "rb");
-    if (fp == NULL) {
-      printf("Cannot open image file: %s\n", img_file);
-      return 0;
-    }
-    
-    total_bytes = fread(pmem, 1, MSIZE, fp);
-    printf("Loaded %ld bytes from %s (bin format)\n", total_bytes, img_file);
-  
-  
+  FILE *fp = fopen(img_file, "rb");
+  Assert(fp, "Can not open '%s'", img_file);
+
+  fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
+
+  Log("The image is %s, size = %ld", img_file, size);
+
+  fseek(fp, 0, SEEK_SET);
+  int ret = fread(flash, size, 1, fp);
+  assert(ret == 1);
+
   fclose(fp);
-  return total_bytes;
+  return size;
 }
 
 static int parse_args(int argc, char *argv[]) {

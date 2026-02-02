@@ -228,7 +228,7 @@ module ysyx_25110269_LSU(
         end
         if(bvalid & bready) begin
             if(bresp != 2'b0) begin
-                $display("Access Fault !!!");
+                $display("bresp : %d .Access Fault !!!", bresp);
                 $stop(2);
             end
         end

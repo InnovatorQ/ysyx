@@ -8,12 +8,15 @@ extern char _pmem_start;
 extern void bootloader(void);
 #define PMEM_SIZE (8 * 1024 * 1024)
 #define PMEM_END  ((uintptr_t)&_pmem_start + PMEM_SIZE)
+#define UART_BASE 0x10000000
+#define UART_LSR 5
 
 Area heap = RANGE(&_heap_start, PMEM_END);
 static const char* mainargs = " ";
 
 void putch(char ch) {
-  *((volatile char *)0x10000000) = ch;
+  while((*((volatile char *)UART_BASE + UART_LSR) & 0x20) == 0); 
+  *((volatile char *)UART_BASE) = ch;
 }
 
 void halt(int code) {

@@ -8,12 +8,12 @@ void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
-extern word_t pmem[MSIZE];
+extern uint8_t flash[CONFIG_FLASH_SIZE];
 
 #ifdef CONFIG_DIFFTEST
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
-static long q_img_size = 0;
+
 
 // 检查内存状态
 static void init_checkmem(long img_size) {
@@ -56,8 +56,7 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
 // 初始化difftest
 void init_difftest(const char *ref_so_file, long img_size) {
 #ifdef CONFIG_DIFFTEST
-  if (!ref_so_file) return;
-  q_img_size = img_size;
+  Assert(ref_so_file, "can't find NEMU as ref");
   // 加载NEMU动态库
   void *handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
@@ -86,7 +85,7 @@ void init_difftest(const char *ref_so_file, long img_size) {
   ref_difftest_init(0);
 
   // 同步内存到REF 
-  ref_difftest_memcpy(MEM_BASE, pmem, img_size, DIFFTEST_TO_REF);
+  ref_difftest_memcpy(CONFIG_FLASH_BASE, flash, img_size, DIFFTEST_TO_REF);
 
   // 初始化内存检查
   init_checkmem(img_size);
@@ -94,7 +93,7 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 同步初始寄存器状态到REF
   CPU_state init_cpu;
   memset(&init_cpu, 0, sizeof(init_cpu));
-  init_cpu.pc = 0x20000000;  // 设置初始PC
+  init_cpu.pc = CONFIG_FLASH_BASE;  // 设置初始PC
   ref_difftest_regcpy(&init_cpu, DIFFTEST_TO_REF);
   init_checkregs(&init_cpu);
   printf("DiffTest initialized successfully\n");
@@ -178,20 +177,3 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 #endif
 }
 
-// 同步内存到REF
-void difftest_sync_mem(uint32_t addr, void *buf, size_t n) {
-#ifdef CONFIG_DIFFTEST
-  if (ref_difftest_memcpy) {
-    ref_difftest_memcpy(addr, buf, n, DIFFTEST_TO_REF);
-  }
-#endif
-}
-
-// 同步寄存器到REF
-void difftest_sync_regs(CPU_state *regs) {
-#ifdef CONFIG_DIFFTEST
-  if (ref_difftest_regcpy) {
-    ref_difftest_regcpy(regs, DIFFTEST_TO_REF);
-  }
-#endif
-}

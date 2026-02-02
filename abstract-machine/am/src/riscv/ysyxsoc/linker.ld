@@ -30,7 +30,7 @@ SECTIONS {
   _heap_end = .;
 
   _stack_top = .;
-  . = _stack_top + 0x1000;
+  . = 0x0f002000;
   _stack_pointer = .;
   
   end = .;

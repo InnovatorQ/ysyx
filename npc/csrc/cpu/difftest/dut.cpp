@@ -5,8 +5,6 @@
 
 extern Vtop* top;
 
-#define CONFIG_MSIZE (128 * 1024 * 1024)  // 128MB，与sim_main.cpp中MSIZE保持一致
-
 // 函数指针声明
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
@@ -91,7 +89,7 @@ void init_difftest(const char *ref_so_file, long img_size) {
   char zero_buf[4096] ;
   memset(zero_buf, 0, sizeof(zero_buf));
   // 清空REF的内存
-  size_t total_size = CONFIG_MSIZE;
+  size_t total_size = MSIZE;
   uint32_t addr = 0x80000000;
   while (total_size > 0) {
     size_t chunk_size = total_size > sizeof(zero_buf) ? sizeof(zero_buf) : total_size;

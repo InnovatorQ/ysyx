@@ -1,7 +1,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-
+#include <debug.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -20,9 +20,8 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 #define FMT_WORD "0x%08x"
 
 // 共享宏定义
-#define MSIZE (128 * 1024 * 1024)
 #define RTC_ADDR 0xa0000048
-#define MEM_BASE CONFIG_MBASE
+
 
 // ANSI颜色定义
 #define ANSI_FG_BLACK   "\33[1;30m"
@@ -46,29 +45,10 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 #define ANSI_FMT(str, fmt) fmt str ANSI_NONE
 #define CPU_INFO(name) top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__##name
 
-// 日志宏定义
-#define log_write(...) \
-  do { \
-    extern FILE* log_fp; \
-    extern bool log_enable(); \
-    if (log_enable() && log_fp != NULL) { \
-      fprintf(log_fp, __VA_ARGS__); \
-      fflush(log_fp); \
-    } \
-  } while (0)
-
-#define _Log(...) \
-  do { \
-    printf(__VA_ARGS__); \
-    log_write(__VA_ARGS__); \
-  } while (0)
-
-#define Log(format, ...) \
-    _Log(ANSI_FMT("[%s:%d %s] " format, ANSI_FG_BLUE) "\n", \
-        __FILE__, __LINE__, __func__, ## __VA_ARGS__)
-
 // 共享全局变量声明
-extern word_t pmem[MSIZE];
+extern uint8_t flash[CONFIG_FLASH_SIZE];
+extern uint8_t mrom[CONFIG_MROM_SIZE];
+extern uint8_t sram[CONFIG_SRAM_SIZE];
 extern bool is_ebreak;
 extern VysyxSoCFull* top;
 extern FILE* log_fp;
@@ -76,7 +56,6 @@ extern long loaded_img_size; // 加载的镜像大小
 extern word_t get_rf(int n);
 extern word_t get_csr(int n);
 extern "C" word_t pmem_read(int raddr);
-extern "C" void pmem_write(int waddr, int wdata, char wmask);
 extern void init_log(const char *log_file);
 extern bool log_enable();
 

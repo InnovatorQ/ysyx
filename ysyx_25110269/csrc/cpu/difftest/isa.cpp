@@ -71,13 +71,13 @@ bool isa_init_checkmem(long img_size) {
   static word_t ref_mem[4 * 1024 * 1024]; // 最大16MB
   
   // 从REF获取内存内容
-  ref_difftest_memcpy(MEM_BASE, ref_mem, check_size, DIFFTEST_TO_DUT);
+  ref_difftest_memcpy(CONFIG_FLASH_BASE, ref_mem, check_size, DIFFTEST_TO_DUT);
   
   // 对比内存内容
   for (size_t i = 0; i < check_words; i++) {
-    if (pmem[i] != ref_mem[i]) {
+    if (flash[i] != ref_mem[i]) {
       printf("Memory[0x%08x] mismatch: ref=0x%08x dut=0x%08x\n", 
-             (uint32_t)(0x80000000 + i * 4), ref_mem[i], pmem[i]);
+             (uint32_t)(CONFIG_FLASH_BASE + i * 4), ref_mem[i], flash[i]);
       return false;
     }
   }

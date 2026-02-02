@@ -75,7 +75,7 @@ yosys:
 	cd ~/ysyx/yosys-sta && $(MAKE) -j8 sta
 	 
 run: $(BIN)
-	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt -b $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt  $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)

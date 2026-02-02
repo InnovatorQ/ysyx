@@ -1,8 +1,5 @@
 import "DPI-C" function void ebreak();
 import "DPI-C" function void skip_ref();
-import "DPI-C" function int pmem_read(input int raddr);
-import "DPI-C" function void pmem_write(
-  input int waddr, input int wdata, input byte wmask);
 module ysyx_25110269(
     input           clock,
     input           reset,

@@ -1,6 +1,7 @@
 AM_SRCS :=	riscv/ysyxsoc/start.S \
 			riscv/ysyxsoc/trm.c \
 			riscv/ysyxsoc/bootloader.c \
+			riscv/ysyxsoc/ioe.c \
 # ffunction-sections: 每个函数生成独立的.text.function_name段
 # -fdata-sections: 每个全局变量生成独立的.data.variable_name段
 CFLAGS    += -fdata-sections -ffunction-sections
