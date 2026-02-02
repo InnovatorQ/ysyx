@@ -70,7 +70,9 @@ module ysyx_25110269_axi_xbar(
     input [1:0]     io_master_rresp,
     input [31:0]    io_master_rdata,
 
-    output          io_master_bready
+    output          io_master_bready,
+    input           io_master_bvalid,
+    input [1:0]     io_master_bresp
 );
 
 localparam idle = 0;
@@ -153,7 +155,7 @@ assign rready = (state == master_ifu) ? ifu_rready :
                 (state == master_lsu) ? lsu_rready : 1'b0;
 
 assign clint_arvalid = (araddr == 32'ha0000048 | araddr == 32'ha000004c) ? arvalid : 1'b0;
-assign io_master_arvalid = (araddr >= 32'h20000000 & araddr < 32'h20000fff) ? arvalid : 1'b0;
+assign io_master_arvalid = (araddr >= 32'h20000000 & araddr < 32'h20000fff) | (araddr >= 32'h0F000000 & araddr < 32'h0F002000) ? arvalid : 1'b0;
 assign clint_araddr = clint_arvalid ? araddr : 32'h0;
 assign io_master_araddr = io_master_arvalid ? araddr : 32'h0;
 assign clint_arlen = clint_arvalid ? arlen : 8'h0;
@@ -176,4 +178,6 @@ assign io_master_wlast = lsu_wlast;
 assign lsu_wready = io_master_wready;
 
 assign io_master_bready = lsu_bready;
+assign lsu_bvalid = io_master_bvalid;
+assign lsu_bresp = io_master_bresp;
 endmodule

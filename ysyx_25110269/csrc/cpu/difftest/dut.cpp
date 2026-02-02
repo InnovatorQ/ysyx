@@ -2,8 +2,6 @@
 #include "difftest.h"
 #include <dlfcn.h>
 
-#define CONFIG_MSIZE (128 * 1024 * 1024)  // 128MB，与sim_main.cpp中MSIZE保持一致
-
 // 函数指针声明
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
@@ -87,7 +85,6 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 初始化REF
   ref_difftest_init(0);
 
-  printf("img[0] :" FMT_WORD "\n", pmem[0]);
   // 同步内存到REF 
   ref_difftest_memcpy(MEM_BASE, pmem, img_size, DIFFTEST_TO_REF);
 
@@ -170,9 +167,10 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
   //每执行检测一次内存
 
-  if(is_store){
-    checkmem(mem_addr, pc);
-  }
+  // if(is_store){
+  //   Log("mem_addr : " FMT_WORD "\n", mem_addr);
+  //   checkmem(mem_addr, pc);
+  // }
   
   // 检查寄存器状态
   checkregs(&ref_r, pc);

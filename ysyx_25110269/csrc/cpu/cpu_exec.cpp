@@ -64,7 +64,7 @@ void cpu_exec(int n) {
       #ifdef CONFIG_DIFFTEST
       // DiffTest
       if(done) {
-        printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
+        //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
         difftest_step(pc, npc, inst);
       }
       #endif

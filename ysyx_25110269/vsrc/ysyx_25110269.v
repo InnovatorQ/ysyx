@@ -379,7 +379,9 @@ module ysyx_25110269(
         .io_master_rresp    (io_master_rresp    ),
         .io_master_rdata    (io_master_rdata    ),
 
-        .io_master_bready   (io_master_bready   )
+        .io_master_bready   (io_master_bready   ),
+        .io_master_bvalid   (io_master_bvalid   ),
+        .io_master_bresp    (io_master_bresp    )
     );
 
     ysyx_25110269_WBU WBU(

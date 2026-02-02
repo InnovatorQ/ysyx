@@ -5,6 +5,7 @@ extern char _heap_start;
 int main(const char *args);
 
 extern char _pmem_start;
+extern void bootloader(void);
 #define PMEM_SIZE (8 * 1024 * 1024)
 #define PMEM_END  ((uintptr_t)&_pmem_start + PMEM_SIZE)
 
@@ -22,6 +23,7 @@ void halt(int code) {
 }
 
 void _trm_init() {
+  bootloader();
   int ret = main(mainargs);
   halt(ret);
 }

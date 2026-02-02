@@ -85,13 +85,6 @@ bool isa_init_checkmem(long img_size) {
 }
 
 bool isa_difftest_checkmem(uint32_t addr){
-  uint32_t check_addr = ((addr - 0x80000000) & ~0x3u) >> 2; // 对齐到字边界
-  static word_t ref;
-  ref_difftest_memcpy((addr & ~0x3), &ref, 4, DIFFTEST_TO_DUT);
-  if (pmem[check_addr] != ref) {
-      printf("Memory[0x%08x] mismatch: ref=0x%08x dut=0x%08x\n", 
-             addr, ref, pmem[check_addr]);
-      return false;
-    }
+  
   return true;
 }

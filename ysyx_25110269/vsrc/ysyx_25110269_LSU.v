@@ -226,6 +226,12 @@ module ysyx_25110269_LSU(
         if(rvalid & rready) begin
             mem_rdata <= rdata;
         end
+        if(bvalid & bready) begin
+            if(bresp != 2'b0) begin
+                $display("Access Fault !!!");
+                $stop(2);
+            end
+        end
     end
 
     always @(posedge clk)begin

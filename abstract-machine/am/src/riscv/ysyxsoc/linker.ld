@@ -1,35 +1,38 @@
 ENTRY(_start)
 
+MEMORY {
+  mrom : ORIGIN = 0x20000000, LENGTH = 4K
+  sram : ORIGIN = 0x0f000000, LENGTH = 8K
+}
+
 SECTIONS {
-  . = 0x20000000;
+  . = ORIGIN(mrom);
   .text : {
     *(entry)
     *(.text*)
-  }
-  etext = .;
-  _etext = .;
+  } > mrom
   .rodata : {
-    *(.rodata*)
-  }
-  .htif : {
-    PROVIDE(__htif_base = . );
-    *(.htif)
-  }
+    *(.rodata)
+    rodata_end = .;
+  } > mrom
   .data : {
-    *(.data)
-  }
-  edata = .;
-  _data = .;
+    data_start = .;
+    *(.data*)
+  } > sram AT> mrom
+  data_size = SIZEOF(.data);
+  data_load_start = LOADADDR(.data);
   .bss : {
-	_bss_start = .;
-    *(.bss*)
-    *(.sbss*)
-    *(.scommon)
-  }
-  _stack_top = 0x0f000000;
-  . = _stack_top + 0x2000;
+    *(.bss)
+  } > sram
+
+  _heap_start = ALIGN(4);
+  . = _heap_start + 0x1000;
+  _heap_end = .;
+
+  _stack_top = .;
+  . = _stack_top + 0x1000;
   _stack_pointer = .;
+  
   end = .;
   _end = .;
-  _heap_start = 0x0f000000;
 }

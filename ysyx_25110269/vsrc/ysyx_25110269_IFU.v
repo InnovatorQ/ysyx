@@ -145,7 +145,10 @@ module ysyx_25110269_IFU(
         // 在AXI读握手成功时缓存数据
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
-            //$display("IFU READ DATA: %h", rdata);
+            if(rresp != 2'b0) begin
+                $display("Access Fault !!!");
+                $stop(2);
+            end
         end
     end
     
