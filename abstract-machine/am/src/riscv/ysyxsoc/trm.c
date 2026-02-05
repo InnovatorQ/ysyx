@@ -1,8 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
 
-extern void _bootloader(void);
-extern void _uart_init(void);
 
 extern char _heap_start;
 int main(const char *args);
@@ -28,8 +26,7 @@ void halt(int code) {
 }
 
 void _trm_init() {
-  _bootloader();
-  _uart_init();
+
   int ret = main(mainargs);
   halt(ret);
 }
