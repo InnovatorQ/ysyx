@@ -17,7 +17,7 @@ Area heap = RANGE(&_heap_start, PMEM_END);
 static const char* mainargs = " ";
 
 void putch(char ch) {
-  while((*((volatile char *)UART_BASE + UART_LSR) & (1 << 5))); 
+  while((*((volatile char *)UART_BASE + UART_LSR) & (1 << 5)) == 0); 
   *((volatile char *)UART_BASE) = ch;
 }
 
