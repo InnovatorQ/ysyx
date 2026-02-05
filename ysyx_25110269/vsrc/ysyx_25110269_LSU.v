@@ -143,7 +143,7 @@ module ysyx_25110269_LSU(
 
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
     assign rready  = (|load) & (ms_state == ms_addr_ready);
-    assign araddr = arvalid ? mem_addr : 32'b0;
+    assign araddr = arvalid ? {mem_addr[31:2], 2'b0} : 32'b0;
     assign arsize = arvalid ? (load == 4'hf) ? 3'b010 :
                             (load == 4'h3) ? 3'b001 : 
                             (load == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
@@ -209,17 +209,17 @@ module ysyx_25110269_LSU(
     assign mem_wen = |store;
     assign byte_offset = mem_addr[1:0];
     
-    // assign selected_byte = (byte_offset == 2'b00) ? mem_rdata[7:0] :
-    //                       (byte_offset == 2'b01) ? mem_rdata[15:8] :
-    //                       (byte_offset == 2'b10) ? mem_rdata[23:16] :
-    //                                                mem_rdata[31:24];
+    assign selected_byte = (byte_offset == 2'b00) ? mem_rdata[7:0] :
+                          (byte_offset == 2'b01) ? mem_rdata[15:8] :
+                          (byte_offset == 2'b10) ? mem_rdata[23:16] :
+                                                   mem_rdata[31:24];
     
     assign selected_halfword = (byte_offset[1] == 1'b0) ? mem_rdata[15:0] : mem_rdata[31:16];
                                                        
 
     assign load_data = (load == 4'hf) ? mem_rdata :
-                       (load == 4'h3) ? (load_sign ? {{16{mem_rdata[15]}}, mem_rdata[15:0]} : {16'b0, mem_rdata[15:0]}) :
-                       (load == 4'h1) ? (load_sign ? {{24{mem_rdata[7]}}, mem_rdata[7:0]} : {24'b0,  mem_rdata[7:0]}) :
+                       (load == 4'h3) ? (load_sign ? {{16{selected_halfword[15]}}, selected_halfword} : {16'b0, selected_halfword}) :
+                       (load == 4'h1) ? (load_sign ? {{24{selected_byte[7]}}, selected_byte} : {24'b0,  selected_byte}) :
                        32'b0;
 
     always @(posedge clk)begin
