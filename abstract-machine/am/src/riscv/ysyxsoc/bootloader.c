@@ -4,7 +4,7 @@ extern char data_start [];
 extern char data_size [];
 extern char data_load_start [];
 
-void bootloader(void)
+void _bootloader(void)
 {
   if (data_start != data_load_start)
     {

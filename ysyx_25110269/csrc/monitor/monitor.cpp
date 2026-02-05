@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-// pmem初始化
+// flash初始化
 uint8_t flash[CONFIG_FLASH_SIZE];
 uint8_t mrom[CONFIG_MROM_SIZE];
 uint8_t sram[CONFIG_SRAM_SIZE];
@@ -25,8 +25,27 @@ static void welcome(){
   printf("For help, type \"help\"\n");
 }
 
+// static void flash_init(){
+//   char file1[] = "/home/qzx/ysyx/ysyx-workbench/am-kernels/tests/cpu-tests/tests/a.bin";
+
+//   FILE *fp = fopen(file1, "rb");
+//   Assert(fp, "Can not open '%s'", file1);
+
+//   fseek(fp, 0, SEEK_END);
+//   long size = ftell(fp);
+
+//   Log("The image is %s, size = %ld", file1, size);
+
+//   fseek(fp, 0, SEEK_SET);
+//   int ret = fread(flash, size, 1, fp);
+
+//   assert(ret == 1);
+
+//   fclose(fp);
+// }
+
 static long load_img() {
-   if (img_file == NULL) {
+  if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
   }
@@ -92,6 +111,7 @@ void init_monitor(int argc, char *argv[]) {
   // 初始化日志
   init_log(log_file);
   // 加载程序镜像
+  //flash_init();
   long img_size = load_img();
   // 初始化函数调用跟踪
 #ifdef CONFIG_FTRACE

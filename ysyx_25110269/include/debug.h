@@ -43,7 +43,7 @@
 #define Assert(cond, format, ...) \
   do { \
     if (!(cond)) { \
-      fflush(stdout), fprintf(stderr, ANSI_FMT(format, ANSI_FG_RED) "\n", ##  __VA_ARGS__); \
+      fflush(stdout), fprintf(stderr, ANSI_FMT("[%s:%d] follows:\n" format, ANSI_FG_RED) "\n", __FILE__, __LINE__, ##  __VA_ARGS__); \
       extern FILE* log_fp; fflush(log_fp); \
       assert(cond); \
     } \

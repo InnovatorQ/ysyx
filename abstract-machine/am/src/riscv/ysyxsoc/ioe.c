@@ -1,22 +1,51 @@
-#define UART_BASE 0x10000000
-#define UART_TX 0
-#define UART_LSB 0
-#define UART_MSB 1
-#define UART_IER 1
-#define UART_FIFO 2
-#define UART_LCR 3
+#include <am.h>
+#include <klib-macros.h>
+#include <stdio.h>
 
-// 9600 = 0x2580
-static void uart16550_config() {
-    *((volatile char*)UART_BASE + UART_LCR) = 0x83; //打开DLAB，设置8N1
-    *((volatile char*)UART_BASE + UART_MSB) = 0x00; // 配置波特率
-    *((volatile char*)UART_BASE + UART_LSB) = 0x01; //
-    *((volatile char*)UART_BASE + UART_LCR) = 0x03; //  关闭DLAB
-    *((volatile char*)UART_BASE + UART_IER) = 0x00; // 关闭所有中断
-    *((volatile char*)UART_BASE + UART_FIFO) = 0xC7;// 清空消息队列
+void __am_timer_init();
+
+void __am_timer_rtc(AM_TIMER_RTC_T *);
+void __am_timer_uptime(AM_TIMER_UPTIME_T *);
+void __am_input_keybrd(AM_INPUT_KEYBRD_T *);
+
+static void __am_timer_config(AM_TIMER_CONFIG_T *cfg) { cfg->present = true; cfg->has_rtc = true; }
+static void __am_input_config(AM_INPUT_CONFIG_T *cfg) { cfg->present = true;  }
+static void __am_uart_config(AM_INPUT_CONFIG_T *cfg) { cfg->present = false;  }
+static void __am_gpu_config (AM_GPU_CONFIG_T *cfg) { 
+  cfg->present = true;
+  cfg->has_accel = false;
+  cfg->width = 400;
+  cfg->height = 300;
+  cfg->vmemsz = 0;  
+}
+static void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) { }
+
+typedef void (*handler_t)(void *buf);
+static void *lut[128] = {
+  [AM_TIMER_CONFIG] = __am_timer_config,
+  [AM_TIMER_RTC   ] = __am_timer_rtc,
+  [AM_TIMER_UPTIME] = __am_timer_uptime,
+  [AM_INPUT_CONFIG] = __am_input_config,
+  [AM_INPUT_KEYBRD] = __am_input_keybrd,
+  [AM_UART_CONFIG]  = __am_uart_config,
+  [AM_GPU_CONFIG]   = __am_gpu_config,
+  [AM_GPU_FBDRAW]   = __am_gpu_fbdraw,
+};
+
+static void fail(void *buf) { panic("access nonexist register"); }
+
+bool ioe_init() {
+  for (int i = 0; i < LENGTH(lut); i++)
+    if (!lut[i]) lut[i] = fail;
+  __am_timer_init();
+  return true;
 }
 
-void uart_init() {
-    uart16550_config();
+void ioe_read (int reg, void *buf) { 
+  //printf("ioe_read: accessing register %d\n", reg);
+  ((handler_t)lut[reg])(buf); 
 }
-
+void ioe_write(int reg, void *buf) { 
+  //printf("ioe_write: accessing register %d\n", reg);
+  ((handler_t)lut[reg])(buf); 
+}

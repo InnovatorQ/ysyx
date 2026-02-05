@@ -136,7 +136,8 @@ module ysyx_25110269_IFU(
     always @(posedge clk) begin
         if(reset) begin
             //pc <= 32'h7ffffffc;
-            pc <= 32'h1ffffffc;
+            //pc <= 32'h1ffffffc;
+            pc <= 32'h2ffffffc;
             //pc <= 32'hfffffffc;
         end else if(fs_state == fs_idle && next_state == fs_wait_ready) begin
             pc <= next_pc;
@@ -146,8 +147,8 @@ module ysyx_25110269_IFU(
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
             if(rresp != 2'b0) begin
-                $display("Access Fault !!!");
-                $stop(2);
+                $display("Access Fault !!! rrsep : %xh", rresp);
+                $fatal;
             end
         end
     end

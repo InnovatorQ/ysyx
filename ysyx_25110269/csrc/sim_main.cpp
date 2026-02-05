@@ -20,13 +20,13 @@ extern uint8_t sram[CONFIG_SRAM_SIZE];
 extern void init_monitor(int argc, char *argv[]);
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
-    Assert(in_flash(addr), "Access Fault !!! addr = " FMT_WORD "\n", addr);
-    word_t flash_addr = (addr - CONFIG_FLASH_BASE) & ~0x3u;
+    Assert(addr < CONFIG_FLASH_SIZE, "Access Fault !!! addr = " FMT_WORD "\n", addr);
     *data = (int32_t)(
-        (flash[flash_addr])             |   // 字节0 -> 位0-7
-        (flash[flash_addr + 1] << 8)    |   // 字节1 -> 位8-15
-        (flash[flash_addr + 2] << 16)   |   // 字节2 -> 位16-23
-        (flash[flash_addr + 3] << 24));     // 字节3 -> 位24-31
+        (flash[addr])             |   // 字节0 -> 位0-7
+        (flash[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (flash[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (flash[addr + 3] << 24));     // 字节3 -> 位24-31
+    //printf("%08x\n", *data);
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) { 
     //assert(0);
@@ -59,6 +59,7 @@ extern "C" word_t pmem_read(int raddr) {
         (sram[addr + 1] << 8)    |   // 字节1 -> 位8-15
         (sram[addr + 2] << 16)   |   // 字节2 -> 位16-23
         (sram[addr + 3] << 24));     // 字节3 -> 位24-31
+        //Log("SRAM[%08x] : %08x\n", addr, data);
         return data;
     } else if(in_mrom(raddr)){
         paddr_t addr = (raddr - CONFIG_MROM_BASE) & ~0x3u;
@@ -69,7 +70,7 @@ extern "C" word_t pmem_read(int raddr) {
         (mrom[addr + 3] << 24));     // 字节3 -> 位24-31
         return data;
     }
-    Assert(0, "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
+    Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
     return 0;
 }
 
@@ -151,7 +152,7 @@ int main(int argc, char **argv){
     printf("Wave output to " DST_DIR "/wave.fst\n");
 #endif
     //reset1个周期
-    reset(5);
+    reset(20);
     
     init_monitor(argc, argv);
     
