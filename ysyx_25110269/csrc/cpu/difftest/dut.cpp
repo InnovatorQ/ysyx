@@ -1,9 +1,6 @@
 #include "common.h"
 #include "difftest.h"
-#include "Vtop.h"
 #include <dlfcn.h>
-
-extern Vtop* top;
 
 // 函数指针声明
 void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction) = NULL;
@@ -11,10 +8,12 @@ void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
+extern uint8_t flash[CONFIG_FLASH_SIZE];
+
 #ifdef CONFIG_DIFFTEST
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
-static long q_img_size = 0;
+
 
 // 检查内存状态
 static void init_checkmem(long img_size) {
@@ -57,8 +56,7 @@ void difftest_skip_dut(int nr_ref, int nr_dut) {
 // 初始化difftest
 void init_difftest(const char *ref_so_file, long img_size) {
 #ifdef CONFIG_DIFFTEST
-  if (!ref_so_file) return;
-  q_img_size = img_size;
+  Assert(ref_so_file, "can't find NEMU as ref");
   // 加载NEMU动态库
   void *handle = dlopen(ref_so_file, RTLD_LAZY);
   assert(handle);
@@ -86,20 +84,8 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 初始化REF
   ref_difftest_init(0);
 
-  char zero_buf[4096] ;
-  memset(zero_buf, 0, sizeof(zero_buf));
-  // 清空REF的内存
-  size_t total_size = MSIZE;
-  uint32_t addr = 0x80000000;
-  while (total_size > 0) {
-    size_t chunk_size = total_size > sizeof(zero_buf) ? sizeof(zero_buf) : total_size;
-    ref_difftest_memcpy(addr, zero_buf, chunk_size, DIFFTEST_TO_REF);
-    addr += chunk_size;
-    total_size -= chunk_size;
-  }
-
-  // 同步内存到REF - pmem[0]对应物理地址0x80000000
-  ref_difftest_memcpy(0x80000000, pmem, img_size, DIFFTEST_TO_REF);
+  // 同步内存到REF 
+  ref_difftest_memcpy(CONFIG_FLASH_BASE, flash, img_size, DIFFTEST_TO_REF);
 
   // 初始化内存检查
   init_checkmem(img_size);
@@ -107,7 +93,7 @@ void init_difftest(const char *ref_so_file, long img_size) {
   // 同步初始寄存器状态到REF
   CPU_state init_cpu;
   memset(&init_cpu, 0, sizeof(init_cpu));
-  init_cpu.pc = 0x80000000;  // 设置初始PC
+  init_cpu.pc = CONFIG_FLASH_BASE;  // 设置初始PC
   ref_difftest_regcpy(&init_cpu, DIFFTEST_TO_REF);
   init_checkregs(&init_cpu);
   printf("DiffTest initialized successfully\n");
@@ -136,7 +122,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
   uint8_t opcode = inst & 0x7f;
   uint8_t func3 = (inst >> 12) & 0x7;
-  uint32_t mem_addr = top->mem_addr;
+  uint32_t mem_addr = CPU_INFO(LSU__DOT__mem_addr_r);
   bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
@@ -180,9 +166,10 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
   //每执行检测一次内存
 
-  if(is_store){
-    checkmem(mem_addr, pc);
-  }
+  // if(is_store){
+  //   Log("mem_addr : " FMT_WORD "\n", mem_addr);
+  //   checkmem(mem_addr, pc);
+  // }
   
   // 检查寄存器状态
   checkregs(&ref_r, pc);
@@ -190,20 +177,3 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 #endif
 }
 
-// 同步内存到REF
-void difftest_sync_mem(uint32_t addr, void *buf, size_t n) {
-#ifdef CONFIG_DIFFTEST
-  if (ref_difftest_memcpy) {
-    ref_difftest_memcpy(addr, buf, n, DIFFTEST_TO_REF);
-  }
-#endif
-}
-
-// 同步寄存器到REF
-void difftest_sync_regs(CPU_state *regs) {
-#ifdef CONFIG_DIFFTEST
-  if (ref_difftest_regcpy) {
-    ref_difftest_regcpy(regs, DIFFTEST_TO_REF);
-  }
-#endif
-}
