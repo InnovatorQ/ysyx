@@ -64,6 +64,6 @@ extern void init_disasm();  // 初始化Capstone反汇编器
 extern void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);  // 反汇编指令
 
 // 时钟相关函数声明
-extern uint64_t get_time();  // 获取系统时间(微秒)
+extern uint64_t get_time_internal();  // 获取系统时间(微秒)
 
 #endif

@@ -117,6 +117,7 @@ always @(*) begin
         end
         default: next_state = idle;
     endcase
+    if(araddr >= 32'ha0000048 || araddr < 32'ha0000100) skip_ref();
 end
 
 reg [31 : 0]    raddr;

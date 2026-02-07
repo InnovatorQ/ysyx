@@ -68,7 +68,7 @@ bool isa_init_checkmem(long img_size) {
   const size_t check_words = (check_size + 3) / 4; // 向上取整到字边界
   
   // 分配临时缓冲区存储REF的内存
-  static word_t ref_mem[4 * 1024 * 1024]; // 最大16MB
+  static uint8_t ref_mem[4 * 1024 * 1024]; // 最大16MB
   
   // 从REF获取内存内容
   ref_difftest_memcpy(CONFIG_FLASH_BASE, ref_mem, check_size, DIFFTEST_TO_DUT);

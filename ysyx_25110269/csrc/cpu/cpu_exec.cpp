@@ -9,6 +9,8 @@ extern bool is_ebreak;
 extern void single_cycle();
 extern void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst);
 
+static uint64_t boot_time = 0;
+
 #ifdef CONFIG_FTRACE
 // 检测函数调用和返回的辅助函数
 static void check_ftrace(word_t pc, word_t inst) {
@@ -52,7 +54,8 @@ static void check_ftrace(word_t pc, word_t inst) {
 #endif
 void cpu_exec(int n) {
   if (n == -1) {
-    int cycle_count = 0;
+    long cycle_count = 0;
+    if (boot_time == 0) boot_time = get_time_internal();
     static word_t last_pc;
     static word_t last_inst ;
     while (!is_ebreak) {
@@ -101,11 +104,16 @@ void cpu_exec(int n) {
       cycle_count++;
     }
     if(is_ebreak) {
+      uint64_t now = get_time_internal();
         if(get_rf(10) == 0) {
             Log("Program execution completed successfully");
+            Log("finish time: %lu us", now - boot_time);
+            Log("total_cycle : %ld", cycle_count);
             printf("\033[32mHIT GOOD TRAP!\033[0m\n");
         } else {
             Log("Program execution failed with code %d", get_rf(10));
+            Log("finish time: %lu us", now - boot_time);
+            Log("total_cycle : %ld", cycle_count);
             printf("\033[31mHIT BAD TRAP!\033[0m\n");
         }
     }

@@ -12,10 +12,10 @@ extern char _pmem_start;
 #define UART_LSR 5
 
 Area heap = RANGE(&_heap_start, PMEM_END);
-static const char* mainargs = " ";
+static const char mainargs[MAINARGS_MAX_LEN] = TOSTRING(MAINARGS_PLACEHOLDER); // defined in CFLAGS
 
 void putch(char ch) {
-  while((*((volatile char *)UART_BASE + UART_LSR) & (1 << 5)) == 0); 
+  while(*((volatile char *)UART_BASE + UART_LSR) & (1 << 5)); 
   *((volatile char *)UART_BASE) = ch;
 }
 
@@ -26,7 +26,6 @@ void halt(int code) {
 }
 
 void _trm_init() {
-
   int ret = main(mainargs);
   halt(ret);
 }
