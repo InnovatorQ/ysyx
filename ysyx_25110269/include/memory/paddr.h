@@ -14,4 +14,8 @@ static inline bool in_flash(paddr_t addr) {
   return addr >= CONFIG_FLASH_BASE && addr < CONFIG_FLASH_BASE + CONFIG_FLASH_SIZE;
 }
 
+static inline bool in_psram(paddr_t addr) {
+  return addr >= CONFIG_PSRAM_BASE && addr < CONFIG_PSRAM_BASE + CONFIG_PSRAM_SIZE;
+}
+
 #endif

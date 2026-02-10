@@ -40,13 +40,14 @@ module ysyx_25110269_LSU(
     input           ws_allowin,
     output          ms_allowin
 );  
-    reg [1 : 0]  ms_state;
-    reg [1 : 0]  next_state;
+    reg [2 : 0]  ms_state;
+    reg [2 : 0]  next_state;
 
-    localparam ms_idle = 2'b00;
-    localparam ms_wait_ready = 2'b01;
-    localparam ms_addr_ready = 2'b10;
-    localparam ms_data_ready = 2'b11;
+    localparam ms_idle = 3'b00;
+    localparam ms_wait_ready = 3'b01;
+    localparam ms_addr_ready = 3'b10;
+    localparam ms_wdata_ready = 3'b11;
+    localparam ms_rdata_ready = 3'b100;
 
     reg [7 : 0]     lfsr;
     reg [4 : 0]     lsu_req_delay;
@@ -125,45 +126,50 @@ module ysyx_25110269_LSU(
             end
             ms_wait_ready : begin
                 if(arvalid | awvalid) begin
-                    next_state = ((arready & arvalid) | (awready & awvalid)) ? ms_addr_ready : ms_wait_ready;
+                    next_state = (awready & awvalid) ? ms_wdata_ready :
+                    ((arready & arvalid) ? ms_addr_ready :ms_wait_ready);
                 end else begin
-                    next_state = ms_data_ready;
+                    next_state = ms_idle;
                 end
             end
             ms_addr_ready: begin
-                next_state = (rvalid & rready) | (wvalid & wready) ? ms_data_ready : ms_addr_ready;
+                next_state = (rvalid & rready) ? ms_rdata_ready : ms_addr_ready;
             end
-            ms_data_ready : begin
-                next_state = ws_allowin ? ms_idle : ms_data_ready;
+            ms_wdata_ready : begin
+                next_state = ws_allowin && (bready & bvalid) ? ms_idle : ms_wdata_ready;
+            end
+            ms_rdata_ready : begin
+                next_state = ws_allowin ? ms_idle : ms_rdata_ready;
             end
             default : next_state = ms_idle;
         endcase
         if(mem_addr >= 32'h10000000 && mem_addr < 32'h10002000) skip_ref();
     end
-
+    wire   in_uart = (mem_addr == 32'h10000005);
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
     assign rready  = (|load) & (ms_state == ms_addr_ready);
-    assign araddr = arvalid ? {mem_addr[31:2], 2'b0} : 32'b0;
+    assign araddr = arvalid ? (in_uart ? 32'h10000005 : {mem_addr[31:2], 2'b0}) : 32'h0;
     assign arsize = arvalid ? (load == 4'hf) ? 3'b010 :
                             (load == 4'h3) ? 3'b001 : 
                             (load == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
     assign arlen  = 8'h0;
-    assign ms_to_ws_valid = (ms_state == ms_data_ready) | (ms_state == ms_wait_ready & next_state == ms_data_ready);
+    assign ms_to_ws_valid = (bready & bvalid) | (ms_state == ms_wait_ready && !arvalid && !awvalid) | (ms_state == ms_rdata_ready);
 
     assign awvalid = mem_wen & (ms_state == ms_wait_ready);
-    assign wvalid  = mem_wen & (ms_state == ms_addr_ready);
+    assign wvalid  = mem_wen & (ms_state == ms_wait_ready);
     assign awaddr = awvalid ? mem_addr : 32'b0;
     assign awsize = awvalid ? (store == 4'hf) ? 3'b010 :
                             (store == 4'h3) ? 3'b001 : 
                             (store == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
     assign awlen = 8'h0;
+    assign wlast = wvalid ? 1'b1 : 1'b1;
     assign wdata  = wvalid  ? (store == 4'hf) ? st_data :
                             (store == 4'h3) ? (st_data << (byte_offset * 8)) :
                             (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0 : 32'b0;
     assign wstrb  = wvalid ? (store == 4'hf) ? 4'b1111 :
                             (store == 4'h3) ? (3 << byte_offset) :
                             (store == 4'h1) ? (1 << byte_offset) : 4'b0 : 4'b0;
-    assign bready = 1'b1;
+    assign bready = (ms_state == ms_wdata_ready);
     assign ms_allowin = 1'b1;
     assign {
         ms_pc,

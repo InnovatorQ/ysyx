@@ -69,6 +69,14 @@ extern "C" word_t pmem_read(int raddr) {
         (mrom[addr + 2] << 16)   |   // 字节2 -> 位16-23
         (mrom[addr + 3] << 24));     // 字节3 -> 位24-31
         return data;
+    } else if(in_psram(raddr)){
+        paddr_t addr = (raddr - CONFIG_PSRAM_BASE) & ~0x3u;
+        data = (int32_t)(
+        (PSRAM[addr])             |   // 字节0 -> 位0-7
+        (PSRAM[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (PSRAM[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (PSRAM[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
     return 0;
