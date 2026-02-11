@@ -216,7 +216,7 @@ int isa_exec_once(Decode *s) {
   s->isa.inst = inst_fetch(&s->snpc, 4);
   
   // 打印每条指令的执行信息
-  printf("NEMU: PC=0x%08x INST=0x%08x\n", s->pc, s->isa.inst);
+  // printf("NEMU: PC=0x%08x INST=0x%08x\n", s->pc, s->isa.inst);
   
   // 通过s->dnpc更新返回下一条指令的PC
   return decode_exec(s);

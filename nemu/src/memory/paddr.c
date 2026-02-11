@@ -28,6 +28,7 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 static uint8_t mrom[0x1000] = {}; // 4KB 
 static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t psram[0x400000] = {}; // 4MB
+
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
