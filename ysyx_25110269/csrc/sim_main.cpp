@@ -53,14 +53,8 @@ extern "C" word_t pmem_read(int raddr) {
         (flash[addr + 3] << 24));     // 字节3 -> 位24-31
         return data;
     } else if(in_sram(raddr)){
-        paddr_t addr = (raddr - CONFIG_SRAM_BASE) & ~0x3u;
-        data = (int32_t)(
-        (sram[addr])             |   // 字节0 -> 位0-7
-        (sram[addr + 1] << 8)    |   // 字节1 -> 位8-15
-        (sram[addr + 2] << 16)   |   // 字节2 -> 位16-23
-        (sram[addr + 3] << 24));     // 字节3 -> 位24-31
-        //Log("SRAM[%08x] : %08x\n", addr, data);
-        return data;
+        paddr_t addr = ((raddr - CONFIG_SRAM_BASE) & ~0x3u) >> 2; 
+        return SRAM[addr];
     } else if(in_mrom(raddr)){
         paddr_t addr = (raddr - CONFIG_MROM_BASE) & ~0x3u;
         data = (int32_t)(
@@ -68,6 +62,21 @@ extern "C" word_t pmem_read(int raddr) {
         (mrom[addr + 1] << 8)    |   // 字节1 -> 位8-15
         (mrom[addr + 2] << 16)   |   // 字节2 -> 位16-23
         (mrom[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
+    } else if(in_psram(raddr)){
+        paddr_t addr = (raddr - CONFIG_PSRAM_BASE) & ~0x3u;
+        data = (int32_t)(
+        (PSRAM[addr])             |   // 字节0 -> 位0-7
+        (PSRAM[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (PSRAM[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (PSRAM[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
+    } else if(in_sdram(raddr)){
+        paddr_t addr = (raddr - CONFIG_SDRAM_BASE) & ~0x3u;
+        paddr_t bank = (addr >> 10) & 0x3;      // 位[11:10]
+        paddr_t row = (addr >> 12) & 0x1fff;    // 位[24:12]  
+        paddr_t col = (addr >> 1) & 0xff;       // 位[9:1]
+        data = (int32_t)((SDRAM[bank][row][col]) | (SDRAM[bank][row][col+ 1] << 16));      
         return data;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);

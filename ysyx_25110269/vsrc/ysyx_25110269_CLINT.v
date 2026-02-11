@@ -35,8 +35,8 @@ module ysyx_25110269_CLINT(
     always @(posedge clk) begin
         if(reset) clint_rdata <= 32'h0;
         else if(clint_arvalid & clint_arready) begin
-            if(clint_araddr == 32'ha0000048) clint_rdata <= mtime_l;
-            else if(clint_araddr == 32'ha000004c) clint_rdata <= mtime_h;
+            if(clint_araddr == 32'h02000000) clint_rdata <= mtime_l;
+            else if(clint_araddr == 32'h02000004) clint_rdata <= mtime_h;
             clint_rvalid <= 1'b1;
             clint_rresp <= 2'b0;
         end else if(clint_rready) clint_rvalid <= 1'b0;

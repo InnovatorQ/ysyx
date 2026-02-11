@@ -8,10 +8,10 @@
 
 // 9600 = 0x2580
 static void uart16550_config() {
-    *((volatile char*)UART_BASE + UART_LCR) = 0x83; //打开DLAB，设置8N1
+    *((volatile char*)UART_BASE + UART_LCR) = 0x80; //打开DLAB，设置8N1
     *((volatile char*)UART_BASE + UART_MSB) = 0x00; // 配置波特率
     *((volatile char*)UART_BASE + UART_LSB) = 0x01; //
-    *((volatile char*)UART_BASE + UART_LCR) = 0x03; //  关闭DLAB
+    *((volatile char*)UART_BASE + UART_LCR) = 0x07; //  关闭DLAB
     *((volatile char*)UART_BASE + UART_IER) = 0x00; // 关闭所有中断
     *((volatile char*)UART_BASE + UART_FIFO) = 0xC7;// 清空消息队列
 }

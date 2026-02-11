@@ -4,6 +4,7 @@ module ysyx_25110269_csr(
     input           reset,
 
     input           ecall,
+    input           mret,
     input [11 : 0]  rd_addr,
     output [31 : 0] rd_data,
 
@@ -70,6 +71,9 @@ module ysyx_25110269_csr(
                 csr_mepc <= ds_pc;
                 csr_mcause <= 32'hb;
                 csr_mstatus <= 32'h1800;
+            end
+            if(mret) begin
+                csr_mstatus <= 32'h80;
             end
         end
     end

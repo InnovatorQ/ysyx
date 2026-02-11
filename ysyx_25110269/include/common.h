@@ -44,7 +44,9 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 
 #define ANSI_FMT(str, fmt) fmt str ANSI_NONE
 #define CPU_INFO(name) top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__##name
-
+#define SRAM  top->rootp->ysyxSoCFull__DOT__asic__DOT__axi4ram__DOT__mem_ext__DOT__Memory
+#define PSRAM top->rootp->ysyxSoCFull__DOT__psram__DOT__memory
+#define SDRAM top->rootp->ysyxSoCFull__DOT__sdram__DOT__memory
 // 共享全局变量声明
 extern uint8_t flash[CONFIG_FLASH_SIZE];
 extern uint8_t mrom[CONFIG_MROM_SIZE];
@@ -64,6 +66,6 @@ extern void init_disasm();  // 初始化Capstone反汇编器
 extern void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);  // 反汇编指令
 
 // 时钟相关函数声明
-extern uint64_t get_time();  // 获取系统时间(微秒)
+extern uint64_t get_time_internal();  // 获取系统时间(微秒)
 
 #endif

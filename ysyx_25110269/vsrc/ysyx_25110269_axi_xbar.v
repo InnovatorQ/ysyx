@@ -117,6 +117,7 @@ always @(*) begin
         end
         default: next_state = idle;
     endcase
+    if(araddr >= 32'h02000000 && araddr < 32'h02010000) skip_ref();
 end
 
 reg [31 : 0]    raddr;
@@ -124,9 +125,9 @@ always @(posedge clk) begin
     if(arvalid & arready) raddr <= araddr;
 end
 assign arready = clint_arvalid ? clint_arready : io_master_arready;  // 默认返回的是mem的arready
-assign rvalid = (raddr == 32'ha0000048 | raddr == 32'ha000004c) ? clint_rvalid : io_master_rvalid;
-assign rdata = (raddr == 32'ha0000048 | raddr == 32'ha000004c) ? clint_rdata : io_master_rdata;
-assign rresp = (raddr == 32'ha0000048 | raddr == 32'ha000004c) ? clint_rresp : io_master_rresp;
+assign rvalid = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rvalid : io_master_rvalid;
+assign rdata = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rdata : io_master_rdata;
+assign rresp = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rresp : io_master_rresp;
 
 assign ifu_arready = (state == master_ifu) ? arready : 1'b0;
 assign lsu_arready = (state == master_lsu) ? arready : 1'b0;
@@ -154,8 +155,8 @@ assign arlen  = (state == master_ifu) ? ifu_arlen  :
 assign rready = (state == master_ifu) ? ifu_rready :
                 (state == master_lsu) ? lsu_rready : 1'b0;
 
-assign clint_arvalid = (araddr == 32'ha0000048 | araddr == 32'ha000004c) ? arvalid : 1'b0;
-assign io_master_arvalid = (araddr < 32'ha0000048 | araddr > 32'ha000004c) ? arvalid : 1'b0;
+assign clint_arvalid = (araddr >= 32'h02000000 && araddr < 32'h02010000) ? arvalid : 1'b0;
+assign io_master_arvalid = (araddr < 32'h02000000 | araddr >= 32'h02010000) ? arvalid : 1'b0;
 assign clint_araddr = clint_arvalid ? araddr : 32'h0;
 assign io_master_araddr = io_master_arvalid ? araddr : 32'h0;
 assign clint_arlen = clint_arvalid ? arlen : 8'h0;
