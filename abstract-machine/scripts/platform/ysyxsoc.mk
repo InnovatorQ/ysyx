@@ -27,7 +27,7 @@ image: image-dep
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents \
 	--set-section-flags .bss.extra=alloc,contents -O binary \
-	-j .boot -j .ssbl -j .text -j .rodata  -j .data $(IMAGE).elf $(IMAGE).bin
+	-j .boot -j .ssbl -j .text -j .rodata -j .data.extra -j .data $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
 	$(MAKE) -C $(ysyxSoC_HOME) run OBJ_TAR=$(IMAGE).bin ELF_TAR=$(IMAGE).elf

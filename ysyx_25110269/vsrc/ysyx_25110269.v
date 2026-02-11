@@ -410,6 +410,7 @@ module ysyx_25110269(
         .clk        (clock      ),
         .reset      (reset      ),
         .ecall      (inst_ecall ),
+        .mret       (mret       ),
         .rd_addr    (csr_addr   ),
         .rd_data    (csr_data   ),
         .csr_wen    (csr_wen    ),

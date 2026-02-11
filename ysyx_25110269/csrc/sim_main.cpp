@@ -75,8 +75,8 @@ extern "C" word_t pmem_read(int raddr) {
         paddr_t addr = (raddr - CONFIG_SDRAM_BASE) & ~0x3u;
         paddr_t bank = (addr >> 10) & 0x3;      // 位[11:10]
         paddr_t row = (addr >> 12) & 0x1fff;    // 位[24:12]  
-        paddr_t col = (addr >> 2) & 0xff;       // 位[9:2]
-        data = (int32_t)((SDRAM[bank][row][col]) | (SDRAM[bank][row][col] << 16));      
+        paddr_t col = (addr >> 1) & 0xff;       // 位[9:1]
+        data = (int32_t)((SDRAM[bank][row][col]) | (SDRAM[bank][row][col+ 1] << 16));      
         return data;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
