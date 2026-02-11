@@ -57,6 +57,14 @@ static void sram_write(paddr_t addr, int len, word_t data) {
   host_write(sram + (addr - SRAM_LEFT), len, data);
 }
 
+static word_t psram_read(paddr_t addr, int len) {
+  return host_read(sram + (addr - PSRAM_LEFT), len);
+}
+
+static void psram_write(paddr_t addr, int len, word_t data) {
+  host_write(sram + (addr - PSRAM_LEFT), len, data);
+}
+
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -71,6 +79,7 @@ void init_mem() {
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
   Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
   Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
+  Log("psram area [" FMT_PADDR ", " FMT_PADDR "]", PSRAM_LEFT, PSRAM_RIGHT);
 }
 
 word_t paddr_read(paddr_t addr, int len) {
@@ -98,6 +107,16 @@ word_t paddr_read(paddr_t addr, int len) {
   }
   if (in_sram(addr)) {
     word_t ret = sram_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if (in_psram(addr)) {
+    word_t ret = psram_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
     if(MTRACE_COND){
       log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
@@ -145,6 +164,18 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   }
   if (in_sram(addr)) {
     sram_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE SRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_psram(addr)) {
+    psram_write(addr, len, data);
     #ifdef CONFIG_MTRACE
       #ifdef CONFIG_MTRACE_COND
       if (MTRACE_COND) {

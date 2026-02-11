@@ -1,4 +1,5 @@
 #include "sdb.h"
+#include "common.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -118,9 +119,9 @@ static int cmd_x(char *args) {
   int addr = strtoul(expr_str, NULL, 0);
 
   for(int i = 0; i < n; i++) {
-    word_t data = pmem_read(addr + i * 4);
-    printf("0x%08x: 0x%08x\n", addr + i * 4, data);
-  }
+      word_t data = pmem_read(addr + i * 4);
+      printf("0x%08x: 0x%08x\n", addr + i * 4, data);
+    }
   return 0;
 }
 

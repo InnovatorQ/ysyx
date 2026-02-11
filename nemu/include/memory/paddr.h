@@ -26,6 +26,8 @@
 #define MROM_RIGHT 0x20000fff
 #define SRAM_LEFT  0x0f000000
 #define SRAM_RIGHT 0x0f001fff
+#define PSRAM_LEFT 0x80000000
+#define PSRAM_RIGHT 0x80400000
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
@@ -42,6 +44,10 @@ static inline bool in_mrom(paddr_t addr) {
 
 static inline bool in_sram(paddr_t addr) {
   return addr >= SRAM_LEFT && addr <= SRAM_RIGHT;
+}
+
+static inline bool in_psram(paddr_t addr) {
+  return addr >= PSRAM_LEFT && addr <= PSRAM_RIGHT;
 }
 
 word_t paddr_read(paddr_t addr, int len);

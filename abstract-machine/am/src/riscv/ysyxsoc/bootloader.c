@@ -10,13 +10,11 @@ extern char text_start [];
 extern char text_size [];
 extern char text_load_start [];
 
-extern char text_start [];
-extern char text_size [];
-extern char text_load_start [];
-
 extern char ssbl_start [];
 extern char ssbl_size [];
 extern char ssbl_load_start [];
+
+
 
 __attribute__((section("fsbl")))
 void _fsbl(){
@@ -43,7 +41,7 @@ void _ssbl(void)
     size = (long)text_size;
     while (size-- > 0) *dst++ = *src++;
   }
-  
+
   if (data_start != data_load_start) {
     src = data_load_start;
     dst = data_start;

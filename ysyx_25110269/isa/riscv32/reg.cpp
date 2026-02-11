@@ -10,7 +10,7 @@ const static char *regs[] = {
 word_t isa_reg_str2val(const char *s, bool *success) {
     int i;
     if(strcmp(s, "pc") == 0){
-        printf("pc\t" FMT_WORD "\n", get_rf(32));
+        //printf("pc\t" FMT_WORD "\n", get_rf(32));
         *success = true;
         return get_rf(32);
     }

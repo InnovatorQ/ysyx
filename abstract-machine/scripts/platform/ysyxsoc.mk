@@ -13,7 +13,6 @@ AM_SRCS :=	riscv/ysyxsoc/start.S 		\
 # -fdata-sections: 每个全局变量生成独立的.data.variable_name段
 CFLAGS    += -fdata-sections -ffunction-sections
 LDSCRIPTS += $(AM_HOME)/am/src/riscv/ysyxsoc/linker.ld
-LDFLAGS   += --defsym=_pmem_start=0x30000000 --defsym=_entry_offset=0x0 # 运行时环境的入口地址
 LDFLAGS   += --gc-sections -e _start
 # --gc-sections: 启用段级垃圾回收，移除未被引用的段
 MAINARGS_MAX_LEN = 64
@@ -26,7 +25,9 @@ insert-arg: image
 image: image-dep
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents \
+	--set-section-flags .bss.extra=alloc,contents -O binary \
+	-j .boot -j .ssbl -j .text -j .rodata  -j .data $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
 	$(MAKE) -C $(ysyxSoC_HOME) run OBJ_TAR=$(IMAGE).bin ELF_TAR=$(IMAGE).elf
