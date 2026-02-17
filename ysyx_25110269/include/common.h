@@ -46,7 +46,10 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 #define CPU_INFO(name) top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__##name
 #define SRAM  top->rootp->ysyxSoCFull__DOT__asic__DOT__axi4ram__DOT__mem_ext__DOT__Memory
 #define PSRAM top->rootp->ysyxSoCFull__DOT__psram__DOT__memory
-#define SDRAM top->rootp->ysyxSoCFull__DOT__sdram__DOT__memory
+#define SDRAM0 top->rootp->ysyxSoCFull__DOT__sdram0__DOT__memory
+#define SDRAM1 top->rootp->ysyxSoCFull__DOT__sdram1__DOT__memory
+#define SDRAM2 top->rootp->ysyxSoCFull__DOT__sdram2__DOT__memory
+#define SDRAM3 top->rootp->ysyxSoCFull__DOT__sdram3__DOT__memory
 // 共享全局变量声明
 extern uint8_t flash[CONFIG_FLASH_SIZE];
 extern uint8_t mrom[CONFIG_MROM_SIZE];

@@ -68,11 +68,11 @@ static void psram_write(paddr_t addr, int len, word_t data) {
 }
 
 static word_t sdram_read(paddr_t addr, int len) {
-  return host_read(sdram + (addr - PSRAM_LEFT), len);
+  return host_read(sdram + (addr - SDRAM_LEFT), len);
 }
 
 static void sdram_write(paddr_t addr, int len, word_t data) {
-  host_write(sdram + (addr - PSRAM_LEFT), len, data);
+  host_write(sdram + (addr - SDRAM_LEFT), len, data);
 }
 
 static void out_of_bound(paddr_t addr) {
