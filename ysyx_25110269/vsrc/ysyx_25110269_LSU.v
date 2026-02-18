@@ -143,7 +143,7 @@ module ysyx_25110269_LSU(
             end
             default : next_state = ms_idle;
         endcase
-        if(mem_addr >= 32'h10000000 && mem_addr < 32'h10002000) skip_ref();
+        if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
     end
     wire   in_uart = (mem_addr == 32'h10000005);
     assign arvalid = (|load) & (ms_state == ms_wait_ready);

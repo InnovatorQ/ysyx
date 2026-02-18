@@ -75,8 +75,10 @@ extern "C" word_t pmem_read(int raddr) {
         paddr_t addr = (raddr - CONFIG_SDRAM_BASE) & ~0x3u;
         paddr_t bank = (addr >> 10) & 0x3;      // 位[11:10]
         paddr_t row = (addr >> 12) & 0x1fff;    // 位[24:12]  
-        paddr_t col = (addr >> 1) & 0xff;       // 位[9:1]
-        data = (int32_t)((SDRAM[bank][row][col]) | (SDRAM[bank][row][col+ 1] << 16));      
+        paddr_t col = (addr >> 1) & 0x1ff;      // 位[9:1]
+        bool ce = (addr >> 25) & 0x1;           // [25]
+        if(ce) data = (int32_t) (SDRAM2[bank][row][col] | (SDRAM3[bank][row][col] << 16));
+        else data = (int32_t) (SDRAM0[bank][row][col] | (SDRAM1[bank][row][col] << 16));     
         return data;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
@@ -85,6 +87,7 @@ extern "C" word_t pmem_read(int raddr) {
 
 // 共享变量
 VysyxSoCFull* top = new VysyxSoCFull;
+void nvboard_bind_all_pins(VysyxSoCFull* top);
 bool is_ebreak = false;
 #ifdef CONFIG_WAVE
 static VerilatedFstC* tfp = new VerilatedFstC;
@@ -100,6 +103,7 @@ extern "C" void ebreak(){
 } 
 
 void single_cycle(){
+    nvboard_update();
     top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
     tfp->dump(Verilated::time());
@@ -152,6 +156,8 @@ word_t get_csr(int n){
 }
 
 int main(int argc, char **argv){
+    nvboard_bind_all_pins(top);
+    nvboard_init();
     Verilated::commandArgs(argc, argv);
     //assert(0);
 #ifdef CONFIG_WAVE

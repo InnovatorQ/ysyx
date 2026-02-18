@@ -30,9 +30,16 @@ void init_checkregs(CPU_state *init_cpu) {
   }
 }
 
-void checkmem(uint32_t addr, uint32_t pc) {
+void checkmem(CPU_state *ref, uint32_t addr, uint32_t pc) {
   if (!isa_difftest_checkmem(addr)) {
     printf("Memory DiffTest failed at PC = 0x%08x\n", pc);
+    for(int i = 0; i < 32; i++) {
+      printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
+    }
+    printf("MCAUSE  DUT=0x%08x REF=0x%08x\n", get_csr(0x342), ref->mcause);
+    printf("MEPC    DUT=0x%08x REF=0x%08x\n", get_csr(0x341), ref->mepc);
+    printf("MSTATUS DUT=0x%08x REF=0x%08x\n", get_csr(0x300), ref->mstatus);
+    printf("MTVEC   DUT=0x%08x REF=0x%08x\n", get_csr(0x305), ref->mtvec);
     exit(1);
   }
 }
@@ -166,10 +173,10 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
   //每执行检测一次内存
 
-  // if(is_store){
-  //   Log("mem_addr : " FMT_WORD "\n", mem_addr);
-  //   checkmem(mem_addr, pc);
-  // }
+  if(is_store){
+    // Log("mem_addr : " FMT_WORD "\n", mem_addr);
+    checkmem(&ref_r, mem_addr, pc);
+  }
   // 检查寄存器状态
   checkregs(&ref_r, pc);
 

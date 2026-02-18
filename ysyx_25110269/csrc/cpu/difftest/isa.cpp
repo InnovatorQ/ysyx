@@ -1,4 +1,5 @@
 #include "common.h"
+#include "memory/paddr.h"
 #include "difftest.h"
 
 // 外部函数声明
@@ -74,7 +75,7 @@ bool isa_init_checkmem(long img_size) {
   ref_difftest_memcpy(CONFIG_FLASH_BASE, ref_mem, check_size, DIFFTEST_TO_DUT);
   
   // 对比内存内容
-  for (size_t i = 0; i < check_words; i++) {
+  for (size_t i = 0; i < check_words * 4; i++) {
     if (flash[i] != ref_mem[i]) {
       printf("Memory[0x%08x] mismatch: ref=0x%08x dut=0x%08x\n", 
              (uint32_t)(CONFIG_FLASH_BASE + i * 4), ref_mem[i], flash[i]);
@@ -85,6 +86,40 @@ bool isa_init_checkmem(long img_size) {
 }
 
 bool isa_difftest_checkmem(uint32_t addr){
+  if (!ref_difftest_memcpy) return true;
   
+  uint32_t proceesed_addr = addr & ~0x3u;
+  static uint8_t ref_byte[4];
+  
+  // 从参考模型读取指定地址的数据
+  ref_difftest_memcpy(proceesed_addr, ref_byte, 4, DIFFTEST_TO_DUT);
+  uint32_t ref_data = (uint32_t)(
+    (ref_byte[0])           |   
+    (ref_byte[1] << 8)      |   
+    (ref_byte[2] << 16)     |   
+    (ref_byte[3] << 24));
+  // 从DUT读取相同地址的数据
+  uint32_t dut_data = pmem_read(addr);
+  
+  // 比较数据
+  if (dut_data != ref_data) {
+    printf("Memory[0x%08x] mismatch: ref=0x%08x dut=0x%08x\n", 
+           proceesed_addr, ref_data, dut_data);
+    return false;
+  };
+  static uint8_t ref_byte1[4];
+  ref_difftest_memcpy(0x0f001f90, ref_byte1, 4, DIFFTEST_TO_DUT);
+  uint32_t ref_data1 = (uint32_t)(
+    (ref_byte1[0])           |   
+    (ref_byte1[1] << 8)      |   
+    (ref_byte1[2] << 16)     |   
+    (ref_byte1[3] << 24));
+  // 从DUT读取相同地址的数据
+  uint32_t data = pmem_read(0x0f001f90);
+  if (data != ref_data1) {
+    printf("Memory[0x0f001f90] mismatch: ref=0x%08x dut=0x%08x\n", 
+           ref_data1, data);
+    return false;
+  }
   return true;
 }

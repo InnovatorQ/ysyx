@@ -1,7 +1,7 @@
 TOPNAME = ysyxSoCFull
 VERILATOR = verilator
 ysyxSoC_HOME = $(shell pwd)
-
+NXDC_FILES = constr/top.nxdc
 
 # 去除引号的函数
 remove_quote = $(patsubst "%",%,$(1))
@@ -22,6 +22,7 @@ CFLAGS_CONFIG += $(if $(CONFIG_DEVICE),-DCONFIG_DEVICE,)
 include $(ysyxSoC_HOME)/scripts/config.mk
 -include $(ysyxSoC_HOME)/include/config/auto.conf
 -include $(ysyxSoC_HOME)/include/config/auto.conf.cmd
+-include $(NVBOARD_HOME)/scripts/nvboard.mk
 
 OPT_LEVEL := -O2
 ifeq ($(CONFIG_OPT_O0),y)
@@ -33,14 +34,24 @@ endif
 
 DST_DIR ?= $(shell pwd)/build
 
+CXXFLAGS += -I$(abspath ./include) \
+			-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
+			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
+			-I$(abspath ../nemu/tools/capstone/repo/include) \
+			-I$(abspath $(NVBOARD_HOME)/usr/include)
+CXXFLAGS += $(CFLAGS_CONFIG) -DDST_DIR=\\\"$(DST_DIR)\\\"
+
+LDFLAGS += -L$(NVBOARD_HOME)/build -l:nvboard.a
+LDFLAGS += -lSDL2 -lSDL2_image -lSDL2_ttf
+LDFLAGS += -lreadline -ldl
 VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 			--timescale "1ns/1ns" --no-timing  --autoflush\
-		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert \
-		    -Wno-UNOPTFLAT -LDFLAGS "-lreadline -ldl" \
-		    -CFLAGS "-I$(abspath ./include) -I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
-			-I$(abspath ../ysyxSoC/perip/spi/rtl) -I$(abspath ../nemu/tools/capstone/repo/include) $(CFLAGS_CONFIG) -DDST_DIR=\\\"$(DST_DIR)\\\""
-
-
+		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert -Wno-UNOPTFLAT \
+			-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
+			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
+			-I$(abspath ../nemu/tools/capstone/repo/include) \
+			-I$(abspath ../nvboard/usr/include) 
+		    
 OBJ_DIR = $(DST_DIR)/obj_dir
 BIN = $(DST_DIR)/$(TOPNAME)
 SIM_BIN = $(DST_DIR)/wave.fst
@@ -48,19 +59,24 @@ default: $(BIN)
 
 $(shell mkdir -p $(DST_DIR))
 
+# constraint file
+SRC_AUTO_BIND = $(DST_DIR)/auto_bind.cpp
+$(SRC_AUTO_BIND): $(NXDC_FILES)
+	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
+
 VSRCS += $(shell find $(abspath ./vsrc) -name "*.v") 
 VSRCS += $(shell find $(abspath ../ysyxSoC/perip) -name "*.v" -type f)
 VSRCS += /home/qzx/ysyx/ysyx-workbench/ysyxSoC/build/ysyxSoCFull.v
-CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp") $(shell find $(abspath ./isa) -name "*.cpp")
+# CSRCS += $(shell find $(abspath ../nvboard/src) -name "*.cpp")
+CSRCS += $(shell find $(abspath ./csrc) -name "*.cpp") $(shell find $(abspath ./isa) -name "*.cpp")
+CSRCS += $(SRC_AUTO_BIND)
 
 # 构建目标依赖Capstone库和NEMU库
-$(BIN): $(VSRCS) $(CSRCS) $(LIBCAPSTONE) $(NEMU_SO)
+$(BIN): $(VSRCS) $(CSRCS) $(LIBCAPSTONE) $(NEMU_SO) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $(VSRCS) $(CSRCS) \
-		-I$(abspath ./vsrc) -I$(abspath ./include) \
-		-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
-		-I$(abspath ../ysyxSoC/perip/spi/rtl) \
+		$(addprefix -CFLAGS , $(CXXFLAGS)) $(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
 # 如果Capstone库不存在，则构建它
@@ -75,7 +91,7 @@ yosys:
 	cd ~/ysyx/yosys-sta && $(MAKE) -j8 sta
 	 
 run: $(BIN)
-	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt  $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
+	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt -b $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 
 
 sim: $(SIM_BIN)
 	@gtkwave $(SIM_BIN)
