@@ -22,4 +22,7 @@ static inline bool in_sdram(paddr_t addr) {
   return addr >= CONFIG_SDRAM_BASE && addr < CONFIG_SDRAM_BASE + CONFIG_SDRAM_SIZE;
 }
 
+static inline bool in_gpio(paddr_t addr) {
+  return addr >= CONFIG_GPIO_BASE && addr < CONFIG_GPIO_BASE + CONFIG_GPIO_SIZE;
+}
 #endif

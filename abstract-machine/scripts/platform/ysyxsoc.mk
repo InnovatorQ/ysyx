@@ -5,7 +5,7 @@ AM_SRCS :=	riscv/ysyxsoc/start.S 		\
 			riscv/ysyxsoc/ioe.c 		\
 			riscv/ysyxsoc/cte.c 		\
 			riscv/ysyxsoc/input.c 		\
-			riscv/npc/timer.c			\
+			riscv/ysyxsoc/timer.c		\
 			riscv/npc/trap.S 			\
 			platform/dummy/vme.c 		\
            	platform/dummy/mpe.c

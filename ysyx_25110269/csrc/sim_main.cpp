@@ -80,6 +80,10 @@ extern "C" word_t pmem_read(int raddr) {
         if(ce) data = (int32_t) (SDRAM2[bank][row][col] | (SDRAM3[bank][row][col] << 16));
         else data = (int32_t) (SDRAM0[bank][row][col] | (SDRAM1[bank][row][col] << 16));     
         return data;
+    } else if(in_gpio(raddr)){
+        paddr_t addr = (raddr - CONFIG_GPIO_BASE) & ~0x3u;
+        if(addr == 0) return GPIO;
+        else return 0;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
     return 0;
