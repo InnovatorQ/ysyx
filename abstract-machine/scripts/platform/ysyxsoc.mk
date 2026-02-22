@@ -12,7 +12,7 @@ AM_SRCS :=	riscv/ysyxsoc/start.S 		\
 # ffunction-sections: 每个函数生成独立的.text.function_name段
 # -fdata-sections: 每个全局变量生成独立的.data.variable_name段
 CFLAGS    += -fdata-sections -ffunction-sections
-# LDSCRIPTS += $(AM_HOME)/am/src/riscv/ysyxsoc/linker.ld
+LDSCRIPTS += $(AM_HOME)/am/src/riscv/ysyxsoc/linker.ld
 LDFLAGS   += --gc-sections -e _start
 # --gc-sections: 启用段级垃圾回收，移除未被引用的段
 MAINARGS_MAX_LEN = 64
