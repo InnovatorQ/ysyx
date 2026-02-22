@@ -15,8 +15,8 @@ static void __am_uart_config(AM_INPUT_CONFIG_T *cfg) { cfg->present = false;  }
 static void __am_gpu_config (AM_GPU_CONFIG_T *cfg) { 
   cfg->present = true;
   cfg->has_accel = false;
-  cfg->width = 400;
-  cfg->height = 300;
+  cfg->width = 640;
+  cfg->height = 480;
   cfg->vmemsz = 0;  
 }
 #define FB_ADDR 0x21000000
