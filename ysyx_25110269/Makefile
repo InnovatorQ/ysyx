@@ -46,7 +46,7 @@ LDFLAGS += -lSDL2 -lSDL2_image -lSDL2_ttf
 LDFLAGS += -lreadline -ldl
 VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 			--timescale "1ns/1ns" --no-timing  --autoflush\
-		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert -Wno-UNOPTFLAT -Wno-WIDTHEXPAND\
+		    $(OPT_LEVEL) --x-assign fast --x-initial fast --noassert -Wno-UNOPTFLAT\
 			-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
 			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
 			-I$(abspath ../nemu/tools/capstone/repo/include) \
