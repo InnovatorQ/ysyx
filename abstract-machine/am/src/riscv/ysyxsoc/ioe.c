@@ -31,7 +31,7 @@ static void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
 
   uint32_t *fb = (uint32_t *)(uintptr_t)FB_ADDR;
 
-  uint32_t screen_width = 400;
+  uint32_t screen_width = 640;
 
   for (int j = y; j < y + h; j ++) {
     for (int i = x; i < x + w; i ++) {
