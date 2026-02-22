@@ -59,6 +59,7 @@ module ysyx_25110269_LSU(
     reg             ms_valid;
 
     reg  [31 : 0]   mem_addr_r;     //difftest
+    reg  [31 : 0]   pref_cnt;
 
     wire [31 : 0]   ms_pc;
     wire [31 : 0]   load_data;
@@ -83,39 +84,14 @@ module ysyx_25110269_LSU(
     wire [7 : 0]    selected_byte;
     wire [15: 0]    selected_halfword;
     
-    //LFSR生成随机延迟访问
-    always @(posedge clk) begin
-        if(reset) begin
-            lfsr <= 8'b10110001;
-        end else begin
-            lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};
-            mem_addr_r <= mem_addr;
-        end
-    end
 
     always @(posedge clk) begin
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
-            delay_count <= 5'b0;
-            // lsu_req_delay <= 5'b0;
-            // lsu_resp_delay <= 5'b0;
         end else begin
             ms_valid <= es_to_ms_valid;
-            ms_state <= next_state;
-            if(ms_state == ms_wait_ready && next_state == ms_addr_ready) begin
-                delay_count <= lfsr[4:0]; // 使用LFSR的低5位作为随机延迟
-            //     delay_count <= 5'b1;
-            //     lsu_req_delay <= 5'd5;
-            //     lsu_resp_delay <= 5'd20;
-            end else if(rvalid & delay_count != 5'b0) begin
-                delay_count <= delay_count - 5'b1;
-            end 
-            //      else if(lsu_req_delay != 5'b0) begin
-            //     lsu_req_delay <= lsu_req_delay - 5'b1;
-            // end else if(lsu_resp_delay != 5'b0) begin
-            //     lsu_resp_delay <= lsu_resp_delay - 5'b1;
-            // end
+            ms_state <= next_state; 
         end
     end
 
@@ -231,6 +207,7 @@ module ysyx_25110269_LSU(
     always @(posedge clk)begin
         if(rvalid & rready) begin
             mem_rdata <= rdata;
+            pref_cnt <= pref_cnt + 1;
         end
         if(bvalid & bready) begin
             if(bresp != 2'b0) begin
