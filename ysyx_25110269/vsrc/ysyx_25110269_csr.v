@@ -37,7 +37,7 @@ module ysyx_25110269_csr(
         if(reset) begin
             csr_mcycle <= 32'b0;
             csr_mcycle_h <= 32'b0;
-            csr_marchid <= 32'h17f26fd;
+            csr_marchid <= 32'h59ff3519;
             csr_mvendorid <= 32'h79737978;
         end else begin
             if(csr_mcycle < 32'hffffffff) csr_mcycle <= csr_mcycle + 32'b1;

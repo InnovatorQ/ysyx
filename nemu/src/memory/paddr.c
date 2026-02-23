@@ -29,6 +29,7 @@ static uint8_t mrom[0x1000] = {}; // 4KB
 static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t psram[0x400000] = {}; // 4MB
 static uint8_t sdram[0x20000000] = {};
+static uint8_t gpio[0xf] = {};
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
@@ -75,6 +76,13 @@ static void sdram_write(paddr_t addr, int len, word_t data) {
   host_write(sdram + (addr - SDRAM_LEFT), len, data);
 }
 
+static word_t gpio_read(paddr_t addr, int len) {
+  return host_read(gpio + (addr - GPIO_LEFT), len);
+}
+
+static void gpio_write(paddr_t addr, int len, word_t data) {
+  host_write(gpio + (addr - GPIO_LEFT), len, data);
+}
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -141,6 +149,16 @@ word_t paddr_read(paddr_t addr, int len) {
     #ifdef CONFIG_MTRACE_COND
     if(MTRACE_COND){
       log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if(in_gpio(addr)) {
+    word_t ret = gpio_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
       addr, ret, len, cpu.pc);
     }
     #endif
@@ -213,6 +231,18 @@ void paddr_write(paddr_t addr, int len, word_t data) {
       #ifdef CONFIG_MTRACE_COND
       if (MTRACE_COND) {
         log_write("MTRACE: WRITE SDRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_gpio(addr)) {
+    gpio_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE GPIO [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
           addr, data, len, cpu.pc);
       }
       #endif

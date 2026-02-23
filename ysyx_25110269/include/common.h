@@ -9,6 +9,7 @@
 #include <VysyxSoCFull.h>
 #include "VysyxSoCFull___024root.h"
 #include <assert.h>
+#include <nvboard.h>
 #include <generated/autoconf.h> 
 
 // 基本类型定义
@@ -50,6 +51,7 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 #define SDRAM1 top->rootp->ysyxSoCFull__DOT__sdram1__DOT__memory
 #define SDRAM2 top->rootp->ysyxSoCFull__DOT__sdram2__DOT__memory
 #define SDRAM3 top->rootp->ysyxSoCFull__DOT__sdram3__DOT__memory
+#define GPIO   top->rootp->ysyxSoCFull__DOT__asic__DOT__lgpio__DOT__mgpio__DOT__led
 // 共享全局变量声明
 extern uint8_t flash[CONFIG_FLASH_SIZE];
 extern uint8_t mrom[CONFIG_MROM_SIZE];

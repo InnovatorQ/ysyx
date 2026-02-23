@@ -80,6 +80,10 @@ extern "C" word_t pmem_read(int raddr) {
         if(ce) data = (int32_t) (SDRAM2[bank][row][col] | (SDRAM3[bank][row][col] << 16));
         else data = (int32_t) (SDRAM0[bank][row][col] | (SDRAM1[bank][row][col] << 16));     
         return data;
+    } else if(in_gpio(raddr)){
+        paddr_t addr = (raddr - CONFIG_GPIO_BASE) & ~0x3u;
+        if(addr == 0) return GPIO;
+        else return 0;
     }
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
     return 0;
@@ -87,6 +91,7 @@ extern "C" word_t pmem_read(int raddr) {
 
 // 共享变量
 VysyxSoCFull* top = new VysyxSoCFull;
+void nvboard_bind_all_pins(VysyxSoCFull* top);
 bool is_ebreak = false;
 #ifdef CONFIG_WAVE
 static VerilatedFstC* tfp = new VerilatedFstC;
@@ -102,6 +107,7 @@ extern "C" void ebreak(){
 } 
 
 void single_cycle(){
+    nvboard_update();
     top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
     tfp->dump(Verilated::time());
@@ -154,6 +160,8 @@ word_t get_csr(int n){
 }
 
 int main(int argc, char **argv){
+    nvboard_bind_all_pins(top);
+    nvboard_init();
     Verilated::commandArgs(argc, argv);
     //assert(0);
 #ifdef CONFIG_WAVE

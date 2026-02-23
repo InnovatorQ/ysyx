@@ -55,6 +55,7 @@ static void check_ftrace(word_t pc, word_t inst) {
 void cpu_exec(int n) {
   if (n == -1) {
     long cycle_count = 0;
+    long inst_count = 0;
     if (boot_time == 0) boot_time = get_time_internal();
     static word_t last_pc;
     static word_t last_inst ;
@@ -65,13 +66,16 @@ void cpu_exec(int n) {
       bool done = CPU_INFO(inst_finish);
       single_cycle();
       word_t npc = get_rf(32);
-      #ifdef CONFIG_DIFFTEST
+
       // DiffTest
       if(done) {
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
+#ifdef CONFIG_DIFFTEST
         difftest_step(pc, npc, inst);
+#endif
+        inst_count++;
       }
-      #endif
+
       if (check_watchpoints()){
         printf("Stopped at watchpoint \n");
         break;
@@ -108,12 +112,16 @@ void cpu_exec(int n) {
         if(get_rf(10) == 0) {
             Log("Program execution completed successfully");
             Log("finish time: %lu us", now - boot_time);
+            Log("total_inst : %ld", inst_count);
             Log("total_cycle : %ld", cycle_count);
+            Log("IPC : %.6f", (double)inst_count / cycle_count);
             printf("\033[32mHIT GOOD TRAP!\033[0m\n");
         } else {
             Log("Program execution failed with code %d", get_rf(10));
             Log("finish time: %lu us", now - boot_time);
+            Log("total_inst : %ld", inst_count);
             Log("total_cycle : %ld", cycle_count);
+            Log("IPC : %.6f", (double)inst_count / cycle_count);
             printf("\033[31mHIT BAD TRAP!\033[0m\n");
         }
     }

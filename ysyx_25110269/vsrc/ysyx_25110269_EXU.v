@@ -16,6 +16,7 @@ module ysyx_25110269_EXU(
     output reg          es_state,
     output [221 : 0]    es_to_ms_bus
 );
+    reg  [31 : 0 ]      pref_cnt;
     reg  [270 : 0]      ds_to_es_bus_r;
     reg                 es_valid;
     wire                es_ready_go;
@@ -49,10 +50,14 @@ module ysyx_25110269_EXU(
     always @(posedge clk)begin
         if(reset)begin
             es_valid <= 1'b0;
-            es_state <= es_idle; 
+            es_state <= es_idle;
+            pref_cnt <= 32'b0; 
         end else begin
             es_state <= next_state;
             es_valid <= ds_to_es_valid;
+            if(ds_to_es_valid && es_allowin) begin
+                pref_cnt <= pref_cnt + 1'b1;
+            end
         end
     end
 

@@ -40,42 +40,17 @@ module ysyx_25110269_IFU(
     reg  [31 : 0]   ifu_rdata;
     reg  [1  : 0]   ifu_rresp;
 
-    reg [4 : 0] delay_count;
-    reg [4 : 0] lsu_req_delay;
-    reg [4 : 0] lsu_resp_delay;
-    reg [7 : 0] lfsr;
-    // LFSR生成随机延迟访问
-    always @(posedge clk) begin
-        if(reset) begin
-            lfsr <= 8'b10110001;
-        end else begin
-            lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};
-        end
-    end
+    reg [31: 0] pref_cnt;
 
     always @(posedge clk) begin
         if(reset) begin
             fs_state <= fs_idle;
             fs_valid <= 1'b0;
-            delay_count <= 5'b0;
-            // lsu_req_delay <= 5'b0;
-            // lsu_resp_delay <= 5'b0;
+            pref_cnt <= 32'b0;
         end else begin
             fs_state <= next_state;
             fs_valid <= 1'b1;
-            if(fs_state == fs_wait_ready && next_state == fs_addr_ready) begin
-                delay_count <= lfsr[4:0]; // 使用LFSR的低5位作为随机延迟
-            //     delay_count <= 5'b1;
-            //     lsu_req_delay <= 5'd5;
-            //     lsu_resp_delay <= lfsr[4:0];
-            end else if(rvalid && delay_count != 5'b0) begin
-                delay_count <= delay_count - 5'b1;
-            end 
-            //else if(lsu_req_delay != 5'b0) begin
-            //     lsu_req_delay <= lsu_req_delay - 5'b1;
-            // end else if(rvalid & lsu_resp_delay != 5'b0) begin
-            //     lsu_resp_delay <= lsu_resp_delay - 5'b1;
-            // end
+            
         end
     end
     always @(*) begin
@@ -150,6 +125,7 @@ module ysyx_25110269_IFU(
                 $display("Access Fault !!! rrsep : %xh", rresp);
                 $fatal;
             end
+            pref_cnt <= pref_cnt + 1'b1;
         end
     end
     

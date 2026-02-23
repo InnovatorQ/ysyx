@@ -33,7 +33,7 @@ module ysyx_25110269_IDU(
 
     reg             ds_valid;   //译码阶段有效信号
     wire            ds_ready_go;
-
+    reg  [31 : 0]   pref_cnt;
     reg  [63 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
 
@@ -124,9 +124,13 @@ module ysyx_25110269_IDU(
         if(reset) begin
             ds_state <= ds_idle;
             ds_valid <= 1'b0;
+            pref_cnt <= 32'b0;
         end else begin
             ds_state <= next_state;
             ds_valid <= fs_to_ds_valid;
+            if(ds_state == ds_wait_ready && es_allowin) begin
+                pref_cnt <= pref_cnt + 1'b1;
+            end
         end
     end
 
