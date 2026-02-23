@@ -112,16 +112,16 @@ void cpu_exec(int n) {
         if(get_rf(10) == 0) {
             Log("Program execution completed successfully");
             Log("finish time: %lu us", now - boot_time);
-            Log("total_inst : %ld", inst_count);
+            Log("total_inst : %ld", inst_count + 1);
             Log("total_cycle : %ld", cycle_count);
-            Log("IPC : %.6f", (double)inst_count / cycle_count);
+            Log("IPC : %.6f", (double)(inst_count + 1) / cycle_count);
             printf("\033[32mHIT GOOD TRAP!\033[0m\n");
         } else {
             Log("Program execution failed with code %d", get_rf(10));
             Log("finish time: %lu us", now - boot_time);
-            Log("total_inst : %ld", inst_count);
+            Log("total_inst : %ld", inst_count + 1);
             Log("total_cycle : %ld", cycle_count);
-            Log("IPC : %.6f", (double)inst_count / cycle_count);
+            Log("IPC : %.6f", (double)(inst_count + 1) / cycle_count);
             printf("\033[31mHIT BAD TRAP!\033[0m\n");
         }
     }
