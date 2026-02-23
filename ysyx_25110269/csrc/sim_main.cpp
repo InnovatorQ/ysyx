@@ -130,7 +130,7 @@ static void reset(int n){
 
 static void show_pref(){
     Log("--------------------------------------------------");
-    Log("|Total prefetched instructions : %d \t|", CPU_INFO(LFU__DOT__pref_cnt));
+    Log("|Total prefetched instructions : %d \t|", CPU_INFO(IFU__DOT__pref_cnt));
     Log("|decode prefetch : %d \t\t\t|", CPU_INFO(IDU__DOT__pref_cnt));
     Log("|LSU prefetch : %d \t\t\t|", CPU_INFO(LSU__DOT__pref_cnt));
     Log("|EXU prefetch : %d \t\t\t|", CPU_INFO(EXU__DOT__pref_cnt));
