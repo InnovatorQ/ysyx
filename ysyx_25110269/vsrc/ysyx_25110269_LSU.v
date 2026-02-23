@@ -49,9 +49,6 @@ module ysyx_25110269_LSU(
     localparam ms_wdata_ready = 3'b11;
     localparam ms_rdata_ready = 3'b100;
 
-    reg [7 : 0]     lfsr;
-    reg [4 : 0]     lsu_req_delay;
-    reg [4 : 0]     lsu_resp_delay;
     reg [4 : 0]     delay_count;
 
     reg [221 : 0]   es_to_ms_bus_r;
