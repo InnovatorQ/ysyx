@@ -128,6 +128,15 @@ static void reset(int n){
     top->reset = 0;
 }
 
+static void show_pref(){
+    Log("--------------------------------------------------");
+    Log("|Total prefetched instructions : %d \t|", CPU_INFO(LFU__DOT__pref_cnt));
+    Log("|decode prefetch : %d \t\t\t|", CPU_INFO(IDU__DOT__pref_cnt));
+    Log("|LSU prefetch : %d \t\t\t|", CPU_INFO(LSU__DOT__pref_cnt));
+    Log("|EXU prefetch : %d \t\t\t|", CPU_INFO(EXU__DOT__pref_cnt));
+    Log("--------------------------------------------------");
+}
+
 word_t get_rf(int n){
     word_t pc = CPU_INFO(IFU__DOT__pc);
     word_t regs[32];
@@ -177,6 +186,8 @@ int main(int argc, char **argv){
     
     // 进入sdb主循环
     sdb_mainloop();
+
+    show_pref();
 #ifdef CONFIG_WAVE
     tfp->close();
     delete tfp;
