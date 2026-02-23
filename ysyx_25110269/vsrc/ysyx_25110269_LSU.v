@@ -60,6 +60,8 @@ module ysyx_25110269_LSU(
 
     reg  [31 : 0]   mem_addr_r;     //difftest
     reg  [31 : 0]   pref_cnt;
+    reg  [31 : 0]   delay_cnt;
+    reg             access_start;
 
     wire [31 : 0]   ms_pc;
     wire [31 : 0]   load_data;
@@ -89,9 +91,27 @@ module ysyx_25110269_LSU(
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
+            pref_cnt <= 32'b0;
+            delay_cnt <= 32'b0;
+            access_start <= 1'b0;
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state; 
+            
+            // 开始访问计数
+            if((arvalid && arready) || (awvalid && awready)) begin
+                access_start <= 1'b1;
+            end
+            
+            // 访问完成，停止计数
+            if((rvalid && rready) || (bvalid && bready)) begin
+                access_start <= 1'b0;
+            end
+            
+            // LSU延迟计数
+            if(access_start || (arvalid && arready) || (awvalid && awready)) begin
+                delay_cnt <= delay_cnt + 1'b1;
+            end
         end
     end
 
