@@ -128,6 +128,24 @@ static void reset(int n){
     top->reset = 0;
 }
 
+static void show_pref(){
+    Log("---------------------------------------------------");
+    Log("|Total prefetched instructions \t| %d  \t|", CPU_INFO(IFU__DOT__pref_cnt));
+    Log("|Total prefetched delay cycles \t| %d  \t|", CPU_INFO(IFU__DOT__delay_cnt));
+    Log("---------------------------------------------------");
+    Log("|decode calculate prefetch     \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_alu));
+    Log("|decode load/store prefetch    \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_ls));
+    Log("|decode branch prefetch        \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_br));
+    Log("|decode csr prefetch           \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_csr));
+    Log("---------------------------------------------------");
+    Log("|LSU prefetch                  \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt));
+    Log("|LSU delay cycles              \t| %d  \t|", CPU_INFO(LSU__DOT__delay_cnt));
+    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU__DOT__delay_cnt) * 1.0 / CPU_INFO(LSU__DOT__pref_cnt));
+    Log("---------------------------------------------------");
+    Log("|EXU prefetch                  \t| %d  \t|", CPU_INFO(EXU__DOT__pref_cnt));
+    Log("---------------------------------------------------");
+}
+
 word_t get_rf(int n){
     word_t pc = CPU_INFO(IFU__DOT__pc);
     word_t regs[32];
@@ -177,6 +195,8 @@ int main(int argc, char **argv){
     
     // 进入sdb主循环
     sdb_mainloop();
+
+    show_pref();
 #ifdef CONFIG_WAVE
     tfp->close();
     delete tfp;

@@ -41,7 +41,8 @@ module ysyx_25110269_IFU(
     reg  [1  : 0]   ifu_rresp;
 
     reg [31: 0] pref_cnt;
-
+    reg [31: 0] delay_cnt;
+    reg         access_start;
     always @(posedge clk) begin
         if(reset) begin
             fs_state <= fs_idle;
@@ -118,6 +119,14 @@ module ysyx_25110269_IFU(
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
+        // 开始访问计数
+        if((arvalid && arready)) begin
+            access_start <= 1'b1;
+        end
+        // LSU延迟计数
+        if(access_start || (arvalid && arready)) begin
+            delay_cnt <= delay_cnt + 1'b1;
+        end    
         // 在AXI读握手成功时缓存数据
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
@@ -126,6 +135,7 @@ module ysyx_25110269_IFU(
                 $fatal;
             end
             pref_cnt <= pref_cnt + 1'b1;
+            access_start <= 1'b0;
         end
     end
     

@@ -174,7 +174,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   //每执行检测一次内存
 
   if(is_store){
-    // Log("mem_addr : " FMT_WORD "\n", mem_addr);
+    // Log("mem_addr : " FMT_WORD , mem_addr);
     checkmem(&ref_r, mem_addr, pc);
   }
   // 检查寄存器状态

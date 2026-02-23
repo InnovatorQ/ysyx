@@ -33,7 +33,10 @@ module ysyx_25110269_IDU(
 
     reg             ds_valid;   //译码阶段有效信号
     wire            ds_ready_go;
-    reg  [31 : 0]   pref_cnt;
+    reg  [31 : 0]   pref_cnt_alu;
+    reg  [31 : 0]   pref_cnt_ls;
+    reg  [31 : 0]   pref_cnt_br;
+    reg  [31 : 0]   pref_cnt_csr;
     reg  [63 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
 
@@ -124,12 +127,23 @@ module ysyx_25110269_IDU(
         if(reset) begin
             ds_state <= ds_idle;
             ds_valid <= 1'b0;
-            pref_cnt <= 32'b0;
+            pref_cnt_alu <= 32'b0;
+            pref_cnt_ls <= 32'b0;
+            pref_cnt_br <= 32'b0;
+            pref_cnt_csr <= 32'b0;
         end else begin
             ds_state <= next_state;
             ds_valid <= fs_to_ds_valid;
             if(ds_state == ds_wait_ready && es_allowin) begin
-                pref_cnt <= pref_cnt + 1'b1;
+                if(|alu_op) begin
+                    pref_cnt_alu <= pref_cnt_alu + 1'b1;
+                end else if(|load || |store) begin
+                    pref_cnt_ls <= pref_cnt_ls + 1'b1;
+                end else if(inst_b || inst_jalr || inst_jal) begin
+                    pref_cnt_br <= pref_cnt_br + 1'b1;
+                end else if(csr_wen) begin
+                    pref_cnt_csr <= pref_cnt_csr + 1'b1;
+                end
             end
         end
     end
@@ -248,7 +262,7 @@ module ysyx_25110269_IDU(
 
     assign csr_op[0] = inst_csrrs;
     assign csr_op[1] = inst_csrrw;
-
+    //计算类指令
     assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc;
     assign alu_op[1] = inst_sltiu | inst_sltu;
     assign alu_op[2] = inst_sub;

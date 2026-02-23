@@ -49,9 +49,6 @@ module ysyx_25110269_LSU(
     localparam ms_wdata_ready = 3'b11;
     localparam ms_rdata_ready = 3'b100;
 
-    reg [7 : 0]     lfsr;
-    reg [4 : 0]     lsu_req_delay;
-    reg [4 : 0]     lsu_resp_delay;
     reg [4 : 0]     delay_count;
 
     reg [221 : 0]   es_to_ms_bus_r;
@@ -60,6 +57,8 @@ module ysyx_25110269_LSU(
 
     reg  [31 : 0]   mem_addr_r;     //difftest
     reg  [31 : 0]   pref_cnt;
+    reg  [31 : 0]   delay_cnt;
+    reg             access_start;
 
     wire [31 : 0]   ms_pc;
     wire [31 : 0]   load_data;
@@ -89,9 +88,27 @@ module ysyx_25110269_LSU(
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
+            pref_cnt <= 32'b0;
+            delay_cnt <= 32'b0;
+            access_start <= 1'b0;
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state; 
+            mem_addr_r <= mem_addr;
+            // 开始访问计数
+            if((arvalid && arready) || (awvalid && awready)) begin
+                access_start <= 1'b1;
+            end
+            
+            // 访问完成，停止计数
+            if((rvalid && rready) || (bvalid && bready)) begin
+                access_start <= 1'b0;
+            end
+            
+            // LSU延迟计数
+            if(access_start || (arvalid && arready) || (awvalid && awready)) begin
+                delay_cnt <= delay_cnt + 1'b1;
+            end
         end
     end
 
@@ -119,7 +136,7 @@ module ysyx_25110269_LSU(
             end
             default : next_state = ms_idle;
         endcase
-        if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
+        // if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
     end
     wire   in_uart = (mem_addr == 32'h10000005);
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
