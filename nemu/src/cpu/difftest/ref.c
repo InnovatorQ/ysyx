@@ -19,7 +19,7 @@
 #include <memory/paddr.h>
 
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  //printf("DEBUG : addr : " FMT_PADDR "\n", addr);
+  printf("DEBUG : addr : " FMT_PADDR "\n", addr);
   // 内存访问接口：允许外部读写NEMU的内存
   if (direction == DIFFTEST_TO_REF) {
     // 外部向NEMU写入内存数据

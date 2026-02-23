@@ -102,7 +102,7 @@ void init_mem() {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  printf("addr : " FMT_PADDR "\n", addr);
+  // printf("addr : " FMT_PADDR "\n", addr);
   // assert(addr == 0x20000000);
   if (likely(in_pmem(addr))){ 
     word_t ret = pmem_read(addr, len);

@@ -61,7 +61,6 @@ void cpu_exec(int n) {
     static word_t last_inst ;
     while (!is_ebreak) {
       word_t pc = get_rf(32);
-      //Log("PC : " FMT_WORD "\n", pc);
       word_t inst = pmem_read(pc);
       bool done = CPU_INFO(inst_finish);
       single_cycle();
