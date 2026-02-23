@@ -131,6 +131,7 @@ static void reset(int n){
 static void show_pref(){
     Log("---------------------------------------------------");
     Log("|Total prefetched instructions \t| %d  \t|", CPU_INFO(IFU__DOT__pref_cnt));
+    Log("|Total prefetched delay cycles \t| %d  \t|", CPU_INFO(IFU__DOT__delay_cnt));
     Log("---------------------------------------------------");
     Log("|decode calculate prefetch     \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_alu));
     Log("|decode load/store prefetch    \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_ls));
