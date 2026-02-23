@@ -129,12 +129,12 @@ static void reset(int n){
 }
 
 static void show_pref(){
-    Log("--------------------------------------------------");
-    Log("|Total prefetched instructions : %d \t|", CPU_INFO(IFU__DOT__pref_cnt));
-    Log("|decode prefetch : %d \t\t\t|", CPU_INFO(IDU__DOT__pref_cnt));
-    Log("|LSU prefetch : %d \t\t\t|", CPU_INFO(LSU__DOT__pref_cnt));
-    Log("|EXU prefetch : %d \t\t\t|", CPU_INFO(EXU__DOT__pref_cnt));
-    Log("--------------------------------------------------");
+    Log("-------------------------------------------");
+    Log("|Total prefetched instructions | %d \t|", CPU_INFO(IFU__DOT__pref_cnt));
+    Log("|decode prefetch \t| %d \t|", CPU_INFO(IDU__DOT__pref_cnt));
+    Log("|LSU prefetch \t| %d \t\t\t|", CPU_INFO(LSU__DOT__pref_cnt));
+    Log("|EXU prefetch \t| %d \t\t\t|", CPU_INFO(EXU__DOT__pref_cnt));
+    Log("-------------------------------------------");
 }
 
 word_t get_rf(int n){
