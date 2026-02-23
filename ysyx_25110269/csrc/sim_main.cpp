@@ -139,6 +139,7 @@ static void show_pref(){
     Log("---------------------------------------------------");
     Log("|LSU prefetch                  \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt));
     Log("|LSU delay cycles              \t| %d  \t|", CPU_INFO(LSU__DOT__delay_cnt));
+    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU__DOT__delay_cnt) * 1.0 / CPU_INFO(LSU__DOT__pref_cnt));
     Log("---------------------------------------------------");
     Log("|EXU prefetch                  \t| %d  \t|", CPU_INFO(EXU__DOT__pref_cnt));
     Log("---------------------------------------------------");
