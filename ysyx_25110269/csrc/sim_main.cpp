@@ -138,9 +138,10 @@ static void show_pref(){
     Log("|decode branch prefetch        \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_br));
     Log("|decode csr prefetch           \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_csr));
     Log("+-------------------------------------------------+");
-    Log("|LSU prefetch                  \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt));
+    Log("|LSU load prefetch             \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt_l));
+    Log("|LSU store prefetch            \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt_s));
     Log("|LSU delay cycles              \t| %d  \t|", CPU_INFO(LSU__DOT__delay_cnt));
-    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU__DOT__delay_cnt) * 1.0 / CPU_INFO(LSU__DOT__pref_cnt));
+    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU__DOT__delay_cnt) * 1.0 / (CPU_INFO(LSU__DOT__pref_cnt_l) + CPU_INFO(LSU__DOT__pref_cnt_s)));
     Log("+-------------------------------------------------+");
     Log("|EXU prefetch                  \t| %d  \t|", CPU_INFO(EXU__DOT__pref_cnt));
     Log("+-------------------------------------------------+");
@@ -148,16 +149,23 @@ static void show_pref(){
 
 word_t get_rf(int n){
     word_t pc = CPU_INFO(IFU__DOT__pc);
+    #ifdef CONFIG_REG_16
+    word_t regs[16];
+    for(int i = 0; i < 16 ; i++){
+        regs[i] = CPU_INFO(WBU__DOT__rf__DOT__regs)[i];
+    }
+    if(n >= 0 && n < 16) return regs[n];
+    #endif
+    #ifdef CONFIG_REG_32
     word_t regs[32];
     for(int i = 0; i < 32 ; i++){
         regs[i] = CPU_INFO(WBU__DOT__rf__DOT__regs)[i];
     }
     if(n >= 0 && n < 32) return regs[n];
+    #endif
     else if(n == 32) return pc;
-    else {
-        printf("Invalid register number: %d\n", n);
-        return 0;
-    }
+    Assert(0, "Invalid register number: %d\n", n);
+    return 0;
 }
 
 word_t get_csr(int n){

@@ -92,9 +92,16 @@ static int cmd_info(char *args) {
     char *reg_num = strtok(NULL, " ");
     if(reg_num == NULL){
         //显示所有寄存器
+        #ifdef CONFIG_REG_16
+        for(int i = 0; i < 16; i++){
+            printf("r%d: 0x%08x\n", i, get_rf(i));
+        }
+        #endif
+        #ifdef CONFIG_REG_32
         for(int i = 0; i < 32; i++){
             printf("r%d: 0x%08x\n", i, get_rf(i));
         }
+        #endif
     }else{
       printf("x%s: 0x%08x\n", reg_num, get_rf(atoi(reg_num)));
     }

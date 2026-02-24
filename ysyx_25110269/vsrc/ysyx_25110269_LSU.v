@@ -56,7 +56,8 @@ module ysyx_25110269_LSU(
     reg             ms_valid;
 
     reg  [31 : 0]   mem_addr_r;     //difftest
-    reg  [31 : 0]   pref_cnt;
+    reg  [31 : 0]   pref_cnt_l;
+    reg  [31 : 0]   pref_cnt_s;
     reg  [31 : 0]   delay_cnt;
     reg             access_start;
 
@@ -85,7 +86,8 @@ module ysyx_25110269_LSU(
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
-            pref_cnt <= 32'b0;
+            pref_cnt_l <= 32'b0;
+            pref_cnt_s <= 32'b0;
             delay_cnt <= 32'b0;
             access_start <= 1'b0;
         end else begin
@@ -207,13 +209,14 @@ module ysyx_25110269_LSU(
     always @(posedge clock)begin
         if(rvalid & rready) begin
             mem_rdata <= rdata;
-            pref_cnt <= pref_cnt + 1;
+            pref_cnt_l <= pref_cnt_l + 1;
         end
         if(bvalid & bready) begin
             if(bresp != 2'b0) begin
                 // $display("bresp : %d .Access Fault !!!", bresp);
                 // $fatal;
             end
+            pref_cnt_s <= pref_cnt_s + 1;    
         end
     end
 
