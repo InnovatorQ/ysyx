@@ -1,5 +1,5 @@
 // 负责根据控制信号控制存储器, 从存储器中读出数据, 或将数据写入存储器
-`include "mycpu.vh"
+
 module ysyx_25110269_LSU(
     input           clock,
     input           reset,
@@ -55,7 +55,7 @@ module ysyx_25110269_LSU(
     wire            ms_ready_go;
     reg             ms_valid;
 
-    reg  [31 : 0]   mem_addr_r;
+    reg  [31 : 0]   mem_addr_r;     //difftest
     reg  [31 : 0]   pref_cnt;
     reg  [31 : 0]   delay_cnt;
     reg             access_start;

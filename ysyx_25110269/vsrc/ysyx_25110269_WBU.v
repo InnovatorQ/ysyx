@@ -80,7 +80,8 @@ module ysyx_25110269_WBU(
         .rdata2     (rf2_data   ),
         .wen        (rf_wen     ),
         .waddr      (dest       ),
-        .wdata      (3    )
+        .wdata      (wb_data    )
+        
     );
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? ws_pc + 32'h4 : 

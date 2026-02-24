@@ -10,7 +10,7 @@ module ysyx_25110269_regfile(
 );
     reg [31 : 0] regs [15 : 0];
     always @(posedge clock) begin
-        if(wen) begin
+        if(wen && (waddr != 0)) begin
             regs[waddr[3:0]] <= wdata;
         end
     end
