@@ -1,10 +1,9 @@
 // 负责对当前指令进行译码, 准备执行阶段需要使用的数据和控制信号
 module ysyx_25110269_IDU(
-    input           clk,
+    input           clock,
     input           reset,
-    //input           done,
     //fs->ds
-    input  [63 : 0] fs_to_ds_bus,
+    input  [`FS_TO_DS_BUS_WD - 1 : 0] fs_to_ds_bus,
     input           fs_to_ds_valid,
     // rf->ds | ds->rf
     output [4 : 0]  rs1,
@@ -15,8 +14,7 @@ module ysyx_25110269_IDU(
     input           es_allowin,
     //ds->es
     output              ds_to_es_valid,
-    output [270 : 0]    ds_to_es_bus,
-    output reg          ds_state,
+    output [`DS_TO_ES_BUS_WD - 1 : 0]    ds_to_es_bus,
     
     //ds->fs
     output          ds_allowin,
@@ -27,6 +25,7 @@ module ysyx_25110269_IDU(
     //csr->ds
     input [31 : 0]  csr_data,
     //ds->csr
+    output [31 : 0] csr_result,
     output [11 : 0] csr_addr,
     output [1 : 0]  csr_op
 );
@@ -37,7 +36,7 @@ module ysyx_25110269_IDU(
     reg  [31 : 0]   pref_cnt_ls;
     reg  [31 : 0]   pref_cnt_br;
     reg  [31 : 0]   pref_cnt_csr;
-    reg  [63 : 0]   fs_to_ds_bus_r;
+    reg  [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
 
     wire [6  : 0]   opcode;
@@ -48,12 +47,10 @@ module ysyx_25110269_IDU(
     wire [31 : 0]   src2;
     wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
-    wire [31 : 0]   csr_result;
     wire [11 : 0]   alu_op;
     wire [4  : 0]   rd;
     wire [3  : 0]   load;
     wire [3  : 0]   store;
-    wire            csr_wen;
     wire            load_sign;
     wire            mem_ren;
     wire            res_from_csr;
@@ -116,14 +113,14 @@ module ysyx_25110269_IDU(
     wire [31 : 0]   offset;
 
     wire            rs1_lt_rd_sign;
-
+    reg             ds_state;
     localparam ds_idle = 1'b0;
     localparam ds_wait_ready = 1'b1;
     reg        next_state;
 
     assign ds_allowin = 1'b1;
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) begin
             ds_state <= ds_idle;
             ds_valid <= 1'b0;
@@ -141,7 +138,7 @@ module ysyx_25110269_IDU(
                     pref_cnt_ls <= pref_cnt_ls + 1'b1;
                 end else if(inst_b || inst_jalr || inst_jal) begin
                     pref_cnt_br <= pref_cnt_br + 1'b1;
-                end else if(csr_wen) begin
+                end else if(|csr_op) begin
                     pref_cnt_csr <= pref_cnt_csr + 1'b1;
                 end
             end
@@ -161,20 +158,17 @@ module ysyx_25110269_IDU(
     end
 
     assign ds_to_es_bus = {
-        ds_pc,           //270 : 239
+        ds_pc,           
         src1,           //238 : 207
         src2,           //206 : 175
         mem_addr,       //174 : 143
         st_data,        //142 : 111
-        csr_result,     //110 : 79
         csr_data,       //78 : 47
-        csr_addr,      //46 : 35
         alu_op,         //34 : 23
         rs2,            //22 : 18
         rd,             //17 : 13
         load,           //12 : 9
         store,          //8 : 5
-        csr_wen,        //4
         load_sign,      //3
         res_from_csr,   //2
         rf_wen,         //1
@@ -244,7 +238,6 @@ module ysyx_25110269_IDU(
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 
                      inst_sra | inst_srl | inst_lhu | inst_csrrs | inst_csrrw;
-    assign csr_wen = inst_csrrs | inst_csrrw;
     // assign mem_wen = inst_s;
     assign mem_ren = inst_lw | inst_lbu | inst_lb;
     assign load_sign = inst_lh | inst_lw | inst_lb;
@@ -300,10 +293,13 @@ module ysyx_25110269_IDU(
                  inst_u ? imm_u : 
                  inst_s ? imm_s : 
                  inst_j ? imm_j : 32'b0;
+
     assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
                         inst_jal ? (ds_pc + imm_j) :
                         inst_b ? (ds_pc + offset) : 32'b0;  
+
     assign mem_addr = rs1_data + imm;
+    
     assign src1 = inst_lui ? 32'b0 : 
                 inst_auipc ? ds_pc :rs1_data;  // lui时src1为0
     assign src2 = inst_r ? rs2_data : imm;
@@ -323,7 +319,7 @@ module ysyx_25110269_IDU(
     // end
     assign ds_to_es_valid = (ds_state == ds_wait_ready) ? 1'b1 : 1'b0;
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(fs_to_ds_valid && ds_allowin) begin
             fs_to_ds_bus_r <= fs_to_ds_bus;
         end

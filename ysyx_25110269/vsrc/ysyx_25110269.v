@@ -1,5 +1,6 @@
 import "DPI-C" function void ebreak();
 import "DPI-C" function void skip_ref();
+`include "mycpu.vh"
 module ysyx_25110269(
     input           clock,
     input           reset,
@@ -90,7 +91,7 @@ module ysyx_25110269(
     assign  io_master_arid = 4'b0;
     assign  io_master_arburst = 2'b0;
 
-    reg             inst_finish;
+    reg             inst_finish ;
     wire            fs_to_ds_valid;
     wire            ds_allowin;
     wire            ds_to_es_valid;
@@ -100,16 +101,10 @@ module ysyx_25110269(
     wire            ms_to_ws_valid;
     wire            ws_allowin;
 
-    reg   [1 : 0]   fs_state;
-    reg             ds_state;
-    reg             es_state;
-    reg   [1 : 0]   ms_state;
-    reg             ws_state;
-
-    wire [63  : 0]     fs_to_ds_bus;
-    wire [270 : 0]     ds_to_es_bus;
-    wire [221 : 0]     es_to_ms_bus;
-    wire [184 : 0]     ms_to_ws_bus;
+    wire [`FS_TO_DS_BUS_WD - 1 : 0]     fs_to_ds_bus;
+    wire [`DS_TO_ES_BUS_WD - 1 : 0]     ds_to_es_bus;
+    wire [`ES_TO_MS_BUS_WD - 1 : 0]     es_to_ms_bus;
+    wire [`MS_TO_WS_BUS_WD - 1 : 0]     ms_to_ws_bus;
 
     wire [31 : 0] seq_pc;
     wire          br_taken;
@@ -160,14 +155,13 @@ module ysyx_25110269(
     wire        ifu_rready;
     
     ysyx_25110269_IFU IFU(
-        .clk            (clock          ),
+        .clock          (clock          ),
         .reset          (reset          ),
-        .inst_finish    (inst_finish      ),
+        .inst_finish    (inst_finish    ),
 
         .ds_allowin     (ds_allowin     ),
         .fs_to_ds_valid (fs_to_ds_valid ),
         .fs_to_ds_bus   (fs_to_ds_bus   ),
-        .fs_state       (fs_state      ),
 
         .br_taken       (br_taken       ),
         .br_target      (br_target      ),
@@ -189,9 +183,8 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_IDU IDU(
-        .clk            (clock          ),
+        .clock          (clock          ),
         .reset          (reset          ),
-        //.done           (done           ),
 
         .fs_to_ds_valid (fs_to_ds_valid ),
         .fs_to_ds_bus   (fs_to_ds_bus   ),
@@ -200,7 +193,6 @@ module ysyx_25110269(
         .es_allowin     (es_allowin     ),
 
         .ds_to_es_valid (ds_to_es_valid ),
-        .ds_state       (ds_state       ),
         .ds_to_es_bus   (ds_to_es_bus   ),
         
         .rs1            (rs1            ),
@@ -209,6 +201,7 @@ module ysyx_25110269(
         .rs2_data       (rs2_data       ),
 
         .csr_data       (csr_data       ),
+        .csr_result     (csr_result     ),
         .csr_addr       (csr_addr       ),
         .csr_op         (csr_op         ),
 
@@ -219,19 +212,17 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_EXU EXU(
-        .clk            (clock          ),
+        .clock          (clock          ),
         .reset          (reset          ),
-        //.done           (done           ),
 
         .ds_to_es_valid (ds_to_es_valid ),
-        .ds_state       (ds_state       ),
+
         .ds_to_es_bus   (ds_to_es_bus   ),
 
         .ms_allowin     (ms_allowin     ),
         .es_allowin     (es_allowin     ),
 
         .es_to_ms_valid (es_to_ms_valid ),
-        .es_state       (es_state       ),
         .es_to_ms_bus   (es_to_ms_bus   )
     );
     // AXI4-Lite signals for LSU
@@ -245,11 +236,10 @@ module ysyx_25110269(
     wire [2:0]  lsu_awsize, lsu_arsize;
     wire [1:0]  lsu_rresp, lsu_bresp;
     ysyx_25110269_LSU LSU(
-        .clk                (clock          ),
+        .clock              (clock          ),
         .reset              (reset          ),
 
         .es_to_ms_valid     (es_to_ms_valid ),
-        .es_state           (es_state       ),
         .es_to_ms_bus       (es_to_ms_bus   ),
 
         .ms_allowin         (ms_allowin     ),
@@ -289,7 +279,7 @@ module ysyx_25110269(
     wire [2  : 0]   clint_arsize;
     wire [1  : 0]   clint_rresp;
     ysyx_25110269_CLINT clint(
-        .clk                (clock          ),
+        .clock              (clock          ),
         .reset              (reset          ),
 
         .clint_arvalid      (clint_arvalid  ),
@@ -305,7 +295,7 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_axi_xbar axi_xbar(
-        .clk                (clock              ),
+        .clock              (clock              ),
         .reset              (reset              ),
         // IFU interface
         .ifu_arvalid        (ifu_arvalid        ),
@@ -382,39 +372,34 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_WBU WBU(
-        .clk            (clock          ),
+        .clock          (clock          ),
         .reset          (reset          ),
 
         .ms_to_ws_valid (ms_to_ws_valid ),
         .ms_to_ws_bus   (ms_to_ws_bus   ),
 
         .ws_allowin     (ws_allowin     ),
-        .ws_state       (ws_state       ),
 
         .rs1            (rs1            ),
         .rs2            (rs2            ),
         .rf1_data       (rs1_data       ),
         .rf2_data       (rs2_data       ),
 
-        //.regs           (regs           ),
-        .csr_wen        (csr_wen        ),
-        .wr_csr_addr    (wr_csr_addr    ),
-        .csr_result     (csr_result     ),
-        .inst_finish    (inst_finish      )
+        .inst_finish    (inst_finish    )
     );
-    wire [31 : 0] ds_pc = ds_to_es_bus[270 : 239];
+    wire [31 : 0] ds_pc = ds_to_es_bus[`DS_TO_ES_BUS_WD - 1 : `DS_TO_ES_BUS_WD - 32];
     reg [31 : 0] csr_mtvec;
     reg [31 : 0] csr_mepc;
     ysyx_25110269_csr csr(
         .ds_pc      (ds_pc      ),
-        .clk        (clock      ),
+        .clock      (clock      ),
         .reset      (reset      ),
         .ecall      (inst_ecall ),
         .mret       (mret       ),
         .rd_addr    (csr_addr   ),
         .rd_data    (csr_data   ),
-        .csr_wen    (csr_wen    ),
-        .wr_addr    (wr_csr_addr),
+        .csr_wen    (|csr_op    ),
+        .wr_addr    (csr_addr   ),
         .wr_data    (csr_result ),
         .csr_mtvec  (csr_mtvec  ),
         .csr_mepc   (csr_mepc   )

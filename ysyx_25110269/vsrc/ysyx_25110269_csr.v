@@ -1,6 +1,6 @@
 module ysyx_25110269_csr(
     input [31 : 0]  ds_pc,
-    input           clk,
+    input           clock,
     input           reset,
 
     input           ecall,
@@ -33,7 +33,7 @@ module ysyx_25110269_csr(
     localparam MSTATUS = 12'h300;
     localparam MTVEC = 12'h305;
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) begin
             csr_mcycle <= 32'b0;
             csr_mcycle_h <= 32'b0;
@@ -48,7 +48,7 @@ module ysyx_25110269_csr(
         end
     end
 
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         //$display(" mepc : 0x%08x, mcause : 0x%08x", csr_mepc, csr_mcause);
         if(reset)begin
             csr_mcause <= 32'b0;

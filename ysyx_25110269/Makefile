@@ -38,7 +38,8 @@ CXXFLAGS += -I$(abspath ./include) \
 			-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
 			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
 			-I$(abspath ../nemu/tools/capstone/repo/include) \
-			-I$(abspath $(NVBOARD_HOME)/usr/include)
+			-I$(abspath $(NVBOARD_HOME)/usr/include) \
+			-I$(abspath ./vsrc)
 CXXFLAGS += $(CFLAGS_CONFIG) -DDST_DIR=\\\"$(DST_DIR)\\\"
 
 LDFLAGS += -L$(NVBOARD_HOME)/build -l:nvboard.a
@@ -50,7 +51,8 @@ VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 			-I$(abspath ../ysyxSoC/perip/uart16550/rtl) \
 			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
 			-I$(abspath ../nemu/tools/capstone/repo/include) \
-			-I$(abspath ../nvboard/usr/include) 
+			-I$(abspath ../nvboard/usr/include)\
+			-I$(abspath ./vsrc)  
 		    
 OBJ_DIR = $(DST_DIR)/obj_dir
 BIN = $(DST_DIR)/$(TOPNAME)
@@ -64,7 +66,7 @@ SRC_AUTO_BIND = $(DST_DIR)/auto_bind.cpp
 $(SRC_AUTO_BIND): $(NXDC_FILES)
 	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 
-VSRCS += $(shell find $(abspath ./vsrc) -name "*.v") 
+VSRCS += $(shell find $(abspath ./vsrc) -name "*.v" -o -name "*.vh") 
 VSRCS += $(shell find $(abspath ../ysyxSoC/perip) -name "*.v" -type f)
 VSRCS += /home/qzx/ysyx/ysyx-workbench/ysyxSoC/build/ysyxSoCFull.v
 # CSRCS += $(shell find $(abspath ../nvboard/src) -name "*.cpp")

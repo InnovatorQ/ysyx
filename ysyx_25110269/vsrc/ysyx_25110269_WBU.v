@@ -1,26 +1,21 @@
 // 将数据写入寄存器, 并更新PC
 module ysyx_25110269_WBU(
-    input           clk,
+    input           clock,
     input           reset,
     //es->ws
     input           ms_to_ws_valid,
-    input  [184 :0] ms_to_ws_bus,
+    input  [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus,
     //ws->es
     output          ws_allowin,
-    output reg      ws_state,
     
     input  [4 : 0]  rs1,
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
     //diff
-    output          inst_finish,
-    output          csr_wen,
-    output [11 : 0] wr_csr_addr,
-    output [31 : 0] csr_result
-    //output reg [31 : 0] regs [31 : 0]
+    output reg      inst_finish
 );
-    reg  [184 :0] ms_to_ws_bus_r;
+    reg  [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus_r;
     wire [31 : 0] ws_pc;
     wire [31 : 0] alu_result;
     wire [3  : 0] load;
@@ -37,11 +32,11 @@ module ysyx_25110269_WBU(
 
     localparam  ws_idle = 1'b0;
     localparam  ws_wait_ready = 1'b1;
+    reg         ws_state;
     reg         next_state;
 
     assign ws_allowin = 1'b1;
-    //assign inst_finish = (ws_state == ws_wait_ready);
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         if(reset)begin
             ws_valid <= 1'b0;
             ws_state <= ws_idle;
@@ -69,28 +64,23 @@ module ysyx_25110269_WBU(
         ws_pc,
         load_data,
         alu_result,
-        csr_result,
         csr_data,
-        wr_csr_addr,
         dest,
         load,
-        csr_wen,
         res_from_csr,
         rf_wen,
         br_taken
     } = ms_to_ws_bus_r;
 
     ysyx_25110269_regfile rf(
-        .clk        (clk        ),
-        .reset      (reset      ),
+        .clock      (clock      ),
         .raddr1     (rs1        ),
         .raddr2     (rs2        ),
         .rdata1     (rf1_data   ),
         .rdata2     (rf2_data   ),
         .wen        (rf_wen     ),
         .waddr      (dest       ),
-        .wdata      (wb_data    )
-        //.regs       (regs       )
+        .wdata      (3    )
     );
     assign wb_data = (load != 4'h0) ? load_data : 
                       br_taken ? ws_pc + 32'h4 : 
@@ -108,7 +98,7 @@ module ysyx_25110269_WBU(
     //     end
     // end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(ms_to_ws_valid && ws_allowin)
             ms_to_ws_bus_r <= ms_to_ws_bus;
     end

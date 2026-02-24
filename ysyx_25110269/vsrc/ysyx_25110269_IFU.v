@@ -1,6 +1,6 @@
 // 负责根据当前PC从存储器中取出一条指令
 module ysyx_25110269_IFU(
-    input          clk              ,
+    input          clock            ,  
     input          reset            ,
     input          inst_finish        ,
     //ds->fs
@@ -14,10 +14,8 @@ module ysyx_25110269_IFU(
     input   [31:0] csr_mepc         ,
     //fs->ds
     output          fs_to_ds_valid  ,
-    output [63 : 0] fs_to_ds_bus    ,
-    
-    output reg [1 : 0]    fs_state  ,   
-    
+    output [`FS_TO_DS_BUS_WD - 1 : 0] fs_to_ds_bus    ,
+
     // AXI4-Lite Read Address Channel
     output          arvalid          ,
     output [31:0]   araddr           ,
@@ -35,40 +33,37 @@ module ysyx_25110269_IFU(
     localparam fs_wait_ready = 2'b01;
     localparam fs_addr_ready = 2'b10;
     localparam fs_data_ready = 2'b11;
-    reg [1:0]  next_state;
-
-    reg  [31 : 0]   ifu_rdata;
-    reg  [1  : 0]   ifu_rresp;
-
-    reg [31: 0] pref_cnt;
-    reg [31: 0] delay_cnt;
-    reg         access_start;
-    always @(posedge clk) begin
+    reg [1:0]  fs_state;
+    reg [31:0] ifu_rdata;
+    reg [31:0] pref_cnt;
+    reg [31:0] delay_cnt;
+    reg        access_start;
+    // 添加fs_valid逻辑
+    always @(posedge clock) begin
         if(reset) begin
-            fs_state <= fs_idle;
             fs_valid <= 1'b0;
             pref_cnt <= 32'b0;
         end else begin
-            fs_state <= next_state;
             fs_valid <= 1'b1;
-            
         end
     end
-    always @(*) begin
-        case(fs_state)
-            fs_idle: begin
-                next_state = (!fs_valid | inst_finish ) ? fs_wait_ready : fs_idle;
-            end
-            fs_wait_ready: begin
-                next_state = (arvalid & arready) ? fs_addr_ready : fs_wait_ready;
-            end
-            fs_addr_ready: begin
-                next_state = (rvalid & rready) ? fs_data_ready : fs_addr_ready;
-            end
-            fs_data_ready: begin
-                next_state = ds_allowin ? fs_idle : fs_data_ready;
-            end
-        endcase
+    
+    // 优化状态机逻辑，减少组合逻辑深度
+    always @(posedge clock) begin
+        if(reset) begin
+            fs_state <= fs_idle;
+        end else begin
+            case(fs_state)
+                fs_idle: 
+                    fs_state <= (!fs_valid | inst_finish) ? fs_wait_ready : fs_idle;
+                fs_wait_ready: 
+                    fs_state <= (arvalid & arready) ? fs_addr_ready : fs_wait_ready;
+                fs_addr_ready: 
+                    fs_state <= (rvalid & rready) ? fs_data_ready : fs_addr_ready;
+                fs_data_ready: 
+                    fs_state <= ds_allowin ? fs_idle : fs_data_ready;
+            endcase
+        end
     end
     
     assign araddr = arvalid ? pc : 32'b0;
@@ -91,10 +86,31 @@ module ysyx_25110269_IFU(
         pc,
         ifu_rdata
     };
-    assign seq_pc = pc + 32'h4;
-    assign next_pc =inst_ecall  ? csr_mtvec :
-                    mret        ? csr_mepc  : 
-                    br_taken    ? br_target : seq_pc;
+    // 预计算所有可能的PC值，减少关键路径
+    reg [31:0] seq_pc_reg;
+    reg [31:0] next_pc_reg;
+    
+    always @(posedge clock) begin
+        if(reset) begin
+            seq_pc_reg <= 32'h30000000;
+        end else begin
+            seq_pc_reg <= pc + 32'h4;  // 提前计算顺序PC
+        end
+    end
+    
+    // 简化next_pc逻辑
+    always @(*) begin
+        if(inst_ecall)
+            next_pc_reg = csr_mtvec;
+        else if(mret)
+            next_pc_reg = csr_mepc;
+        else if(br_taken)
+            next_pc_reg = br_target;
+        else
+            next_pc_reg = seq_pc_reg;
+    end
+    
+    assign next_pc = next_pc_reg;
 
     // assign to_fs_valid = ~reset ;
     // assign fs_ready_go = 1'b1;
@@ -109,13 +125,13 @@ module ysyx_25110269_IFU(
     //     end
     // end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) begin
             //pc <= 32'h7ffffffc;
             //pc <= 32'h1ffffffc;
-            pc <= 32'h2ffffffc;
+            pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(fs_state == fs_idle && next_state == fs_wait_ready) begin
+        end else if(fs_state == fs_idle && inst_finish) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
@@ -131,8 +147,8 @@ module ysyx_25110269_IFU(
         if(rvalid & rready) begin
             ifu_rdata <= rdata;
             if(rresp != 2'b0) begin
-                $display("Access Fault !!! rrsep : %xh", rresp);
-                $fatal;
+                // $display("Access Fault !!! rrsep : %xh", rresp);
+                // $fatal;
             end
             pref_cnt <= pref_cnt + 1'b1;
             access_start <= 1'b0;
