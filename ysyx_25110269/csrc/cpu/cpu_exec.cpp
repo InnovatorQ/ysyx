@@ -1,8 +1,8 @@
 #include "../monitor/sdb/sdb.h"
-#include "common.h"
 #include "ftrace.h"
 #include "difftest.h"
 #include <cstdio>
+#include"memory/paddr.h"
 // 外部函数和变量
 extern VysyxSoCFull* top;
 extern bool is_ebreak;
@@ -10,6 +10,48 @@ extern void single_cycle();
 extern void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst);
 
 static uint64_t boot_time = 0;
+
+#ifdef CONFIG_MTRACE
+static void mtrace(word_t pc, word_t inst) {
+  uint8_t opcode = inst & 0x7f;
+  uint8_t func3 = (inst >> 12) & 0x7;
+  uint32_t mem_addr = CPU_INFO(LSU).mem_addr;
+  uint32_t mem_wdata = CPU_INFO(LSU).st_data;
+  uint32_t mem_rdata = CPU_INFO(LSU).mem_rdata;
+  if((opcode == 0x23) && (func3 == 0x0)){
+    if(in_flash(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_sram(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_psram(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (psram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_sdram(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (sdram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(mem_addr >= 0x10000000 && mem_addr < 0x10000000 + 0x32) log_write("MTRACE[SB]: write " FMT_BYTE " into (uart)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+  } else if((opcode == 0x23) && (func3 == 0x1)){
+    log_write("MTRACE[SH]: write " FMT_WORD " into " FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+  } else if((opcode == 0x23) && (func3 == 0x2)){
+    if(in_flash(mem_addr)) log_write("MTRACE[SW]: write " FMT_WORD " into (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_sram(mem_addr)) log_write("MTRACE[SW]: write " FMT_WORD " into (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_psram(mem_addr)) log_write("MTRACE[SW]: write " FMT_WORD " into (psram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+    if(in_sdram(mem_addr)) log_write("MTRACE[SW]: write " FMT_WORD " into (sdram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
+  } else if((opcode == 0x03) && (func3 == 0x0)){
+    if(in_flash(mem_addr)) log_write("MTRACE[LB]: read " FMT_BYTE " from (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sram(mem_addr)) log_write("MTRACE[LB]: read " FMT_BYTE " from (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_psram(mem_addr)) log_write("MTRACE[LB]: read " FMT_BYTE " from (psram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sdram(mem_addr)) log_write("MTRACE[LB]: read " FMT_BYTE " from (sdram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+  } else if((opcode == 0x03) && (func3 == 0x1)){
+    log_write("MTRACE[LH]: read " FMT_WORD " from " FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+  } else if((opcode == 0x03) && (func3 == 0x2)){
+    if(in_flash(mem_addr)) log_write("MTRACE[LW]: read " FMT_WORD " from (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sram(mem_addr)) log_write("MTRACE[LW]: read " FMT_WORD " from (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_psram(mem_addr)) log_write("MTRACE[LW]: read " FMT_WORD " from (psram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sdram(mem_addr)) log_write("MTRACE[LW]: read " FMT_WORD " from (sdram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+  }else if((opcode == 0x03) && (func3 == 0x4)){
+    if(in_flash(mem_addr)) log_write("MTRACE[LBU]: read " FMT_BYTE " from (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sram(mem_addr)) log_write("MTRACE[LBU]: read " FMT_BYTE " from (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_psram(mem_addr)) log_write("MTRACE[LBU]: read " FMT_BYTE " from (psram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(in_sdram(mem_addr)) log_write("MTRACE[LBU]: read " FMT_BYTE " from (sdram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+    if(mem_addr >= 0x10000000 && mem_addr < 0x10000000 + 0x32) log_write("MTRACE[LBU]: read " FMT_BYTE " from (uart)" FMT_WORD " at PC=" FMT_WORD "\n", mem_rdata, mem_addr, pc);
+  }
+}
+#endif
 
 #ifdef CONFIG_FTRACE
 // 检测函数调用和返回的辅助函数
@@ -62,15 +104,17 @@ void cpu_exec(int n) {
     while (!is_ebreak) {
       word_t pc = get_rf(32);
       word_t inst = pmem_read(pc);
-      bool done = CPU_INFO(inst_finish);
+      bool done = CPU_INFO(WBU).inst_finish;
       single_cycle();
       word_t npc = get_rf(32);
-
       // DiffTest
       if(done) {
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
 #ifdef CONFIG_DIFFTEST
         difftest_step(pc, npc, inst);
+#endif
+#ifdef CONFIG_MTRACE
+        mtrace(pc, inst);
 #endif
         inst_count++;
       }
@@ -128,7 +172,7 @@ void cpu_exec(int n) {
     for (int i = 0; i < n; i++) {
       word_t pc = get_rf(32);
       word_t inst = pmem_read(pc);
-      bool done = CPU_INFO(inst_finish);
+      bool done = CPU_INFO(WBU).inst_finish;
       single_cycle();
       word_t npc = get_rf(32);
       #ifdef CONFIG_DIFFTEST

@@ -33,9 +33,16 @@ void init_checkregs(CPU_state *init_cpu) {
 void checkmem(CPU_state *ref, uint32_t addr, uint32_t pc) {
   if (!isa_difftest_checkmem(addr)) {
     printf("Memory DiffTest failed at PC = 0x%08x\n", pc);
+    #ifdef CONFIG_REG_16
+    for(int i = 0; i < 16; i++) {
+      printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
+    }
+    #endif
+    #ifdef CONFIG_REG_32
     for(int i = 0; i < 32; i++) {
       printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
     }
+    #endif
     printf("MCAUSE  DUT=0x%08x REF=0x%08x\n", get_csr(0x342), ref->mcause);
     printf("MEPC    DUT=0x%08x REF=0x%08x\n", get_csr(0x341), ref->mepc);
     printf("MSTATUS DUT=0x%08x REF=0x%08x\n", get_csr(0x300), ref->mstatus);
@@ -111,9 +118,16 @@ void init_difftest(const char *ref_so_file, long img_size) {
 static void checkregs(CPU_state *ref, uint32_t pc) {
   if (!isa_difftest_checkregs(ref, pc)) {
     printf("DiffTest failed at PC = 0x%08x\n", pc);
+    #ifdef CONFIG_REG_16
+    for(int i = 0; i < 16; i++) {
+      printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
+    }
+    #endif
+    #ifdef CONFIG_REG_32
     for(int i = 0; i < 32; i++) {
       printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
     }
+    #endif
     printf("MCAUSE  DUT=0x%08x REF=0x%08x\n", get_csr(0x342), ref->mcause);
     printf("MEPC    DUT=0x%08x REF=0x%08x\n", get_csr(0x341), ref->mepc);
     printf("MSTATUS DUT=0x%08x REF=0x%08x\n", get_csr(0x300), ref->mstatus);
@@ -129,7 +143,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
   uint8_t opcode = inst & 0x7f;
   uint8_t func3 = (inst >> 12) & 0x7;
-  uint32_t mem_addr = CPU_INFO(LSU__DOT__mem_addr_r);
+  uint32_t mem_addr = CPU_INFO(LSU).mem_addr; 
   bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
@@ -153,9 +167,16 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   if (is_skip_ref) {
     // 跳过检查，直接同步寄存器状态到REF
     CPU_state cpu_state;
+    #ifdef CONFIG_REG_16
+    for (int i = 0; i < 16; i++) {
+      cpu_state.gpr[i] = get_rf(i);
+    }
+    #endif
+    #ifdef CONFIG_REG_32
     for (int i = 0; i < 32; i++) {
       cpu_state.gpr[i] = get_rf(i);
     }
+    #endif
     cpu_state.mepc = get_csr(0x341);
     cpu_state.mstatus = get_csr(0x300);
     cpu_state.mcause = get_csr(0x342);

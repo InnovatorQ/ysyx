@@ -1,5 +1,5 @@
 module ysyx_25110269_axi_xbar(
-    input        clk,
+    input        clock,
     input        reset,
     // IFU interface
     input        ifu_arvalid,
@@ -82,7 +82,7 @@ localparam master_lsu = 2;
 reg [1 : 0] state;
 reg [1 : 0] next_state;
 
-always @(posedge clk) begin
+always @(posedge clock) begin
     if (reset) begin
         state <= idle;
     end else begin
@@ -121,7 +121,7 @@ always @(*) begin
 end
 
 reg [31 : 0]    raddr;
-always @(posedge clk) begin
+always @(posedge clock) begin
     if(arvalid & arready) raddr <= araddr;
 end
 assign arready = clint_arvalid ? clint_arready : io_master_arready;  // 默认返回的是mem的arready

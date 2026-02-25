@@ -1,6 +1,6 @@
+/*verilator public_on*/
 module ysyx_25110269_regfile(
-    input           clk,
-    input           reset,
+    input           clock,
     input  [4 : 0]  raddr1,
     output [31 : 0] rdata1,
     input  [4 : 0]  raddr2,
@@ -9,13 +9,13 @@ module ysyx_25110269_regfile(
     input  [4 : 0]  waddr,
     input  [31 : 0] wdata
 );
-    reg [31 : 0] regs [31 : 0];
-    always @(posedge clk) begin
-        if(wen && waddr != 0) begin
-            regs[waddr] <= wdata;
-            //if(!reset) $display("REG[%d] = 0x%08x", waddr, wdata);
+    reg [31 : 0] regs [15 : 0];
+    always @(posedge clock) begin
+        if(wen && (waddr != 0)) begin
+            regs[waddr[3:0]] <= wdata;
         end
     end
-    assign rdata1 = (raddr1 == 0) ? 0 : regs[raddr1];
-    assign rdata2 = (raddr2 == 0) ? 0 : regs[raddr2];
+    assign rdata1 = (raddr1 == 0) ? 0 : regs[raddr1[3:0]];
+    assign rdata2 = (raddr2 == 0) ? 0 : regs[raddr2[3:0]];
 endmodule
+/*verilator public_off*/

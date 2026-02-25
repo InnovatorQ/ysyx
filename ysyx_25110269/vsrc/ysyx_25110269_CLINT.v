@@ -1,5 +1,5 @@
 module ysyx_25110269_CLINT(
-    input           clk,
+    input           clock,
     input           reset,
 
     input           clint_arvalid,
@@ -20,7 +20,7 @@ module ysyx_25110269_CLINT(
     reg [7 : 0] lfsr;
     reg [4 : 0] random_delay;
     // LFSR生成随机延迟访问
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) begin
             lfsr <= 8'b10110001;
             random_delay <= 5'h0;
@@ -32,7 +32,7 @@ module ysyx_25110269_CLINT(
     end
 
     assign clint_arready = 1'b1;
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) clint_rdata <= 32'h0;
         else if(clint_arvalid & clint_arready) begin
             if(clint_araddr == 32'h02000000) clint_rdata <= mtime_l;
@@ -42,7 +42,7 @@ module ysyx_25110269_CLINT(
         end else if(clint_rready) clint_rvalid <= 1'b0;
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset) begin
             mtime_h <= 32'h0;
             mtime_l <= 32'h0;

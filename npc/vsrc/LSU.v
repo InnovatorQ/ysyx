@@ -43,10 +43,7 @@ module LSU(
     localparam ms_addr_ready = 2'b10;
     localparam ms_data_ready = 2'b11;
 
-    reg [7 : 0]     lfsr;
-    reg [4 : 0]     lsu_req_delay;
-    reg [4 : 0]     lsu_resp_delay;
-    reg [4 : 0]     delay_count;
+    
     reg             ms_reqReady;
     reg             ms_reqValid;
     reg             ms_respReady;
@@ -79,39 +76,18 @@ module LSU(
     wire [7 : 0]    selected_byte;
     wire [15: 0]    selected_halfword;
     
-    //LFSR生成随机延迟访问
-    always @(posedge clk) begin
-        if(reset) begin
-            lfsr <= 8'b10110001;
-        end else begin
-            lfsr <= {lfsr[6:0], lfsr[7] ^ lfsr[5] ^ lfsr[4] ^ lfsr[3]};
-        end
-    end
+    
+
 
     always @(posedge clk) begin
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
-            delay_count <= 5'b0;
-            // lsu_req_delay <= 5'b0;
-            // lsu_resp_delay <= 5'b0;
+        
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state;
-            if(ms_state == ms_wait_ready && next_state == ms_addr_ready) begin
-                delay_count <= lfsr[4:0]; // 使用LFSR的低5位作为随机延迟
-            //     delay_count <= 5'b1;
-            //     lsu_req_delay <= 5'd5;
-            //     lsu_resp_delay <= 5'd20;
-            end else if(rvalid & delay_count != 5'b0) begin
-                delay_count <= delay_count - 5'b1;
-            end 
-            //      else if(lsu_req_delay != 5'b0) begin
-            //     lsu_req_delay <= lsu_req_delay - 5'b1;
-            // end else if(lsu_resp_delay != 5'b0) begin
-            //     lsu_resp_delay <= lsu_resp_delay - 5'b1;
-            // end
-        end
+            
     end
 
     always @(*)begin

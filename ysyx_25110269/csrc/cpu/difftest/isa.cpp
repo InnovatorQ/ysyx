@@ -34,13 +34,22 @@ bool isa_difftest_checkregs(CPU_state *ref, uint32_t pc) {
   }
   
   // 检查通用寄存器
+  #ifdef CONFIG_REG_16
+  for (int i = 0; i < 16; i++) {
+    if (ref->gpr[i] != get_rf(i)) {
+      printf("GPR[%d] mismatch: ref=0x%08x dut=0x%08x\n", i, ref->gpr[i], get_rf(i));
+      return false;
+    }
+  }
+  #endif
+  #ifdef CONFIG_REG_32
   for (int i = 0; i < 32; i++) {
     if (ref->gpr[i] != get_rf(i)) {
       printf("GPR[%d] mismatch: ref=0x%08x dut=0x%08x\n", i, ref->gpr[i], get_rf(i));
       return false;
     }
   }
-
+  #endif
   // 检查CSR寄存器
   if (ref->mcause != get_csr(0x342)) {
     printf("mcause mismatch: ref=0x%08x dut=0x%08x\n", ref->mcause, get_csr(0x342));

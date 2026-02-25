@@ -1,23 +1,22 @@
 // 负责根据控制信号控制ALU, 对数据进行计算
+/* verilator public_on*/
 module ysyx_25110269_EXU(
-    input               clk,
+    input               clock,
     input               reset,
     //input               done,
     //ds->es
     input               ds_to_es_valid,
-    input               ds_state,
-    input  [270 : 0]    ds_to_es_bus,
+    input  [`DS_TO_ES_BUS_WD - 1 : 0]    ds_to_es_bus,
     //ws->es
     input               ms_allowin,
     //es->ds
     output              es_allowin,
     //es->ms
     output              es_to_ms_valid,
-    output reg          es_state,
-    output [221 : 0]    es_to_ms_bus
+    output [`ES_TO_MS_BUS_WD - 1 : 0]    es_to_ms_bus
 );
     reg  [31 : 0 ]      pref_cnt;
-    reg  [270 : 0]      ds_to_es_bus_r;
+    reg  [`DS_TO_ES_BUS_WD - 1 : 0]      ds_to_es_bus_r;
     reg                 es_valid;
     wire                es_ready_go;
 
@@ -35,19 +34,18 @@ module ysyx_25110269_EXU(
     wire [4 : 0]        shamt;
     wire [4 : 0]        dest;
     wire                load_sign;
-    wire                csr_wen;
-    wire [11 : 0]       csr_wr_addr;
     wire [31 : 0]       csr_data;
-    wire [31 : 0]       csr_result;
     wire [31 : 0]       es_pc;
     wire [31 : 0]       alu_result;
 
+    reg             es_state;
+    reg             next_state;
     localparam      es_idle = 1'b0;
     localparam      es_wait_ready = 1'b1;
-    reg             next_state;
+    
 
     assign es_allowin = 1'b1;
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         if(reset)begin
             es_valid <= 1'b0;
             es_state <= es_idle;
@@ -78,13 +76,10 @@ module ysyx_25110269_EXU(
         alu_result, //189 : 158
         mem_addr,   //157 : 126
         st_data,    //125 : 94
-        csr_result, //93  : 62
         csr_data,   //61  : 30
-        csr_wr_addr, //29  : 18
         dest,       //17  : 13
         load,       //12 : 9
         store,      //8 : 5
-        csr_wen,    //4
         load_sign,  //3
         res_from_csr,//2
         rf_wen,     //1
@@ -97,15 +92,12 @@ module ysyx_25110269_EXU(
         alu_src2,
         mem_addr,
         st_data,
-        csr_result,
         csr_data,
-        csr_wr_addr,
         alu_op,
         shamt,
         dest,
         load,
         store,
-        csr_wen,
         load_sign,
         res_from_csr,
         rf_wen,
@@ -132,9 +124,10 @@ module ysyx_25110269_EXU(
     //     end
     // end
     assign es_to_ms_valid = (es_state == es_wait_ready) ? 1'b1 : 1'b0;
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(ds_to_es_valid && es_allowin) begin
             ds_to_es_bus_r <= ds_to_es_bus;
         end
     end
 endmodule
+/* verilator public_off */

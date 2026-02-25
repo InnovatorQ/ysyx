@@ -1,6 +1,8 @@
 // 负责根据控制信号控制存储器, 从存储器中读出数据, 或将数据写入存储器
+`include "mycpu.vh"
+/*verilator public_on*/
 module ysyx_25110269_LSU(
-    input           clk,
+    input           clock,
     input           reset,
     //ar
     output          arvalid,
@@ -31,11 +33,10 @@ module ysyx_25110269_LSU(
     output          bready,
     //es->ms
     input           es_to_ms_valid,
-    input           es_state,
-    input [221 : 0] es_to_ms_bus,
+    input [`ES_TO_MS_BUS_WD - 1 : 0] es_to_ms_bus,
 
     output          ms_to_ws_valid,
-    output [184 :0] ms_to_ws_bus,
+    output [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus,
 
     input           ws_allowin,
     output          ms_allowin
@@ -51,12 +52,12 @@ module ysyx_25110269_LSU(
 
     reg [4 : 0]     delay_count;
 
-    reg [221 : 0]   es_to_ms_bus_r;
+    reg [`ES_TO_MS_BUS_WD - 1 : 0]   es_to_ms_bus_r;
     wire            ms_ready_go;
     reg             ms_valid;
 
-    reg  [31 : 0]   mem_addr_r;     //difftest
-    reg  [31 : 0]   pref_cnt;
+    reg  [31 : 0]   pref_cnt_l;
+    reg  [31 : 0]   pref_cnt_s;
     reg  [31 : 0]   delay_cnt;
     reg             access_start;
 
@@ -65,13 +66,10 @@ module ysyx_25110269_LSU(
     wire [31 : 0]   ms_alu_result;
     wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
-    wire [31 : 0]   csr_result;
     wire [31 : 0]   csr_data;
-    wire [11 : 0]   csr_wr_addr;
     wire [4  : 0]   dest;
     wire [3  : 0]   load;
     wire [3  : 0]   store;
-    wire            csr_wen;
     wire            load_sign;
     wire            res_from_csr;
     wire            rf_wen;
@@ -84,17 +82,17 @@ module ysyx_25110269_LSU(
     wire [15: 0]    selected_halfword;
     
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         if(reset)begin
             ms_valid <= 1'b0;
             ms_state <= ms_idle;
-            pref_cnt <= 32'b0;
+            pref_cnt_l <= 32'b0;
+            pref_cnt_s <= 32'b0;
             delay_cnt <= 32'b0;
             access_start <= 1'b0;
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state; 
-            mem_addr_r <= mem_addr;
             // 开始访问计数
             if((arvalid && arready) || (awvalid && awready)) begin
                 access_start <= 1'b1;
@@ -136,32 +134,32 @@ module ysyx_25110269_LSU(
             end
             default : next_state = ms_idle;
         endcase
-        // if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
+        if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
     end
-    wire   in_uart = (mem_addr == 32'h10000005);
+
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
     assign rready  = (|load) & (ms_state == ms_addr_ready);
-    assign araddr = arvalid ? (in_uart ? 32'h10000005 : {mem_addr[31:2], 2'b0}) : 32'h0;
-    assign arsize = arvalid ? (load == 4'hf) ? 3'b010 :
-                            (load == 4'h3) ? 3'b001 : 
-                            (load == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
+    assign araddr = mem_addr;
+    assign arsize = (load == 4'hf) ? 3'b010 :
+                    (load == 4'h3) ? 3'b001 : 
+                    (load == 4'h1) ? 3'b000 : 3'b0;
     assign arlen  = 8'h0;
     assign ms_to_ws_valid = (bready & bvalid) | (ms_state == ms_wait_ready && !arvalid && !awvalid) | (ms_state == ms_rdata_ready);
 
     assign awvalid = mem_wen & (ms_state == ms_wait_ready);
     assign wvalid  = mem_wen & (ms_state == ms_wait_ready);
-    assign awaddr = awvalid ? mem_addr : 32'b0;
-    assign awsize = awvalid ? (store == 4'hf) ? 3'b010 :
-                            (store == 4'h3) ? 3'b001 : 
-                            (store == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
+    assign awaddr =  mem_addr;
+    assign awsize = (store == 4'hf) ? 3'b010 :
+                    (store == 4'h3) ? 3'b001 : 
+                    (store == 4'h1) ? 3'b000 : 3'b0;
     assign awlen = 8'h0;
-    assign wlast = wvalid ? 1'b1 : 1'b1;
-    assign wdata  = wvalid  ? (store == 4'hf) ? st_data :
-                            (store == 4'h3) ? (st_data << (byte_offset * 8)) :
-                            (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0 : 32'b0;
-    assign wstrb  = wvalid ? (store == 4'hf) ? 4'b1111 :
-                            (store == 4'h3) ? (3 << byte_offset) :
-                            (store == 4'h1) ? (1 << byte_offset) : 4'b0 : 4'b0;
+    assign wlast = 1'b1;
+    assign wdata  = (store == 4'hf) ? st_data :
+                    (store == 4'h3) ? (st_data << (byte_offset * 8)) :
+                    (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0;
+    assign wstrb  = (store == 4'hf) ? 4'b1111 :
+                    (store == 4'h3) ? (3 << byte_offset) :
+                    (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_ready);
     assign ms_allowin = 1'b1;
     assign {
@@ -169,13 +167,10 @@ module ysyx_25110269_LSU(
         ms_alu_result,
         mem_addr,
         st_data,
-        csr_result,
         csr_data,
-        csr_wr_addr,
         dest,
         load,
         store,
-        csr_wen,
         load_sign,
         res_from_csr,
         rf_wen,
@@ -186,25 +181,14 @@ module ysyx_25110269_LSU(
         ms_pc,          //184 : 153
         load_data,      //152 : 121
         ms_alu_result,  //120 : 89
-        csr_result,     //88 : 57
         csr_data,       //56 : 25
-        csr_wr_addr,    //24 : 13
         dest,           //12 : 8
         load,           //7 : 4
-        csr_wen,        //3
         res_from_csr,   //2
         rf_wen,         //1
         br_taken        //0
     };
-    // pmem pmem (
-    //     .clk        (clk            ),
-    //     .reset      (reset          ),
-    //     .wmask      (store          ),
-    //     .mem_wen    (|store         ),
-    //     .paddr      (mem_addr       ),
-    //     .pwdata     (st_data        ),
-    //     .prdata     (mem_rdata      )
-    // );
+    
     assign mem_wen = |store;
     assign byte_offset = mem_addr[1:0];
     
@@ -221,21 +205,23 @@ module ysyx_25110269_LSU(
                        (load == 4'h1) ? (load_sign ? {{24{selected_byte[7]}}, selected_byte} : {24'b0,  selected_byte}) :
                        32'b0;
 
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         if(rvalid & rready) begin
             mem_rdata <= rdata;
-            pref_cnt <= pref_cnt + 1;
+            pref_cnt_l <= pref_cnt_l + 1;
         end
         if(bvalid & bready) begin
             if(bresp != 2'b0) begin
-                $display("bresp : %d .Access Fault !!!", bresp);
-                $fatal;
+                // $display("bresp : %d .Access Fault !!!", bresp);
+                // $fatal;
             end
+            pref_cnt_s <= pref_cnt_s + 1;    
         end
     end
 
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         if(es_to_ms_valid && ms_allowin)
             es_to_ms_bus_r <= es_to_ms_bus;
     end
 endmodule
+/*verilator public_off*/

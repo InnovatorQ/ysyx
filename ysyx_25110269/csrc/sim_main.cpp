@@ -2,7 +2,6 @@
 #include"verilated.h"
 #include"verilated_fst_c.h"
 #include"monitor/sdb/sdb.h"
-#include"common.h"
 #include"memory/paddr.h"
 #ifdef CONFIG_DIFFTEST
 #include"difftest.h"
@@ -21,11 +20,12 @@ extern void init_monitor(int argc, char *argv[]);
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
     Assert(addr < CONFIG_FLASH_SIZE, "Access Fault !!! addr = " FMT_WORD "\n", addr);
+    int32_t align_addr = addr & ~0x3u; // 对地址进行4字节对齐
     *data = (int32_t)(
-        (flash[addr])             |   // 字节0 -> 位0-7
-        (flash[addr + 1] << 8)    |   // 字节1 -> 位8-15
-        (flash[addr + 2] << 16)   |   // 字节2 -> 位16-23
-        (flash[addr + 3] << 24));     // 字节3 -> 位24-31
+        (flash[align_addr])             |   // 字节0 -> 位0-7
+        (flash[align_addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (flash[align_addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (flash[align_addr + 3] << 24));     // 字节3 -> 位24-31
     //printf("%08x\n", *data);
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) { 
@@ -80,11 +80,7 @@ extern "C" word_t pmem_read(int raddr) {
         if(ce) data = (int32_t) (SDRAM2[bank][row][col] | (SDRAM3[bank][row][col] << 16));
         else data = (int32_t) (SDRAM0[bank][row][col] | (SDRAM1[bank][row][col] << 16));     
         return data;
-    } else if(in_gpio(raddr)){
-        paddr_t addr = (raddr - CONFIG_GPIO_BASE) & ~0x3u;
-        if(addr == 0) return GPIO;
-        else return 0;
-    }
+    } 
     Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
     return 0;
 }
@@ -129,43 +125,51 @@ static void reset(int n){
 }
 
 static void show_pref(){
-    Log("---------------------------------------------------");
-    Log("|Total prefetched instructions \t| %d  \t|", CPU_INFO(IFU__DOT__pref_cnt));
-    Log("|Total prefetched delay cycles \t| %d  \t|", CPU_INFO(IFU__DOT__delay_cnt));
-    Log("---------------------------------------------------");
-    Log("|decode calculate prefetch     \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_alu));
-    Log("|decode load/store prefetch    \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_ls));
-    Log("|decode branch prefetch        \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_br));
-    Log("|decode csr prefetch           \t| %d  \t\t|", CPU_INFO(IDU__DOT__pref_cnt_csr));
-    Log("---------------------------------------------------");
-    Log("|LSU prefetch                  \t| %d  \t\t|", CPU_INFO(LSU__DOT__pref_cnt));
-    Log("|LSU delay cycles              \t| %d  \t|", CPU_INFO(LSU__DOT__delay_cnt));
-    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU__DOT__delay_cnt) * 1.0 / CPU_INFO(LSU__DOT__pref_cnt));
-    Log("---------------------------------------------------");
-    Log("|EXU prefetch                  \t| %d  \t|", CPU_INFO(EXU__DOT__pref_cnt));
-    Log("---------------------------------------------------");
+    Log("+-------------------------------------------------+");
+    Log("|Total prefetched instructions \t| %-12d\t|", CPU_INFO(IFU).pref_cnt);
+    Log("|Total prefetched delay cycles \t| %-12d\t|", CPU_INFO(IFU).delay_cnt);
+    Log("+-------------------------------------------------+");
+    Log("|decode calculate prefetch     \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_alu);
+    Log("|decode load/store prefetch    \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_ls);
+    Log("|decode branch prefetch        \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_br);
+    Log("|decode csr prefetch           \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_csr);
+    Log("+-------------------------------------------------+");
+    Log("|LSU load prefetch             \t| %-12d\t|", CPU_INFO(LSU).pref_cnt_l);
+    Log("|LSU store prefetch            \t| %-12d\t|", CPU_INFO(LSU).pref_cnt_s);
+    Log("|LSU delay cycles              \t| %-12d\t|", CPU_INFO(LSU).delay_cnt);
+    Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
+    Log("+-------------------------------------------------+");
+    Log("|EXU prefetch                  \t| %-12d\t|", CPU_INFO(EXU).pref_cnt);
+    Log("+-------------------------------------------------+");
 }
 
 word_t get_rf(int n){
-    word_t pc = CPU_INFO(IFU__DOT__pc);
+    word_t pc = CPU_INFO(IFU).pc;
+    #ifdef CONFIG_REG_16
+    word_t regs[16];
+    for(int i = 0; i < 16 ; i++){
+        regs[i] = CPU_INFO(WBU__rf).regs[i];
+    }
+    if(n >= 0 && n < 16) return regs[n];
+    #endif
+    #ifdef CONFIG_REG_32
     word_t regs[32];
     for(int i = 0; i < 32 ; i++){
-        regs[i] = CPU_INFO(WBU__DOT__rf__DOT__regs)[i];
+        regs[i] = CPU_INFO(WBU__rf).regs[i];
     }
     if(n >= 0 && n < 32) return regs[n];
+    #endif
     else if(n == 32) return pc;
-    else {
-        printf("Invalid register number: %d\n", n);
-        return 0;
-    }
+    Assert(0, "Invalid register number: %d\n", n);
+    return 0;
 }
 
 word_t get_csr(int n){
     word_t csr_mtvec, csr_mepc, csr_mstatus, csr_mcause;
-    csr_mtvec = CPU_INFO(csr_mtvec);
-    csr_mepc = CPU_INFO(csr_mepc);
-    csr_mstatus = CPU_INFO(csr__DOT__csr_mstatus);
-    csr_mcause = CPU_INFO(csr__DOT__csr_mcause);
+    csr_mtvec = CPU_INFO(csr).csr_mtvec;
+    csr_mepc = CPU_INFO(csr).csr_mepc;
+    csr_mstatus = CPU_INFO(csr).csr_mstatus;
+    csr_mcause = CPU_INFO(csr).csr_mcause;
     switch(n){
         case 0x305: return csr_mtvec;
         case 0x341: return csr_mepc;
