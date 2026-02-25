@@ -1,4 +1,5 @@
 // 负责对当前指令进行译码, 准备执行阶段需要使用的数据和控制信号
+/* verilator public_on */
 module ysyx_25110269_IDU(
     input           clock,
     input           reset,
@@ -331,3 +332,4 @@ module ysyx_25110269_IDU(
         end
     end
 endmodule
+/* verilator public_off */

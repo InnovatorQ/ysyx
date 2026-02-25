@@ -1,4 +1,5 @@
 // 负责根据控制信号控制ALU, 对数据进行计算
+/* verilator public_on*/
 module ysyx_25110269_EXU(
     input               clock,
     input               reset,
@@ -129,3 +130,4 @@ module ysyx_25110269_EXU(
         end
     end
 endmodule
+/* verilator public_off */
