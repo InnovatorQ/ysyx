@@ -2,7 +2,6 @@
 #include"verilated.h"
 #include"verilated_fst_c.h"
 #include"monitor/sdb/sdb.h"
-#include"common.h"
 #include"memory/paddr.h"
 #ifdef CONFIG_DIFFTEST
 #include"difftest.h"

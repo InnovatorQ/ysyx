@@ -19,6 +19,8 @@ typedef uint32_t vaddr_t;  // 虚拟地址类型，用于ftrace
 
 // 格式化宏定义
 #define FMT_WORD "0x%08x"
+#define FMT_HWORD "0x%04x"
+#define FMT_BYTE "0x%02x"
 
 // 共享宏定义
 #define RTC_ADDR 0xa0000048
