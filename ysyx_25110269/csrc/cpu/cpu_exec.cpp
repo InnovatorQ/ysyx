@@ -62,10 +62,9 @@ void cpu_exec(int n) {
     while (!is_ebreak) {
       word_t pc = get_rf(32);
       word_t inst = pmem_read(pc);
-      bool done = CPU_INFO(inst_finish);
+      bool done = CPU_INFO(WBU).inst_finish;
       single_cycle();
       word_t npc = get_rf(32);
-
       // DiffTest
       if(done) {
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
@@ -128,7 +127,7 @@ void cpu_exec(int n) {
     for (int i = 0; i < n; i++) {
       word_t pc = get_rf(32);
       word_t inst = pmem_read(pc);
-      bool done = CPU_INFO(inst_finish);
+      bool done = CPU_INFO(WBU).inst_finish;
       single_cycle();
       word_t npc = get_rf(32);
       #ifdef CONFIG_DIFFTEST

@@ -1,4 +1,5 @@
 // 负责根据当前PC从存储器中取出一条指令
+/*verilator public_on*/
 module ysyx_25110269_IFU(
     input          clock            ,  
     input          reset            ,
@@ -156,3 +157,4 @@ module ysyx_25110269_IFU(
     end
     
 endmodule
+/*verilator public_off*/

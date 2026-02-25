@@ -1,3 +1,4 @@
+/*verilator  public_on */
 module ysyx_25110269_csr(
     input [31 : 0]  ds_pc,
     input           clock,
@@ -87,3 +88,4 @@ module ysyx_25110269_csr(
                     ({32{rd_addr == MTVEC       }} & csr_mtvec      )   |
                     ({32{rd_addr == MSTATUS     }} & csr_mstatus    )   ;
 endmodule
+/*verilator  public_off */

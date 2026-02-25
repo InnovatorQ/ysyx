@@ -1,3 +1,4 @@
+/*verilator public_on*/
 module ysyx_25110269_regfile(
     input           clock,
     input  [4 : 0]  raddr1,
@@ -17,3 +18,4 @@ module ysyx_25110269_regfile(
     assign rdata1 = (raddr1 == 0) ? 0 : regs[raddr1[3:0]];
     assign rdata2 = (raddr2 == 0) ? 0 : regs[raddr2[3:0]];
 endmodule
+/*verilator public_off*/

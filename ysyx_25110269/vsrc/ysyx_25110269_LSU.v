@@ -1,5 +1,5 @@
 // 负责根据控制信号控制存储器, 从存储器中读出数据, 或将数据写入存储器
-
+/*verilator public_on*/
 module ysyx_25110269_LSU(
     input           clock,
     input           reset,
@@ -55,7 +55,6 @@ module ysyx_25110269_LSU(
     wire            ms_ready_go;
     reg             ms_valid;
 
-    reg  [31 : 0]   mem_addr_r;     //difftest
     reg  [31 : 0]   pref_cnt_l;
     reg  [31 : 0]   pref_cnt_s;
     reg  [31 : 0]   delay_cnt;
@@ -93,7 +92,6 @@ module ysyx_25110269_LSU(
         end else begin
             ms_valid <= es_to_ms_valid;
             ms_state <= next_state; 
-            mem_addr_r <= mem_addr;
             // 开始访问计数
             if((arvalid && arready) || (awvalid && awready)) begin
                 access_start <= 1'b1;
@@ -225,3 +223,4 @@ module ysyx_25110269_LSU(
             es_to_ms_bus_r <= es_to_ms_bus;
     end
 endmodule
+/*verilator public_off*/

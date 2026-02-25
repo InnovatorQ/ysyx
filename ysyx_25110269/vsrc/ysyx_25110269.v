@@ -1,3 +1,4 @@
+/*verilator public_on*/
 import "DPI-C" function void ebreak();
 import "DPI-C" function void skip_ref();
 `include "mycpu.vh"
@@ -406,3 +407,4 @@ module ysyx_25110269(
     );
 
 endmodule
+/*verilator public_off*/

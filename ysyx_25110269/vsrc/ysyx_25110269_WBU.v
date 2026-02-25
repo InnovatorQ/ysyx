@@ -1,4 +1,5 @@
 // 将数据写入寄存器, 并更新PC
+/*verilator public_on*/
 module ysyx_25110269_WBU(
     input           clock,
     input           reset,
@@ -104,3 +105,4 @@ module ysyx_25110269_WBU(
             ms_to_ws_bus_r <= ms_to_ws_bus;
     end
 endmodule
+/*verilator public_off*/

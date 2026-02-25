@@ -143,7 +143,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
   //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
   uint8_t opcode = inst & 0x7f;
   uint8_t func3 = (inst >> 12) & 0x7;
-  uint32_t mem_addr = CPU_INFO(LSU__DOT__mem_addr_r);
+  uint32_t mem_addr = CPU_INFO(LSU).mem_addr; 
   bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
