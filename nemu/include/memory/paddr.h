@@ -30,6 +30,8 @@
 #define PSRAM_RIGHT 0x80400000
 #define SDRAM_LEFT  0xa0000000
 #define SDRAM_RIGHT 0xbfffffff
+#define UART_LEFT   0x10000000
+#define UART_RIGHT  0x10000010
 #define GPIO_LEFT   0x10002000
 #define GPIO_RIGHT  0x1000200f 
 
@@ -61,6 +63,11 @@ static inline bool in_sdram(paddr_t addr) {
 static inline bool in_gpio(paddr_t addr) {
   return addr >= GPIO_LEFT && addr <= GPIO_RIGHT;
 }
+
+static inline bool in_uart(paddr_t addr){
+  return addr >= UART_LEFT && addr <= UART_RIGHT;
+}
+
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
 

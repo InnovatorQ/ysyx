@@ -20,11 +20,12 @@ extern void init_monitor(int argc, char *argv[]);
 
 extern "C" void flash_read(int32_t addr, int32_t *data) {
     Assert(addr < CONFIG_FLASH_SIZE, "Access Fault !!! addr = " FMT_WORD "\n", addr);
+    int32_t align_addr = addr & ~0x3u; // 对地址进行4字节对齐
     *data = (int32_t)(
-        (flash[addr])             |   // 字节0 -> 位0-7
-        (flash[addr + 1] << 8)    |   // 字节1 -> 位8-15
-        (flash[addr + 2] << 16)   |   // 字节2 -> 位16-23
-        (flash[addr + 3] << 24));     // 字节3 -> 位24-31
+        (flash[align_addr])             |   // 字节0 -> 位0-7
+        (flash[align_addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (flash[align_addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (flash[align_addr + 3] << 24));     // 字节3 -> 位24-31
     //printf("%08x\n", *data);
 }
 extern "C" void mrom_read(int32_t addr, int32_t *data) { 
@@ -125,20 +126,20 @@ static void reset(int n){
 
 static void show_pref(){
     Log("+-------------------------------------------------+");
-    Log("|Total prefetched instructions \t| %d  \t|", CPU_INFO(IFU).pref_cnt);
-    Log("|Total prefetched delay cycles \t| %d  \t|", CPU_INFO(IFU).delay_cnt);
+    Log("|Total prefetched instructions \t| %-12u\t|", CPU_INFO(IFU).pref_cnt);
+    Log("|Total prefetched delay cycles \t| %-12lu\t|", CPU_INFO(IFU).delay_cnt);
     Log("+-------------------------------------------------+");
-    Log("|decode calculate prefetch     \t| %d  \t\t|", CPU_INFO(IDU).pref_cnt_alu);
-    Log("|decode load/store prefetch    \t| %d  \t\t|", CPU_INFO(IDU).pref_cnt_ls);
-    Log("|decode branch prefetch        \t| %d  \t\t|", CPU_INFO(IDU).pref_cnt_br);
-    Log("|decode csr prefetch           \t| %d  \t\t|", CPU_INFO(IDU).pref_cnt_csr);
+    Log("|decode calculate prefetch     \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_alu);
+    Log("|decode load/store prefetch    \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_ls);
+    Log("|decode branch prefetch        \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_br);
+    Log("|decode csr prefetch           \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_csr);
     Log("+-------------------------------------------------+");
-    Log("|LSU load prefetch             \t| %d  \t\t|", CPU_INFO(LSU).pref_cnt_l);
-    Log("|LSU store prefetch            \t| %d  \t\t|", CPU_INFO(LSU).pref_cnt_s);
-    Log("|LSU delay cycles              \t| %d  \t|", CPU_INFO(LSU).delay_cnt);
-    Log("|average delay cycles per access \t| %.2f  \t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
+    Log("|LSU load prefetch             \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_l);
+    Log("|LSU store prefetch            \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_s);
+    Log("|LSU delay cycles              \t| %-12u\t|", CPU_INFO(LSU).delay_cnt);
+    Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
     Log("+-------------------------------------------------+");
-    Log("|EXU prefetch                  \t| %d  \t|", CPU_INFO(EXU).pref_cnt);
+    Log("|EXU prefetch                  \t| %-12u\t|", CPU_INFO(EXU).pref_cnt);
     Log("+-------------------------------------------------+");
 }
 

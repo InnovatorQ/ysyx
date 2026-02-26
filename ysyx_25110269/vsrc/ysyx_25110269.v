@@ -147,14 +147,17 @@ module ysyx_25110269(
     // AXI4-Lite signals for IFU
     wire        ifu_arvalid;
     wire [31:0] ifu_araddr;
-    wire [7 :0] ifu_arlen;
-    wire [2 :0] ifu_arsize;
-    wire        ifu_arready;
-    wire        ifu_rvalid;
     wire [31:0] ifu_rdata;
-    wire [1:0]  ifu_rresp;
-    wire        ifu_rready;
-    
+    wire        ifu_rvalid;
+    wire        icache_arvalid;
+    wire [31:0] icache_araddr;
+    wire [7:0]  icache_arlen;
+    wire [2:0]  icache_arsize;
+    wire        icache_arready;
+    wire [31:0] icache_rdata;
+    wire        icache_rvalid;
+    wire [1:0]  icache_rresp;
+    wire        icache_rready;
     ysyx_25110269_IFU IFU(
         .clock          (clock          ),
         .reset          (reset          ),
@@ -174,13 +177,9 @@ module ysyx_25110269(
         // AXI4-Lite interface
         .arvalid        (ifu_arvalid    ),
         .araddr         (ifu_araddr     ),
-        .arlen          (ifu_arlen      ),
-        .arsize         (ifu_arsize     ),
-        .arready        (ifu_arready    ),
         .rvalid         (ifu_rvalid     ),
-        .rdata          (ifu_rdata      ),
-        .rresp          (ifu_rresp      ),
-        .rready         (ifu_rready     )
+        .rdata          (ifu_rdata      )
+        
     );
 
     ysyx_25110269_IDU IDU(
@@ -299,15 +298,15 @@ module ysyx_25110269(
         .clock              (clock              ),
         .reset              (reset              ),
         // IFU interface
-        .ifu_arvalid        (ifu_arvalid        ),
-        .ifu_araddr         (ifu_araddr         ),
-        .ifu_arlen          (ifu_arlen          ),
-        .ifu_arsize         (ifu_arsize         ),
-        .ifu_arready        (ifu_arready        ),
-        .ifu_rvalid         (ifu_rvalid         ),
-        .ifu_rdata          (ifu_rdata          ),
-        .ifu_rresp          (ifu_rresp          ),
-        .ifu_rready         (ifu_rready         ),
+        .ifu_arvalid        (icache_arvalid     ),
+        .ifu_araddr         (icache_araddr      ),
+        .ifu_arlen          (icache_arlen       ),
+        .ifu_arsize         (icache_arsize      ),
+        .ifu_arready        (icache_arready     ),
+        .ifu_rvalid         (icache_rvalid      ),
+        .ifu_rdata          (icache_rdata       ),
+        .ifu_rresp          (icache_rresp       ),
+        .ifu_rready         (icache_rready      ),
 
         // LSU interface
         .lsu_arvalid        (lsu_arvalid        ),
@@ -404,6 +403,28 @@ module ysyx_25110269(
         .wr_data    (csr_result ),
         .csr_mtvec  (csr_mtvec  ),
         .csr_mepc   (csr_mepc   )
+    );
+
+    ysyx_25110269_icache icache(
+        .clock          (clock          ),
+        .reset          (reset          ),
+
+        .rvalid         (ifu_arvalid    ),
+        .raddr          (ifu_araddr     ),
+        .rdata          (ifu_rdata      ),
+        .valid          (ifu_rvalid     ),
+
+        .i_araddr       (icache_araddr   ),
+        .i_arvalid      (icache_arvalid  ),
+        .i_arlen        (icache_arlen    ),
+        .i_arsize       (icache_arsize   ),
+        .i_arready      (icache_arready  ),
+
+        .i_rresp        (icache_rresp    ),
+        .i_rdata        (icache_rdata    ),
+        .i_rvalid       (icache_rvalid   ),
+        .i_rready       (icache_rready   )
+        
     );
 
 endmodule

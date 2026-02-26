@@ -1,4 +1,5 @@
 // 负责根据控制信号控制存储器, 从存储器中读出数据, 或将数据写入存储器
+`include "mycpu.vh"
 /*verilator public_on*/
 module ysyx_25110269_LSU(
     input           clock,
@@ -135,30 +136,30 @@ module ysyx_25110269_LSU(
         endcase
         if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
     end
-    wire   in_uart = (mem_addr == 32'h10000005);
+
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
     assign rready  = (|load) & (ms_state == ms_addr_ready);
-    assign araddr = arvalid ? (in_uart ? 32'h10000005 : {mem_addr[31:2], 2'b0}) : 32'h0;
-    assign arsize = arvalid ? (load == 4'hf) ? 3'b010 :
-                            (load == 4'h3) ? 3'b001 : 
-                            (load == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
+    assign araddr = mem_addr;
+    assign arsize = (load == 4'hf) ? 3'b010 :
+                    (load == 4'h3) ? 3'b001 : 
+                    (load == 4'h1) ? 3'b000 : 3'b0;
     assign arlen  = 8'h0;
     assign ms_to_ws_valid = (bready & bvalid) | (ms_state == ms_wait_ready && !arvalid && !awvalid) | (ms_state == ms_rdata_ready);
 
     assign awvalid = mem_wen & (ms_state == ms_wait_ready);
     assign wvalid  = mem_wen & (ms_state == ms_wait_ready);
-    assign awaddr = awvalid ? mem_addr : 32'b0;
-    assign awsize = awvalid ? (store == 4'hf) ? 3'b010 :
-                            (store == 4'h3) ? 3'b001 : 
-                            (store == 4'h1) ? 3'b000 : 3'b0 : 3'b0;
+    assign awaddr =  mem_addr;
+    assign awsize = (store == 4'hf) ? 3'b010 :
+                    (store == 4'h3) ? 3'b001 : 
+                    (store == 4'h1) ? 3'b000 : 3'b0;
     assign awlen = 8'h0;
-    assign wlast = wvalid ? 1'b1 : 1'b1;
-    assign wdata  = wvalid  ? (store == 4'hf) ? st_data :
-                            (store == 4'h3) ? (st_data << (byte_offset * 8)) :
-                            (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0 : 32'b0;
-    assign wstrb  = wvalid ? (store == 4'hf) ? 4'b1111 :
-                            (store == 4'h3) ? (3 << byte_offset) :
-                            (store == 4'h1) ? (1 << byte_offset) : 4'b0 : 4'b0;
+    assign wlast = 1'b1;
+    assign wdata  = (store == 4'hf) ? st_data :
+                    (store == 4'h3) ? (st_data << (byte_offset * 8)) :
+                    (store == 4'h1) ? (st_data << (byte_offset * 8)) : 32'b0;
+    assign wstrb  = (store == 4'hf) ? 4'b1111 :
+                    (store == 4'h3) ? (3 << byte_offset) :
+                    (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_ready);
     assign ms_allowin = 1'b1;
     assign {
