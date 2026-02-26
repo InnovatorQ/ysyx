@@ -134,7 +134,6 @@ module ysyx_25110269_LSU(
             end
             default : next_state = ms_idle;
         endcase
-        if(mem_addr >= 32'h10000000 && mem_addr <= 32'h10000032) skip_ref();
     end
 
     assign arvalid = (|load) & (ms_state == ms_wait_ready);
@@ -222,6 +221,9 @@ module ysyx_25110269_LSU(
     always @(posedge clock)begin
         if(es_to_ms_valid && ms_allowin)
             es_to_ms_bus_r <= es_to_ms_bus;
+        if(((mem_addr >= 32'h10000000) && (mem_addr <= 32'h10000032)) && ms_to_ws_valid) skip_ref();    
     end
+    
+    
 endmodule
 /*verilator public_off*/

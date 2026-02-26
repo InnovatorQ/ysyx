@@ -20,15 +20,11 @@ module ysyx_25110269_IFU(
     // AXI4-Lite Read Address Channel
     output          arvalid          ,
     output [31:0]   araddr           ,
-    output [7: 0]   arlen            ,
-    output [2 :0]   arsize           ,
-    input           arready          ,
     
     // AXI4-Lite Read Data Channel
-    input          rvalid           ,
-    input  [31:0]  rdata            ,
-    input  [1:0]   rresp            ,
-    output         rready           
+    input           rvalid          ,
+    input  [31:0]   rdata            
+    
 );
     localparam fs_idle = 2'b00;
     localparam fs_wait_ready = 2'b01;
@@ -37,13 +33,14 @@ module ysyx_25110269_IFU(
     reg [1:0]  fs_state;
     reg [31:0] ifu_rdata;
     reg [31:0] pref_cnt;
-    reg [31:0] delay_cnt;
+    reg [63:0] delay_cnt;
     reg        access_start;
     // 添加fs_valid逻辑
     always @(posedge clock) begin
         if(reset) begin
             fs_valid <= 1'b0;
             pref_cnt <= 32'b0;
+            delay_cnt <= 64'b0;
         end else begin
             fs_valid <= 1'b1;
         end
@@ -58,20 +55,18 @@ module ysyx_25110269_IFU(
                 fs_idle: 
                     fs_state <= (!fs_valid | inst_finish) ? fs_wait_ready : fs_idle;
                 fs_wait_ready: 
-                    fs_state <= (arvalid & arready) ? fs_addr_ready : fs_wait_ready;
-                fs_addr_ready: 
-                    fs_state <= (rvalid & rready) ? fs_data_ready : fs_addr_ready;
+                    fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_idle : fs_data_ready;
+                default: fs_state <= fs_idle;
             endcase
         end
     end
     
-    assign araddr = arvalid ? pc : 32'b0;
-    assign arsize = arvalid ? 3'b010 : 3'b0;
-    assign arlen  = 8'h0;
+    
     assign arvalid = (fs_state == fs_wait_ready);
-    assign rready  = (fs_state == fs_addr_ready) ;
+    assign araddr = pc;
+    
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
 
     reg  [31 : 0]   pc;
@@ -136,21 +131,11 @@ module ysyx_25110269_IFU(
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
-        // 开始访问计数
-        if((arvalid && arready)) begin
-            access_start <= 1'b1;
-        end
-        // LSU延迟计数
-        if(access_start || (arvalid && arready)) begin
-            delay_cnt <= delay_cnt + 1'b1;
-        end    
+        if(arvalid) access_start <= 1'b1;
+        if(access_start) delay_cnt <= delay_cnt + 1;
         // 在AXI读握手成功时缓存数据
-        if(rvalid & rready) begin
+        if(rvalid) begin
             ifu_rdata <= rdata;
-            if(rresp != 2'b0) begin
-                // $display("Access Fault !!! rrsep : %xh", rresp);
-                // $fatal;
-            end
             pref_cnt <= pref_cnt + 1'b1;
             access_start <= 1'b0;
         end

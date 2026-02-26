@@ -126,20 +126,23 @@ static void reset(int n){
 
 static void show_pref(){
     Log("+-------------------------------------------------+");
-    Log("|Total prefetched instructions \t| %-12d\t|", CPU_INFO(IFU).pref_cnt);
-    Log("|Total prefetched delay cycles \t| %-12d\t|", CPU_INFO(IFU).delay_cnt);
+    Log("|Total prefetched instructions \t| %-12u\t|", CPU_INFO(IFU).pref_cnt);
+    Log("|Total prefetched delay cycles \t| %-12lu\t|", CPU_INFO(IFU).delay_cnt);
     Log("+-------------------------------------------------+");
-    Log("|decode calculate prefetch     \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_alu);
-    Log("|decode load/store prefetch    \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_ls);
-    Log("|decode branch prefetch        \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_br);
-    Log("|decode csr prefetch           \t| %-12d\t|", CPU_INFO(IDU).pref_cnt_csr);
+    Log("|decode calculate prefetch     \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_alu);
+    Log("|decode load/store prefetch    \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_ls);
+    Log("|decode branch prefetch        \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_br);
+    Log("|decode csr prefetch           \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_csr);
     Log("+-------------------------------------------------+");
-    Log("|LSU load prefetch             \t| %-12d\t|", CPU_INFO(LSU).pref_cnt_l);
-    Log("|LSU store prefetch            \t| %-12d\t|", CPU_INFO(LSU).pref_cnt_s);
-    Log("|LSU delay cycles              \t| %-12d\t|", CPU_INFO(LSU).delay_cnt);
+    Log("|LSU load prefetch             \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_l);
+    Log("|LSU store prefetch            \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_s);
+    Log("|LSU delay cycles              \t| %-12u\t|", CPU_INFO(LSU).delay_cnt);
     Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
     Log("+-------------------------------------------------+");
-    Log("|EXU prefetch                  \t| %-12d\t|", CPU_INFO(EXU).pref_cnt);
+    Log("|EXU prefetch                  \t| %-12u\t|", CPU_INFO(EXU).pref_cnt);
+    Log("+-------------------------------------------------+");
+    Log("|icache hit | miss             \t| %-6u|%-6u\t|",  CPU_INFO(icache).hit_cnt, CPU_INFO(icache).miss_cnt);
+    Log("|the precentage of icache hit  \t| %-12.2f\t|", CPU_INFO(icache).hit_cnt * 1.0 / (CPU_INFO(icache).hit_cnt + CPU_INFO(icache).miss_cnt));
     Log("+-------------------------------------------------+");
 }
 
