@@ -1,5 +1,5 @@
 `include "mycpu.vh"
- 
+/*verilator public_on*/
 module ysyx_25110269_icache(
     input           clock,
     input           reset,
@@ -49,10 +49,19 @@ localparam IDLE = 0,
            MISS = 1,
            REFILL = 2;
 reg [1:0] state;
+reg [31 : 0] miss_cnt;
+reg [31 : 0] hit_cnt;
+reg [31 : 0] penalty_cnt;
+reg          access_start;
+
 integer i;
 always @(posedge clock) begin
     if (reset) begin
         state <= IDLE;
+        miss_cnt <= 0;
+        hit_cnt <= 0;
+        penalty_cnt <= 0;
+        access_start <= 0;
         // 初始化valid_array和tag_array
         
         for (i = 0; i < NUM_BLOCKS; i = i + 1) begin
@@ -65,8 +74,11 @@ always @(posedge clock) begin
                 if (rvalid) begin
                     if (hit) begin
                         state <= IDLE; // 命中，继续保持空闲状态
+                        hit_cnt <= hit_cnt + 1;
                     end else begin
                         state <= MISS; // 未命中，进入MISS状态
+                        miss_cnt <= miss_cnt + 1;
+                        access_start <= 1;
                     end
                 end
             end
@@ -82,6 +94,7 @@ always @(posedge clock) begin
                         // $display("Access Fault !!! rrsep : %xh", i_rresp);
                         // $fatal;
                     end
+                    access_start <= 0;
                     icache[index] <= i_rdata;
                     tag_array[index] <= tag;
                     valid_array[index] <= 1;
@@ -89,7 +102,9 @@ always @(posedge clock) begin
                 end
             end
         endcase
+        if(access_start) penalty_cnt <= penalty_cnt + 1;
     end
 end
 
 endmodule
+/*verilator public_off*/

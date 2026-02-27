@@ -116,19 +116,6 @@ bool isa_difftest_checkmem(uint32_t addr){
            proceesed_addr, ref_data, dut_data);
     return false;
   };
-  static uint8_t ref_byte1[4];
-  ref_difftest_memcpy(0x0f001f90, ref_byte1, 4, DIFFTEST_TO_DUT);
-  uint32_t ref_data1 = (uint32_t)(
-    (ref_byte1[0])           |   
-    (ref_byte1[1] << 8)      |   
-    (ref_byte1[2] << 16)     |   
-    (ref_byte1[3] << 24));
-  // 从DUT读取相同地址的数据
-  uint32_t data = pmem_read(0x0f001f90);
-  if (data != ref_data1) {
-    printf("Memory[0x0f001f90] mismatch: ref=0x%08x dut=0x%08x\n", 
-           ref_data1, data);
-    return false;
-  }
+
   return true;
 }
