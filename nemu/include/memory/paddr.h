@@ -41,7 +41,7 @@ paddr_t host_to_guest(uint8_t *haddr);
 static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
 }
-#ifdef CONFIG_TARGET_SHARE
+#ifdef CONFIG_YSYXSOC
 static inline bool in_mrom(paddr_t addr) {
   return addr >= MROM_LEFT && addr <= MROM_RIGHT;
 }

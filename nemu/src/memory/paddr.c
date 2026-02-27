@@ -24,7 +24,7 @@ static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
-#ifdef CONFIG_TARGET_SHARE
+#ifdef CONFIG_YSYXSOC
 static uint8_t mrom[0x1000] = {}; // 4KB 
 static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t psram[0x400000] = {}; // 4MB
@@ -44,7 +44,7 @@ static word_t pmem_read(paddr_t addr, int len) {
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
 }
-#ifdef CONFIG_TARGET_SHARE
+#ifdef CONFIG_YSYXSOC
 static word_t mrom_read(paddr_t addr, int len) {
   return host_read(mrom + (addr - MROM_LEFT), len);
 }
@@ -97,7 +97,7 @@ void init_mem() {
 #endif
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
-  #ifdef CONFIG_TARGET_SHARE
+  #ifdef CONFIG_YSYXSOC
   Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
   Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
   Log("psram area [" FMT_PADDR ", " FMT_PADDR "]", PSRAM_LEFT, PSRAM_RIGHT);
@@ -118,7 +118,7 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
-  #ifdef CONFIG_TARGET_SHARE
+  #ifdef CONFIG_YSYXSOC
   if (in_mrom(addr)) {
     word_t ret = mrom_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
@@ -195,7 +195,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     #endif
     return; 
   }
-  #ifdef CONFIG_TARGET_SHARE
+  #ifdef CONFIG_YSYXSOC
   if (in_mrom(addr)) {
     mrom_write(addr, len, data);
     #ifdef CONFIG_MTRACE
