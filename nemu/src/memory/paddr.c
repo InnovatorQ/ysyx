@@ -30,6 +30,8 @@ static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t psram[0x400000] = {}; // 4MB
 static uint8_t sdram[0x20000000] = {};
 static uint8_t gpio[0xf] = {};
+
+static uint8_t uart[0x10] = {};
 #endif
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
@@ -83,6 +85,14 @@ static word_t gpio_read(paddr_t addr, int len) {
 
 static void gpio_write(paddr_t addr, int len, word_t data) {
   host_write(gpio + (addr - GPIO_LEFT), len, data);
+}
+
+static word_t uart_read(paddr_t addr, int len) {
+  return host_read(uart + (addr - UART_LEFT), len);
+}
+
+static void uart_write(paddr_t addr, int len, word_t data) {
+  host_write(uart + (addr - UART_LEFT), len, data);
 }
 #endif
 static void out_of_bound(paddr_t addr) {
@@ -169,6 +179,16 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
+  if(in_uart(addr)) {
+    word_t ret = uart_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
   #endif
   IFDEF(CONFIG_DEVICE, 
     difftest_skip_ref();
@@ -246,6 +266,18 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   }
   if (in_gpio(addr)) {
     gpio_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE GPIO [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_uart(addr)) {
+    uart_write(addr, len, data);
     #ifdef CONFIG_MTRACE
       #ifdef CONFIG_MTRACE_COND
       if (MTRACE_COND) {

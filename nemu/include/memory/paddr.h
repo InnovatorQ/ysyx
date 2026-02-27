@@ -32,6 +32,8 @@
 #define SDRAM_RIGHT 0xbfffffff
 #define GPIO_LEFT   0x10002000
 #define GPIO_RIGHT  0x1000200f 
+#define UART_LEFT   0x10000000
+#define UART_RIGHT  0x10000010
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
@@ -60,6 +62,10 @@ static inline bool in_sdram(paddr_t addr) {
 
 static inline bool in_gpio(paddr_t addr) {
   return addr >= GPIO_LEFT && addr <= GPIO_RIGHT;
+}
+
+static inline bool in_uart(paddr_t addr) {
+  return addr >= UART_LEFT && addr <= UART_RIGHT;
 }
 #endif
 word_t paddr_read(paddr_t addr, int len);
