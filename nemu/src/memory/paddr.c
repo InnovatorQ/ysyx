@@ -32,6 +32,7 @@ static uint8_t sdram[0x20000000] = {};
 static uint8_t gpio[0xf] = {};
 
 static uint8_t uart[0x10] = {};
+static uint8_t clint[0x10000] = {};
 #endif
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
@@ -93,6 +94,14 @@ static word_t uart_read(paddr_t addr, int len) {
 
 static void uart_write(paddr_t addr, int len, word_t data) {
   host_write(uart + (addr - UART_LEFT), len, data);
+}
+
+static word_t clint_read(paddr_t addr, int len) {
+  return host_read(clint + (addr - CLINT_LEFT), len);
+}
+
+static void clint_write(paddr_t addr, int len, word_t data) {
+  host_write(clint + (addr - CLINT_LEFT), len, data);
 }
 #endif
 static void out_of_bound(paddr_t addr) {
@@ -181,6 +190,16 @@ word_t paddr_read(paddr_t addr, int len) {
   }
   if(in_uart(addr)) {
     word_t ret = uart_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if(in_clint(addr)) {
+    word_t ret = clint_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
     if(MTRACE_COND){
       log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
@@ -278,6 +297,18 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   }
   if (in_uart(addr)) {
     uart_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE GPIO [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_clint(addr)) {
+    clint_write(addr, len, data);
     #ifdef CONFIG_MTRACE
       #ifdef CONFIG_MTRACE_COND
       if (MTRACE_COND) {
