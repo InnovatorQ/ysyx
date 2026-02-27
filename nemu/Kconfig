@@ -251,5 +251,8 @@ endchoice
 config RT_CHECK
   bool "Enable runtime checking"
   default y
-
 endmenu
+
+config YSYXSOC
+  bool "sim as soc"
+  default n
