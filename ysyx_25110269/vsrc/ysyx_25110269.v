@@ -90,7 +90,6 @@ module ysyx_25110269(
     assign  io_master_awid = 4'b0;
     assign  io_master_awburst = 2'b0;
     assign  io_master_arid = 4'b0;
-    assign  io_master_arburst = 2'b0;
 
     reg             inst_finish ;
     wire            fs_to_ds_valid;
@@ -154,6 +153,7 @@ module ysyx_25110269(
     wire [7:0]  icache_arlen;
     wire [2:0]  icache_arsize;
     wire        icache_arready;
+    wire [1:0]  icache_arburst;
     wire [31:0] icache_rdata;
     wire        icache_rvalid;
     wire [1:0]  icache_rresp;
@@ -303,6 +303,7 @@ module ysyx_25110269(
         .ifu_arlen          (icache_arlen       ),
         .ifu_arsize         (icache_arsize      ),
         .ifu_arready        (icache_arready     ),
+        .ifu_arburst        (icache_arburst     ),
         .ifu_rvalid         (icache_rvalid      ),
         .ifu_rdata          (icache_rdata       ),
         .ifu_rresp          (icache_rresp       ),
@@ -360,6 +361,7 @@ module ysyx_25110269(
         .io_master_araddr   (io_master_araddr   ),
         .io_master_arlen    (io_master_arlen    ),
         .io_master_arsize   (io_master_arsize   ),
+        .io_master_arburst  (io_master_arburst  ),
         
         .io_master_rready   (io_master_rready   ),
         .io_master_rvalid   (io_master_rvalid   ),
@@ -405,7 +407,8 @@ module ysyx_25110269(
         .csr_mepc   (csr_mepc   )
     );
 
-    ysyx_25110269_icache icache(
+    ysyx_25110269_icache #(.NUM_SETS(16), .WAYS(1), .BLOCK_SIZE (4))icache
+    (
         .clock          (clock          ),
         .reset          (reset          ),
 
@@ -419,6 +422,7 @@ module ysyx_25110269(
         .i_arlen        (icache_arlen    ),
         .i_arsize       (icache_arsize   ),
         .i_arready      (icache_arready  ),
+        .i_arburst      (icache_arburst  ),
 
         .i_rresp        (icache_rresp    ),
         .i_rdata        (icache_rdata    ),

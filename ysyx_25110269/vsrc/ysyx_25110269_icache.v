@@ -1,6 +1,14 @@
 `include "mycpu.vh"
 /*verilator public_on*/
-module ysyx_25110269_icache(
+module ysyx_25110269_icache #(
+    parameter NUM_SETS = 4,     // 组数
+    parameter WAYS = 4,         // 每组路数  
+    parameter BLOCK_SIZE = 4,   // 块大小(字节)
+    parameter SET_BITS = $clog2(NUM_SETS),
+    parameter OFFSET_BITS = $clog2(BLOCK_SIZE),
+    parameter TAG_BITS = 32 - SET_BITS - OFFSET_BITS,
+    parameter WAY_BITS = $clog2(WAYS)
+)(
     input           clock,
     input           reset,
     //ar ifu
@@ -14,6 +22,7 @@ module ysyx_25110269_icache(
     output  [7:0]   i_arlen,
     output  [2:0]   i_arsize,
     input           i_arready,
+    output  [1:0]   i_arburst,
 
     input           i_rvalid,
     input   [31:0]  i_rdata,
@@ -22,29 +31,84 @@ module ysyx_25110269_icache(
     
 );
 
-parameter   NUM_BLOCKS = 16, // cache块数量
-            BLOCK_SIZE = 4,  // cache块大小
-            INDEX_BITS = 4,  // 块索引位数
-            OFFSET_BITS = 2, // 块内偏移位数
-            TAG_BITS = 32 - INDEX_BITS - OFFSET_BITS; // 标签位数
+parameter   NUM_BLOCKS = NUM_SETS * WAYS; // 总块数
 
-reg [BLOCK_SIZE*8 - 1   : 0]    icache      [0:NUM_BLOCKS - 1]; // 16个cache块，每个块4B
-reg                             valid_array [0:NUM_BLOCKS - 1]; // 每个块的有效位
-reg [TAG_BITS - 1       : 0]    tag_array   [0:NUM_BLOCKS - 1]; // 每个块的标签
+reg [BLOCK_SIZE*8 - 1   : 0]    icache      [0:NUM_BLOCKS - 1]; 
+reg                             valid_array [0:NUM_BLOCKS - 1]; 
+reg [TAG_BITS - 1       : 0]    tag_array   [0:NUM_BLOCKS - 1]; 
 
-wire [INDEX_BITS - 1    : 0]    index   = raddr[OFFSET_BITS + INDEX_BITS - 1 : OFFSET_BITS]; // 块索引
-wire [OFFSET_BITS - 1   : 0]    offset  = raddr[OFFSET_BITS - 1 : 0]; // 块内偏移
-wire [TAG_BITS - 1      : 0]    tag     = raddr[31 : OFFSET_BITS + INDEX_BITS]; // 标签
-wire                            hit     = valid_array[index] && (tag_array[index] == tag); // 是否命中
+generate
+if (WAYS > 1) begin : gen_assoc
+    reg [WAY_BITS - 1 : 0] FIFO [0:NUM_SETS - 1];
+    reg [WAY_BITS - 1 : 0] hit_way;
+    reg [WAY_BITS - 1 : 0] replace_way;
+end
+endgenerate
+
+wire [SET_BITS - 1      : 0]    set_index = raddr[OFFSET_BITS + SET_BITS - 1 : OFFSET_BITS];
+wire [OFFSET_BITS - 1   : 0]    offset    = raddr[OFFSET_BITS - 1 : 0]; 
+wire [TAG_BITS - 1      : 0]    tag       = raddr[31 : OFFSET_BITS + SET_BITS];
+
+// 命中检测和路选择
+reg                             hit;
+
+// 组相联命中检测
+generate
+if (WAYS > 1) begin : gen_hit_logic
+    integer way_idx;
+    always @(*) begin
+        hit = 0;
+        gen_assoc.hit_way = 0;
+        for (way_idx = 0; way_idx < WAYS; way_idx = way_idx + 1) begin
+            if (valid_array[set_index * WAYS + way_idx] && 
+                tag_array[set_index * WAYS + way_idx] == tag) begin
+                hit = 1;
+                gen_assoc.hit_way = way_idx[WAY_BITS - 1 : 0];
+            end
+        end
+    end
+end else begin : gen_direct_hit
+    always @(*) begin
+        hit = valid_array[set_index] && (tag_array[set_index] == tag);
+    end
+end
+endgenerate
+
+generate
+if (WAYS > 1) begin : gen_replace_logic
+    // 组相联替换策略
+    integer find_way;
+    always @(*) begin
+        gen_assoc.replace_way = 0;
+        // 优先找无效路
+        for (find_way = 0; find_way < WAYS; find_way = find_way + 1) begin
+            if (!valid_array[set_index * WAYS + find_way]) begin
+                gen_assoc.replace_way = find_way[WAY_BITS - 1 : 0];
+            end
+        end
+        // 如果都有效，选择FIFO路
+        if (valid_array[set_index * WAYS + {1'b0, gen_assoc.replace_way}]) begin
+            gen_assoc.replace_way = gen_assoc.FIFO[set_index];
+        end
+    end
+end
+endgenerate
 
 assign i_arvalid = (state == MISS);
 assign i_rready = (state == REFILL);
-
+assign i_arburst = 2'b1;
 assign i_arlen = 8'h0; // 只请求一个数据块
 assign i_arsize = 3'b010; // 4字节
 assign i_araddr = raddr;
 assign valid = (i_rvalid && i_rready) || (rvalid && hit);
-assign rdata = (rvalid && hit) ? icache[index] : i_rdata;
+generate
+if (WAYS > 1) begin : gen_rdata_assoc
+    assign rdata = (rvalid && hit) ? icache[set_index * WAYS + {1'b0, gen_assoc.hit_way}] : i_rdata;
+end else begin : gen_rdata_direct
+    assign rdata = (rvalid && hit) ? icache[set_index] : i_rdata;
+end
+endgenerate
+
 localparam IDLE = 0,
            MISS = 1,
            REFILL = 2;
@@ -53,6 +117,31 @@ reg [31 : 0] miss_cnt;
 reg [31 : 0] hit_cnt;
 reg [31 : 0] penalty_cnt;
 reg          access_start;
+generate
+if (WAYS > 1) begin : gen_update_assoc
+    always @(posedge clock) begin
+        if(reset) begin
+            for (i = 0; i < NUM_SETS; i = i + 1) begin
+                gen_assoc.FIFO[i] <= 0;
+            end
+        end
+        else if (state == REFILL && i_rvalid && i_rready) begin
+            icache[set_index * WAYS + {1'b0, gen_assoc.replace_way}] <= i_rdata;
+            tag_array[set_index * WAYS + {1'b0, gen_assoc.replace_way}] <= tag;
+            valid_array[set_index * WAYS + {1'b0, gen_assoc.replace_way}] <= 1;
+            gen_assoc.FIFO[set_index] <= ((gen_assoc.FIFO[set_index] + 1) == WAYS) ? 0 : gen_assoc.FIFO[set_index] + 1;
+        end
+    end
+end else begin : gen_update_direct
+    always @(posedge clock) begin
+        if (state == REFILL && i_rvalid && i_rready) begin
+            icache[set_index] <= i_rdata;
+            tag_array[set_index] <= tag;
+            valid_array[set_index] <= 1;
+        end
+    end
+end
+endgenerate
 
 integer i;
 always @(posedge clock) begin
@@ -89,16 +178,12 @@ always @(posedge clock) begin
             end
             REFILL: begin
                 if (i_rvalid && i_rready) begin
-                    // 数据返回，更新cache块内容、标签和有效位
                     if(i_rresp != 2'b0) begin
                         // $display("Access Fault !!! rrsep : %xh", i_rresp);
                         // $fatal;
                     end
                     access_start <= 0;
-                    icache[index] <= i_rdata;
-                    tag_array[index] <= tag;
-                    valid_array[index] <= 1;
-                    state <= IDLE; // 回到空闲状态等待下一次访问
+                    state <= IDLE;
                 end
             end
         endcase
