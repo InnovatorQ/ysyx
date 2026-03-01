@@ -1,17 +1,18 @@
 module ysyx_25110269_axi_xbar(
-    input        clock,
-    input        reset,
+    input           clock,
+    input           reset,
     // IFU interface
-    input        ifu_arvalid,
-    input [31:0] ifu_araddr,
-    input [7 :0] ifu_arlen,
-    input [2 :0] ifu_arsize,
-    output       ifu_arready,
-    input  [1:0]  ifu_arburst,
-    output       ifu_rvalid,
-    output [31:0] ifu_rdata,
-    output [1:0]  ifu_rresp,
-    input        ifu_rready,
+    input           ifu_arvalid,
+    input [31:0]    ifu_araddr,
+    input [7 :0]    ifu_arlen,
+    input [2 :0]    ifu_arsize,
+    output          ifu_arready,
+    input  [1:0]    ifu_arburst,
+    output          ifu_rvalid,
+    output [31:0]   ifu_rdata,
+    output [1:0]    ifu_rresp,
+    input           ifu_rready,
+    output          ifu_rlast,
 
     // LSU interface
     input           lsu_arvalid,
@@ -71,6 +72,7 @@ module ysyx_25110269_axi_xbar(
     input           io_master_rvalid,
     input [1:0]     io_master_rresp,
     input [31:0]    io_master_rdata,
+    input           io_master_rlast,
 
     output          io_master_bready,
     input           io_master_bvalid,
@@ -104,7 +106,7 @@ always @(*) begin
             end
         end
         master_ifu: begin
-            if (rvalid & ifu_rready) begin
+            if (rvalid & ifu_rready & rlast) begin
                 next_state = idle;
             end else begin
                 next_state = master_ifu;
@@ -127,9 +129,10 @@ always @(posedge clock) begin
     if(arvalid & arready) raddr <= araddr;
 end
 assign arready = clint_arvalid ? clint_arready : io_master_arready;  // 默认返回的是mem的arready
-assign rvalid = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rvalid : io_master_rvalid;
-assign rdata = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rdata : io_master_rdata;
-assign rresp = (raddr >= 32'h0200_0000 && raddr < 32'h02010000) ? clint_rresp : io_master_rresp;
+assign rvalid = (raddr[31:16] == 16'h0200) ? clint_rvalid : io_master_rvalid;
+assign rdata = (raddr[31:16] == 16'h0200) ? clint_rdata : io_master_rdata;
+assign rresp = (raddr[31:16] == 16'h0200) ? clint_rresp : io_master_rresp;
+assign rlast = io_master_rlast ;
 
 assign ifu_arready = (state == master_ifu) ? arready : 1'b0;
 assign lsu_arready = (state == master_lsu) ? arready : 1'b0;
@@ -139,6 +142,7 @@ assign ifu_rdata = (state == master_ifu) ? rdata : 32'b0;
 assign lsu_rdata = (state == master_lsu) ? rdata : 32'b0;
 assign ifu_rresp = (state == master_ifu) ? rresp : 2'b0;
 assign lsu_rresp = (state == master_lsu) ? rresp : 2'b0;
+assign ifu_rlast = (state == master_ifu) ? rlast : 1'b0;
 
 wire            arvalid, arready, rready, rvalid;
 wire [31 : 0]   araddr, rdata;
@@ -146,6 +150,7 @@ wire [7  : 0]   arlen;
 wire [2  : 0]   arsize;
 wire [1  : 0]   arburst;
 wire [1  : 0]   rresp;
+wire            rlast;
 
 assign arvalid = (state == master_ifu) ? ifu_arvalid :
                  (state == master_lsu) ? lsu_arvalid : 1'b0;

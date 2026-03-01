@@ -158,6 +158,7 @@ module ysyx_25110269(
     wire        icache_rvalid;
     wire [1:0]  icache_rresp;
     wire        icache_rready;
+    wire        icache_rlast;
     ysyx_25110269_IFU IFU(
         .clock          (clock          ),
         .reset          (reset          ),
@@ -308,6 +309,7 @@ module ysyx_25110269(
         .ifu_rdata          (icache_rdata       ),
         .ifu_rresp          (icache_rresp       ),
         .ifu_rready         (icache_rready      ),
+        .ifu_rlast          (icache_rlast       ),
 
         // LSU interface
         .lsu_arvalid        (lsu_arvalid        ),
@@ -367,6 +369,7 @@ module ysyx_25110269(
         .io_master_rvalid   (io_master_rvalid   ),
         .io_master_rresp    (io_master_rresp    ),
         .io_master_rdata    (io_master_rdata    ),
+        .io_master_rlast    (io_master_rlast    ),
 
         .io_master_bready   (io_master_bready   ),
         .io_master_bvalid   (io_master_bvalid   ),
@@ -427,7 +430,8 @@ module ysyx_25110269(
         .i_rresp        (icache_rresp    ),
         .i_rdata        (icache_rdata    ),
         .i_rvalid       (icache_rvalid   ),
-        .i_rready       (icache_rready   )
+        .i_rready       (icache_rready   ),
+        .i_rlast        (icache_rlast    )
         
     );
 

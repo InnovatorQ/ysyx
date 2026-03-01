@@ -27,7 +27,8 @@ module ysyx_25110269_icache #(
     input           i_rvalid,
     input   [31:0]  i_rdata,
     input   [1:0]   i_rresp,
-    output          i_rready
+    output          i_rready,
+    input           i_rlast
     
 );
 
@@ -69,7 +70,7 @@ if (WAYS > 1) begin : gen_hit_logic
     end
 end else begin : gen_direct_hit
     always @(*) begin
-        hit = valid_array[set_index] && (tag_array[set_index] == tag);
+        hit = (valid_array[set_index] && (tag_array[set_index] == tag)) && (state == IDLE);
     end
 end
 endgenerate
@@ -97,10 +98,10 @@ endgenerate
 assign i_arvalid = (state == MISS);
 assign i_rready = (state == REFILL);
 assign i_arburst = 2'b1;
-assign i_arlen = 8'h0; // 只请求一个数据块
+assign i_arlen = (raddr[31:28] == 4'ha) ? 8'h1 : 8'h0; 
 assign i_arsize = 3'b010; // 4字节
 assign i_araddr = raddr;
-assign valid = (i_rvalid && i_rready) || (rvalid && hit);
+assign valid = (i_rvalid && i_rready && i_rlast) || (rvalid && hit);
 generate
 if (WAYS > 1) begin : gen_rdata_assoc
     assign rdata = (rvalid && hit) ? icache[set_index * WAYS + {1'b0, gen_assoc.hit_way}] : i_rdata;
@@ -111,7 +112,8 @@ endgenerate
 
 localparam IDLE = 0,
            MISS = 1,
-           REFILL = 2;
+           REFILL = 2,
+           BURST_FIN = 3;
 reg [1:0] state;
 reg [31 : 0] miss_cnt;
 reg [31 : 0] hit_cnt;
@@ -182,9 +184,13 @@ always @(posedge clock) begin
                         // $display("Access Fault !!! rrsep : %xh", i_rresp);
                         // $fatal;
                     end
-                    access_start <= 0;
-                    state <= IDLE;
+                    if(i_rlast)
+                    state <= BURST_FIN;
                 end
+            end
+            BURST_FIN: begin
+                access_start <= 0;
+                state <= IDLE;
             end
         endcase
         if(access_start) penalty_cnt <= penalty_cnt + 1;
