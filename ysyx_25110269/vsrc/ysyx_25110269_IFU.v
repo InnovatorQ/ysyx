@@ -132,7 +132,7 @@ module ysyx_25110269_IFU(
             //$display("IFU FETCH ADDR: %h", pc);
         end
         if(arvalid) access_start <= 1'b1;
-        if(access_start) delay_cnt <= delay_cnt + 1;
+        if(access_start || arvalid) delay_cnt <= delay_cnt + 1;
         // 在AXI读握手成功时缓存数据
         if(rvalid) begin
             ifu_rdata <= rdata;

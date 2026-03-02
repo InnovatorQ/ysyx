@@ -197,7 +197,7 @@ config DIFFTEST
   help
     Enable differential testing with a reference design.
     Note that this will significantly reduce the performance of NEMU.
-
+    
 choice
   prompt "Reference design"
   default DIFFTEST_REF_SPIKE if ISA_riscv
@@ -251,5 +251,8 @@ endchoice
 config RT_CHECK
   bool "Enable runtime checking"
   default y
-
 endmenu
+
+config YSYXSOC
+  bool "sim as soc"
+  default n

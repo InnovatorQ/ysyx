@@ -24,12 +24,16 @@ static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
-
+#ifdef CONFIG_YSYXSOC
 static uint8_t mrom[0x1000] = {}; // 4KB 
 static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t psram[0x400000] = {}; // 4MB
 static uint8_t sdram[0x20000000] = {};
 static uint8_t gpio[0xf] = {};
+
+static uint8_t uart[0x10] = {};
+static uint8_t clint[0x10000] = {};
+#endif
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
@@ -43,7 +47,7 @@ static word_t pmem_read(paddr_t addr, int len) {
 static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
 }
-
+#ifdef CONFIG_YSYXSOC
 static word_t mrom_read(paddr_t addr, int len) {
   return host_read(mrom + (addr - MROM_LEFT), len);
 }
@@ -83,6 +87,23 @@ static word_t gpio_read(paddr_t addr, int len) {
 static void gpio_write(paddr_t addr, int len, word_t data) {
   host_write(gpio + (addr - GPIO_LEFT), len, data);
 }
+
+static word_t uart_read(paddr_t addr, int len) {
+  return host_read(uart + (addr - UART_LEFT), len);
+}
+
+static void uart_write(paddr_t addr, int len, word_t data) {
+  host_write(uart + (addr - UART_LEFT), len, data);
+}
+
+static word_t clint_read(paddr_t addr, int len) {
+  return host_read(clint + (addr - CLINT_LEFT), len);
+}
+
+static void clint_write(paddr_t addr, int len, word_t data) {
+  host_write(clint + (addr - CLINT_LEFT), len, data);
+}
+#endif
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -95,10 +116,12 @@ void init_mem() {
 #endif
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+  #ifdef CONFIG_YSYXSOC
   Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
   Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
   Log("psram area [" FMT_PADDR ", " FMT_PADDR "]", PSRAM_LEFT, PSRAM_RIGHT);
   Log("sdram area [" FMT_PADDR ", " FMT_PADDR "]", SDRAM_LEFT, SDRAM_RIGHT);
+  #endif
 }
 
 word_t paddr_read(paddr_t addr, int len) {
@@ -114,6 +137,7 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
+  #ifdef CONFIG_YSYXSOC
   if (in_mrom(addr)) {
     word_t ret = mrom_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
@@ -164,6 +188,27 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
+  if(in_uart(addr)) {
+    word_t ret = uart_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if(in_clint(addr)) {
+    word_t ret = clint_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ GPIO [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  #endif
   IFDEF(CONFIG_DEVICE, 
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);
@@ -189,6 +234,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     #endif
     return; 
   }
+  #ifdef CONFIG_YSYXSOC
   if (in_mrom(addr)) {
     mrom_write(addr, len, data);
     #ifdef CONFIG_MTRACE
@@ -249,6 +295,31 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     #endif
     return;
   }
+  if (in_uart(addr)) {
+    uart_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE GPIO [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_clint(addr)) {
+    clint_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE GPIO [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  #endif
   IFDEF(CONFIG_DEVICE,
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);

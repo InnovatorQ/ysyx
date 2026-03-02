@@ -32,6 +32,10 @@
 #define SDRAM_RIGHT 0xbfffffff
 #define GPIO_LEFT   0x10002000
 #define GPIO_RIGHT  0x1000200f 
+#define UART_LEFT   0x10000000
+#define UART_RIGHT  0x10000010
+#define CLINT_LEFT  0x02000000
+#define CLINT_RIGHT 0x02010000
 
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
@@ -41,7 +45,7 @@ paddr_t host_to_guest(uint8_t *haddr);
 static inline bool in_pmem(paddr_t addr) {
   return addr - CONFIG_MBASE < CONFIG_MSIZE;
 }
-
+#ifdef CONFIG_YSYXSOC
 static inline bool in_mrom(paddr_t addr) {
   return addr >= MROM_LEFT && addr <= MROM_RIGHT;
 }
@@ -61,6 +65,15 @@ static inline bool in_sdram(paddr_t addr) {
 static inline bool in_gpio(paddr_t addr) {
   return addr >= GPIO_LEFT && addr <= GPIO_RIGHT;
 }
+
+static inline bool in_uart(paddr_t addr) {
+  return addr >= UART_LEFT && addr <= UART_RIGHT;
+}
+
+static inline bool in_clint(paddr_t addr) {
+  return addr >= CLINT_LEFT && addr <= CLINT_RIGHT;
+}
+#endif
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
 
