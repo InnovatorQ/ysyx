@@ -140,11 +140,11 @@ static void show_pref(){
     Log("|LSU delay cycles              \t| %-12u\t|", CPU_INFO(LSU).delay_cnt);
     Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
     Log("+-------------------------------------------------+");
-    Log("|icache hit | miss             \t| %-6u|%-6u\t|",  CPU_INFO(icache).hit_cnt, CPU_INFO(icache).miss_cnt);
+    Log("|icache hit | miss (no sram)   \t| %-6u|%-6u\t|",  CPU_INFO(icache).hit_cnt, CPU_INFO(icache).miss_cnt);
     Log("|the precentage of icache hit  \t| %-12.2f\t|", p_hit);
     Log("+-------------------------------------------------+");
     Log("|miss_penalty                  \t| %-12u\t|", CPU_INFO(icache).penalty_cnt);
-    Log("|Average Memory Access Time    \t| %-12.2f\t|", CPU_INFO(icache).hit_cnt + (1 - p_hit) * CPU_INFO(icache).penalty_cnt);
+    Log("|Average Memory Access Time    \t| %-12.2f\t|", p_hit * CPU_INFO(icache).hit_cnt + (1 - p_hit) * CPU_INFO(icache).penalty_cnt);
     Log("+-------------------------------------------------+");
 }
 
