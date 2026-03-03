@@ -130,7 +130,7 @@ module ysyx_25110269_LSU(
                 next_state = ws_allowin && (bready & bvalid) ? ms_idle : ms_wdata_ready;
             end
             ms_rdata_ready : begin
-                next_state = ms_wait_ready ? ms_wait_ready : ms_idle ;
+                next_state = es_to_ms_valid ? ms_wait_ready : ms_idle ;
             end
             default : next_state = ms_idle;
         endcase
