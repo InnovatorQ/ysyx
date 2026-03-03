@@ -60,7 +60,7 @@ module ysyx_25110269_IFU(
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_idle : fs_data_ready;
                 fs_ready_go : 
-                    fs_state <= fs_idle
+                    fs_state <= fs_idle;
                 default: fs_state <= fs_idle;
             endcase
         end
