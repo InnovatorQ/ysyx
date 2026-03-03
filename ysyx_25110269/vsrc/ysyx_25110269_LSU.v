@@ -49,6 +49,7 @@ module ysyx_25110269_LSU(
     localparam ms_addr_ready = 3'b10;
     localparam ms_wdata_ready = 3'b11;
     localparam ms_rdata_ready = 3'b100;
+    localparam ms_wdata_wait = 3'b101;
 
     reg [4 : 0]     delay_count;
 
@@ -117,7 +118,7 @@ module ysyx_25110269_LSU(
             end
             ms_wait_ready : begin
                 if(arvalid | awvalid) begin
-                    next_state = (awready & awvalid) ? ms_wdata_ready :
+                    next_state = (awready & awvalid) ? ms_wdata_wait :
                     ((arready & arvalid) ? ms_addr_ready :ms_wait_ready);
                 end else begin
                     next_state = ms_idle;
@@ -126,12 +127,14 @@ module ysyx_25110269_LSU(
             ms_addr_ready: begin
                 next_state = (rvalid & rready) ? ms_rdata_ready : ms_addr_ready;
             end
-            ms_wdata_ready : begin
-                next_state = ws_allowin && (bready & bvalid) ? ms_idle : ms_wdata_ready;
+            ms_wdata_wait : begin
+                next_state = ws_allowin && (bready & bvalid) ? ms_wdata_ready : ms_wdata_ready;
             end
             ms_rdata_ready : begin
                 next_state = es_to_ms_valid ? ms_wait_ready : ms_idle ;
             end
+            ms_wdata_ready : 
+                next_state = es_to_ms_valid ? ms_wait_ready : ms_idle;
             default : next_state = ms_idle;
         endcase
     end
@@ -159,8 +162,8 @@ module ysyx_25110269_LSU(
     assign wstrb  = (store == 4'hf) ? 4'b1111 :
                     (store == 4'h3) ? (3 << byte_offset) :
                     (store == 4'h1) ? (1 << byte_offset) : 4'b0;
-    assign bready = (ms_state == ms_wdata_ready);
-    assign ms_allowin = (ms_state == ms_rdata_ready) || (bvalid && bready) || !is_ls;
+    assign bready = (ms_state == ms_wdata_wait);
+    assign ms_allowin = (ms_state == ms_rdata_ready) || (ms_state == ms_wdata_ready) || !is_ls;
     assign {
         ms_pc,
         ms_alu_result,
