@@ -134,7 +134,7 @@ module ysyx_25110269_LSU(
                 next_state = es_to_ms_valid ? ms_wait_ready : ms_idle ;
             end
             ms_wdata_ready : 
-                next_state = es_to_ms_valid ? ms_wait_ready : ms_idle;
+                next_state = es_to_ms_valid ? ms_wait_ready : ms_wdata_ready;
             default : next_state = ms_idle;
         endcase
     end
