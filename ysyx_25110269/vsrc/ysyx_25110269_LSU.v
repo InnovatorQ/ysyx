@@ -146,7 +146,7 @@ module ysyx_25110269_LSU(
                     (load == 4'h3) ? 3'b001 : 
                     (load == 4'h1) ? 3'b000 : 3'b0;
     assign arlen  = 8'h0;
-    assign ms_to_ws_valid = (bready & bvalid) || ((ms_state == ms_wait_ready) && !is_ls) || (ms_state == ms_rdata_ready);
+    assign ms_to_ws_valid = (ms_state == ms_wdata_ready) || ((ms_state == ms_wait_ready) && !is_ls) || (ms_state == ms_rdata_ready);
 
     assign awvalid = mem_wen & (ms_state == ms_wait_ready);
     assign wvalid  = mem_wen & (ms_state == ms_wait_ready);
