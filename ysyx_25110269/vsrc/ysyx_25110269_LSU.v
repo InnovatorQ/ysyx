@@ -130,7 +130,7 @@ module ysyx_25110269_LSU(
                 next_state = ws_allowin && (bready & bvalid) ? ms_idle : ms_wdata_ready;
             end
             ms_rdata_ready : begin
-                next_state = ws_allowin ? ms_idle : ms_rdata_ready;
+                next_state = ms_idle ;
             end
             default : next_state = ms_idle;
         endcase
@@ -160,7 +160,7 @@ module ysyx_25110269_LSU(
                     (store == 4'h3) ? (3 << byte_offset) :
                     (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_ready);
-    assign ms_allowin = 1'b1;
+    assign ms_allowin = (rvalid && rready) || (bvalid && bready);
     assign {
         ms_pc,
         ms_alu_result,
