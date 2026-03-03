@@ -60,14 +60,14 @@ module ysyx_25110269_IFU(
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_ready_go : fs_data_ready;
                 fs_ready_go : 
-                    fs_state <= fs_idle;
+                    fs_state <= fs_wait_ready;
                 default: fs_state <= fs_idle;
             endcase
         end
     end
     
     
-    assign arvalid = (fs_state == fs_idle);
+    assign arvalid = (fs_state == fs_wait_ready);
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
