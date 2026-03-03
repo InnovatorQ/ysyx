@@ -26,11 +26,12 @@ module ysyx_25110269_IFU(
     input  [31:0]   rdata            
     
 );
-    localparam fs_idle = 2'b00;
-    localparam fs_wait_ready = 2'b01;
-    localparam fs_addr_ready = 2'b10;
-    localparam fs_data_ready = 2'b11;
-    reg [1:0]  fs_state;
+    localparam fs_idle = 3'b000;
+    localparam fs_wait_ready = 3'b001;
+    localparam fs_addr_ready = 3'b010;
+    localparam fs_data_ready = 3'b011;
+    localparam fs_ready_go = 3'b100;
+    reg [2:0]  fs_state;
     reg [31:0] ifu_rdata;
     reg [31:0] pref_cnt;
     reg [63:0] delay_cnt;
@@ -42,7 +43,8 @@ module ysyx_25110269_IFU(
             pref_cnt <= 32'b0;
             delay_cnt <= 64'b0;
         end else begin
-            fs_valid <= 1'b1;
+            if(rvalid)
+                fs_valid <= 1'b1;
         end
     end
     
@@ -57,6 +59,8 @@ module ysyx_25110269_IFU(
                     fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_idle : fs_data_ready;
+                fs_ready_go : 
+                    fs_state <= fs_idle
                 default: fs_state <= fs_idle;
             endcase
         end
@@ -126,7 +130,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(fs_state == fs_data_ready) begin
+        end else if(fs_state == fs_ready_go) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end

@@ -20,8 +20,10 @@ module ysyx_25110269_IDU(
     output          cache_flush,
     //ds->fs
     output          ds_allowin,
+
     output          br_taken,
     output [31 : 0] br_target,
+    
     output          inst_ecall,
     output          inst_mret,
     //csr->ds
