@@ -142,7 +142,7 @@ module ysyx_25110269(
     wire [31 : 0]   st_data;
     wire [31 : 0]   csr_result;
     wire [31 : 0]   wb_data;    //写入寄存器的值
-
+    wire            cache_flush;
     // AXI4-Lite signals for IFU
     wire        ifu_arvalid;
     wire [31:0] ifu_araddr;
@@ -195,6 +195,8 @@ module ysyx_25110269(
 
         .ds_to_es_valid (ds_to_es_valid ),
         .ds_to_es_bus   (ds_to_es_bus   ),
+
+        .cache_flush    (cache_flush    ),
         
         .rs1            (rs1            ),
         .rs1_data       (rs1_data       ),
@@ -431,8 +433,9 @@ module ysyx_25110269(
         .i_rdata        (icache_rdata    ),
         .i_rvalid       (icache_rvalid   ),
         .i_rready       (icache_rready   ),
-        .i_rlast        (icache_rlast    )
-        
+        .i_rlast        (icache_rlast    ),
+
+        .cache_flush    (cache_flush     )
     );
 
 endmodule

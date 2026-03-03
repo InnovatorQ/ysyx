@@ -8,7 +8,7 @@ module ysyx_25110269_icache #(
     parameter OFFSET_BITS = $clog2(BLOCK_SIZE),
     parameter TAG_BITS = 32 - SET_BITS - OFFSET_BITS,
     parameter WAY_BITS = $clog2(WAYS),
-    parameter BLOCK_WORD = BLOCK_SIZE / 4
+    parameter BLOCK_WORD = BLOCK_SIZE / 4 - 1
 )(
     input           clock,
     input           reset,
@@ -29,7 +29,9 @@ module ysyx_25110269_icache #(
     input   [31:0]  i_rdata,
     input   [1:0]   i_rresp,
     output          i_rready,
-    input           i_rlast
+    input           i_rlast,
+
+    input           cache_flush
     
 );
 
@@ -101,7 +103,7 @@ endgenerate
 assign i_arvalid = (state == MISS) || ((state == IDLE) && uncache_addr && rvalid);
 assign i_rready = (state == REFILL) || ((state == IDLE) && uncache_addr);
 assign i_arburst = 2'b1;
-assign i_arlen = uncache_addr ? 0 : BLOCK_WORD - 1; 
+assign i_arlen = uncache_addr ? 0 : BLOCK_WORD ; 
 assign i_arsize = 3'b010; // 4字节
 assign i_araddr = uncache_addr ? raddr : {raddr[31:OFFSET_BITS], {OFFSET_BITS{1'b0}}};
 assign valid = (i_rvalid && i_rready && i_rlast) || (rvalid && hit);
@@ -110,7 +112,6 @@ if (WAYS > 1) begin : gen_rdata_assoc
     assign rdata = (rvalid && hit) ? icache[set_index * WAYS + {1'b0, gen_assoc.hit_way}] : i_rdata_r;
 end else begin : gen_rdata_direct
     assign rdata = uncache_addr ? i_rdata : (!hit ? ((((offset >> 2) == 0) && (i_arlen != 0)) ? i_rdata_r : i_rdata): o_rdata);
-    // assign rdata = uncache_addr ? i_rdata : ((rvalid && hit) ? o_rdata : ((i_arlen == 0) ? i_rdata : i_rdata_r));
     always @(*) begin
         case(offset >> 2)
         'h0 : o_rdata = icache[set_index][31 : 0];
@@ -125,6 +126,7 @@ localparam IDLE = 0,
            MISS = 1,
            REFILL = 2,
            BURST_FIN = 3;
+           
 reg [1:0] state;
 reg [31 : 0] miss_cnt;
 reg [31 : 0] hit_cnt;
@@ -192,7 +194,14 @@ always @(posedge clock) begin
                         access_start <= 1;
                         w_ptr <= 0;
                     end
-
+                end
+                if(cache_flush)begin 
+                    skip_ref();
+                    for(i = 0; i < NUM_BLOCKS; i = i + 1)begin
+                        valid_array[i] <= 0;
+                        tag_array[i] <= 0;
+                        icache[i] <= 'b0;
+                    end
                 end
             end
             MISS: begin
@@ -217,6 +226,7 @@ always @(posedge clock) begin
             BURST_FIN: begin
                 state <= IDLE;
             end
+            default: ;
         endcase
         if(access_start) penalty_cnt <= penalty_cnt + 1;
     end

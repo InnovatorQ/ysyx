@@ -144,7 +144,7 @@ static void show_pref(){
     Log("|the precentage of icache hit  \t| %-12.2f\t|", p_hit);
     Log("+-------------------------------------------------+");
     Log("|miss_penalty                  \t| %-12u\t|", CPU_INFO(icache).penalty_cnt);
-    Log("|Average Memory Access Time    \t| %-12.2f\t|", CPU_INFO(icache).hit_cnt + (1 - p_hit) * CPU_INFO(icache).penalty_cnt);
+    Log("|Average Memory Access Time    \t| %-12.2f\t|", p_hit * CPU_INFO(icache).hit_cnt + (1 - p_hit) * CPU_INFO(icache).penalty_cnt);
     Log("+-------------------------------------------------+");
 }
 

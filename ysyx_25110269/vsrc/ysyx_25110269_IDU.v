@@ -16,7 +16,8 @@ module ysyx_25110269_IDU(
     //ds->es
     output              ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD - 1 : 0]    ds_to_es_bus,
-    
+    //ds->cache
+    output          cache_flush,
     //ds->fs
     output          ds_allowin,
     output          br_taken,
@@ -105,6 +106,7 @@ module ysyx_25110269_IDU(
     wire            inst_ebreak;
     wire            inst_csrrs;
     wire            inst_csrrw;
+    wire            inst_fence;      
 
     wire [31 : 0]   imm_i;
     wire [31 : 0]   imm_iu;
@@ -223,6 +225,7 @@ module ysyx_25110269_IDU(
     assign inst_bltu = (opcode == 7'b1100011) && (funct3 == 3'b110);
     assign inst_csrrs = (opcode == 7'b1110011) && (funct3 == 3'b010);
     assign inst_csrrw = (opcode == 7'b1110011) && (funct3 == 3'b001);
+    assign inst_fence = (inst == 32'h0000100f);
     assign inst_ecall = (inst == 32'h00000073);
     assign inst_mret  = (inst == 32'h30200073);
     assign inst_ebreak= (inst == 32'h00100073);
@@ -235,6 +238,7 @@ module ysyx_25110269_IDU(
     assign inst_b = inst_bne | inst_bge | inst_beq | inst_bgeu | inst_bltu | inst_blt;
     assign inst_j = inst_jal;
 
+    assign cache_flush = inst_fence;
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 
@@ -329,7 +333,7 @@ module ysyx_25110269_IDU(
     always @(*) begin
         if(inst_ebreak) begin
             ebreak();
-        end
+      end
     end
 endmodule
 /* verilator public_off */
