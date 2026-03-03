@@ -46,7 +46,6 @@ module ysyx_25110269_IFU(
         end
     end
     
-    // 优化状态机逻辑，减少组合逻辑深度
     always @(posedge clock) begin
         if(reset) begin
             fs_state <= fs_idle;
@@ -64,7 +63,7 @@ module ysyx_25110269_IFU(
     end
     
     
-    assign arvalid = (fs_state == fs_wait_ready);
+    assign arvalid = (fs_state == fs_idle);
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
@@ -127,7 +126,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(fs_state == fs_idle && inst_finish) begin
+        end else if(fs_state == fs_data_ready) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
