@@ -52,7 +52,7 @@ module ysyx_25110269_IFU(
         end else begin
             case(fs_state)
                 fs_idle: 
-                    fs_state <= (!fs_valid | inst_finish) ? fs_wait_ready : fs_idle;
+                    fs_state <= fs_wait_ready ;
                 fs_wait_ready: 
                     fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
