@@ -54,7 +54,7 @@ module ysyx_25110269_WBU(
             end
             ws_wait_ready:begin
                 inst_finish = 1'b1;
-                next_state = ws_idle;
+                next_state =  ms_to_ws_valid ? ws_wait_ready : ws_idle;
             end
             default: next_state = ws_idle;
 
