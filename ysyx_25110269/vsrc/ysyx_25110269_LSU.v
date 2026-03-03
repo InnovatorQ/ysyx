@@ -74,7 +74,7 @@ module ysyx_25110269_LSU(
     wire            res_from_csr;
     wire            rf_wen;
     wire            br_taken;
-
+    wire            is_ls;
     reg  [31 : 0]   mem_rdata;
     wire            mem_wen;
     wire [1 : 0]    byte_offset;
@@ -160,7 +160,7 @@ module ysyx_25110269_LSU(
                     (store == 4'h3) ? (3 << byte_offset) :
                     (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_ready);
-    assign ms_allowin = (rvalid && rready) || (bvalid && bready);
+    assign ms_allowin = (rvalid && rready) || (bvalid && bready) || !is_ls;
     assign {
         ms_pc,
         ms_alu_result,
@@ -203,7 +203,7 @@ module ysyx_25110269_LSU(
                        (load == 4'h3) ? (load_sign ? {{16{selected_halfword[15]}}, selected_halfword} : {16'b0, selected_halfword}) :
                        (load == 4'h1) ? (load_sign ? {{24{selected_byte[7]}}, selected_byte} : {24'b0,  selected_byte}) :
                        32'b0;
-
+    assign is_ls = (|load) || (|store);
     always @(posedge clock)begin
         if(rvalid & rready) begin
             mem_rdata <= rdata;
@@ -223,7 +223,6 @@ module ysyx_25110269_LSU(
             es_to_ms_bus_r <= es_to_ms_bus;
         if(((mem_addr >= 32'h10000000) && (mem_addr <= 32'h10000032)) && ms_to_ws_valid) skip_ref();    
     end
-    
     
 endmodule
 /*verilator public_off*/
