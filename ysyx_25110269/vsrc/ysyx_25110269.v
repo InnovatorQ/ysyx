@@ -107,11 +107,12 @@ module ysyx_25110269(
     wire [`MS_TO_WS_BUS_WD - 1 :  0]     ms_to_ws_bus;
     wire [`ES_TO_DS_FORWARD_BUS-1:0]     es_to_ds_forward_bus;
 
-    wire [31 : 0] seq_pc;
-    wire          br_taken;
-    wire [31 : 0] br_target;
-    wire          mret;
-    wire          inst_ecall;
+    wire [31 : 0]   seq_pc;
+    wire            br_stall;
+    wire            br_taken;
+    wire [31 : 0]   br_target;
+    wire            mret;
+    wire            inst_ecall;
     
     wire            rf_wen;
     wire            csr_wen;
