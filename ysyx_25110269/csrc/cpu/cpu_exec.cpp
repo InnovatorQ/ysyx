@@ -108,9 +108,6 @@ void cpu_exec(int n) {
         pc = CPU_INFO(WBU).ws_pc;
         inst = pmem_read(pc);
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
-#ifdef CONFIG_DIFFTEST
-        difftest_step(pc, npc, inst);
-#endif
 #ifdef CONFIG_ITRACE
         char disasm_buf[128];  // 反汇编结果缓冲区
         // 调用Capstone反汇编器将机器码转换为可读指令
