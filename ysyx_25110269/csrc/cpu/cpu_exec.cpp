@@ -102,7 +102,7 @@ void cpu_exec(int n) {
     static word_t last_pc;
     static word_t last_inst ;
     while (!is_ebreak) {
-      word_t pc = get_rf(32);
+      word_t pc = CPU_INFO(WBU).ws_pc;
       word_t inst = pmem_read(pc);
       bool done = CPU_INFO(WBU).inst_finish;
       single_cycle();
