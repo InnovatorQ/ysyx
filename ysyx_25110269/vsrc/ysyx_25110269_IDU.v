@@ -131,7 +131,7 @@ module ysyx_25110269_IDU(
     localparam ds_wait_ready = 1'b1;
     reg        next_state;
 
-    assign ds_allowin = es_allowin;
+    assign ds_allowin = 1'b1;
     assign {
         es_forward_data,
         es_dest
