@@ -1,29 +1,30 @@
 // 负责根据当前PC从存储器中取出一条指令
 /*verilator public_on*/
 module ysyx_25110269_IFU(
-    input          clock            ,  
-    input          reset            ,
-    input          inst_finish        ,
-    //ds->fs
-    input          ds_allowin       ,
-    input          br_taken         ,
-    input   [31:0] br_target        ,
-    input          inst_ecall       ,
-    input          mret             ,
-    //csr->fs
-    input   [31:0] csr_mtvec        ,
-    input   [31:0] csr_mepc         ,
-    //fs->ds
-    output          fs_to_ds_valid  ,
-    output [`FS_TO_DS_BUS_WD - 1 : 0] fs_to_ds_bus    ,
+    input                               clock            ,  
+    input                               reset            ,
+    input                               inst_finish        ,
+    //ds->fs                        
+    input                               ds_allowin       ,
+    input                               br_stall        ,
+    input                               br_taken         ,
+    input   [31:0]                      br_target        ,
+    input                               inst_ecall       ,
+    input                               mret             ,
+    //csr->fs                       
+    input   [31:0]                      csr_mtvec        ,
+    input   [31:0]                      csr_mepc         ,
+    //fs->ds                    
+    output                              fs_to_ds_valid  ,
+    output [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus    ,
 
     // AXI4-Lite Read Address Channel
-    output          arvalid          ,
-    output [31:0]   araddr           ,
+    output                              arvalid          ,
+    output [31:0]                       araddr           ,
     
     // AXI4-Lite Read Data Channel
-    input           rvalid          ,
-    input  [31:0]   rdata            
+    input                               rvalid          ,
+    input  [31:0]                       rdata            
     
 );
     localparam fs_idle = 2'b00;
@@ -55,7 +56,7 @@ module ysyx_25110269_IFU(
                 fs_idle: 
                     fs_state <= fs_wait_ready ;
                 fs_wait_ready: 
-                    fs_state <= (rvalid || br_taken)? fs_data_ready : fs_wait_ready;
+                    fs_state <= (rvalid || br_stall)? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_wait_ready : fs_data_ready;
                 default: fs_state <= fs_idle;

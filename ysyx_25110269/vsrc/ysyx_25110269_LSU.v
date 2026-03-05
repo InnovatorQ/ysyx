@@ -163,7 +163,7 @@ module ysyx_25110269_LSU(
                     (store == 4'h3) ? (3 << byte_offset) :
                     (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_wait);
-    assign ms_allowin = (ms_state == ms_rdata_ready) || (ms_state == ms_wdata_ready) || !is_ls;
+    assign ms_allowin = (ms_state == ms_rdata_ready) || (ms_state == ms_wdata_ready) || !is_ls && ws_allowin;
     assign {
         ms_pc,
         ms_alu_result,

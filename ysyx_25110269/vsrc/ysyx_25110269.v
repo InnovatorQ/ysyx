@@ -169,6 +169,7 @@ module ysyx_25110269(
         .fs_to_ds_valid (fs_to_ds_valid ),
         .fs_to_ds_bus   (fs_to_ds_bus   ),
 
+        .br_stall       (br_stall       ),
         .br_taken       (br_taken       ),
         .br_target      (br_target      ),
         .inst_ecall     (inst_ecall     ),
@@ -212,6 +213,7 @@ module ysyx_25110269(
         .csr_addr               (csr_addr               ),
         .csr_op                 (csr_op                 ),
 
+        .br_stall               (br_stall               ),
         .br_taken               (br_taken               ),
         .br_target              (br_target              ),
         .inst_ecall             (inst_ecall             ),

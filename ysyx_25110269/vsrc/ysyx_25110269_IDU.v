@@ -22,6 +22,7 @@ module ysyx_25110269_IDU(
     //ds->fs
     output                                  ds_allowin,
 
+    output                                  br_stall,
     output                                  br_taken,
     output [31 : 0]                         br_target,
 
@@ -130,7 +131,7 @@ module ysyx_25110269_IDU(
     localparam ds_wait_ready = 1'b1;
     reg        next_state;
 
-    assign ds_allowin = 1'b1;
+    assign ds_allowin = es_allowin;
     assign {
         es_forward_data,
         es_dest
@@ -297,7 +298,7 @@ module ysyx_25110269_IDU(
                     |(inst_bgeu && (rs1_data >= rs2_data))
                     |(inst_bltu && (rs1_data < rs2_data))
                     |(inst_blt && rs1_lt_rd_sign);
-    
+    assign br_stall = br_taken && ds_valid;
     //获取操作对象
     assign rd = inst[11:7];
     assign rs1 = inst[19:15];
