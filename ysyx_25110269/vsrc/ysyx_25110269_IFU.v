@@ -65,7 +65,7 @@ module ysyx_25110269_IFU(
     end
     
     
-    assign arvalid = (fs_state == fs_wait_ready);
+    assign arvalid = (fs_state == fs_wait_ready) && !br_taken;
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready) && !br_taken;
