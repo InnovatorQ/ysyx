@@ -128,7 +128,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if((fs_state == fs_data_ready) || br_stall) begin
+        end else if(((fs_state == fs_data_ready) && ds_allowin) || br_stall) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
