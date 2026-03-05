@@ -254,7 +254,7 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
-    assign inst_need_rs1 = 
+    // assign inst_need_rs1 = 
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 
