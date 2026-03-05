@@ -105,8 +105,6 @@ void cpu_exec(int n) {
       word_t pc;
       word_t inst;
       bool done = CPU_INFO(WBU).inst_finish;
-      single_cycle();
-      word_t npc = get_rf(32);
       // DiffTest
       if(done) {
         pc = CPU_INFO(WBU).ws_pc;
@@ -115,9 +113,6 @@ void cpu_exec(int n) {
 #ifdef CONFIG_DIFFTEST
         difftest_step(pc, npc, inst);
 #endif
-#ifdef CONFIG_MTRACE
-        mtrace(pc, inst);
-#endif
 #ifdef CONFIG_ITRACE
         char disasm_buf[128];  // 反汇编结果缓冲区
         // 调用Capstone反汇编器将机器码转换为可读指令
@@ -125,42 +120,21 @@ void cpu_exec(int n) {
         // 记录指令跟踪：PC地址、机器码、反汇编结果
         log_write("0x%08x INST=0x%08x %s\n", pc, inst, disasm_buf);
 #endif
-
+#ifdef CONFIG_MTRACE
+        mtrace(pc, inst);
+#endif
 #ifdef CONFIG_FTRACE
           // 检测函数调用和返回（使用上一条指令）
         check_ftrace(pc, inst);
 #endif
         inst_count++;
       }
-
+      single_cycle();
+      word_t npc = get_rf(32);
       if (check_watchpoints()){
         printf("Stopped at watchpoint \n");
         break;
       }
-      // // 执行后获取当前状态
-      // word_t current_pc = get_rf(32);
-      // word_t current_inst = pmem_read(current_pc);
-      
-      // // 只在PC或指令改变时记录ITRACE和检测ftrace，避免重复日志
-      // if (current_pc != last_pc || current_inst != last_inst) {
-        
-      //   #ifdef CONFIG_ITRACE
-      //     char disasm_buf[128];  // 反汇编结果缓冲区
-      //     // 调用Capstone反汇编器将机器码转换为可读指令
-      //     disassemble(disasm_buf, sizeof(disasm_buf), current_pc, (uint8_t*)&current_inst, 4);
-      //     // 记录指令跟踪：PC地址、机器码、反汇编结果
-      //     log_write("0x%08x INST=0x%08x %s\n", current_pc, current_inst, disasm_buf);
-      //   #endif
-
-      //   #ifdef CONFIG_FTRACE
-      //     // 检测函数调用和返回（使用上一条指令）
-      //     check_ftrace(current_pc, current_inst);
-      //   #endif
-
-      //   last_pc = current_pc;
-      //   last_inst = current_inst;
-      // }
-      
       cycle_count++;
     }
     if(is_ebreak) {
