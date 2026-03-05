@@ -56,7 +56,7 @@ module ysyx_25110269_IFU(
                 fs_idle: 
                     fs_state <= fs_wait_ready ;
                 fs_wait_ready: 
-                    fs_state <= (rvalid || br_stall)? fs_data_ready : fs_wait_ready;
+                    fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
                     fs_state <= ds_allowin ? fs_wait_ready : fs_data_ready;
                 default: fs_state <= fs_idle;
@@ -68,7 +68,7 @@ module ysyx_25110269_IFU(
     assign arvalid = (fs_state == fs_wait_ready) && !br_stall;
     assign araddr = pc;
     
-    assign fs_to_ds_valid = (fs_state == fs_data_ready) && !br_taken;
+    assign fs_to_ds_valid = (fs_state == fs_data_ready);
 
     reg  [31 : 0]   pc;
     wire [31 : 0]   next_pc;
@@ -128,7 +128,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(fs_state == fs_data_ready) begin
+        end else if((fs_state == fs_data_ready) || br_stall) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end
