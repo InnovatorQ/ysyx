@@ -101,7 +101,7 @@ module ysyx_25110269_IFU(
             next_pc_reg = csr_mtvec;
         else if(mret)
             next_pc_reg = csr_mepc;
-        else if(br_taken)
+        else if(br_stall)
             next_pc_reg = br_target;
         else
             next_pc_reg = seq_pc_reg;
