@@ -131,7 +131,7 @@ module ysyx_25110269_IDU(
     localparam ds_wait_ready = 1'b1;
     reg        next_state;
 
-    assign ds_allowin = 1'b1;
+    assign ds_allowin = (ds_state == ds_wait_ready) && es_allowin;
     assign {
         es_forward_data,
         es_dest
@@ -167,7 +167,7 @@ module ysyx_25110269_IDU(
     always @(*) begin
         case(ds_state)
             ds_idle: begin
-                next_state = fs_to_ds_valid ? ds_wait_ready : ds_idle;
+                next_state = (fs_to_ds_valid && ds_allowin) ? ds_wait_ready : ds_idle;
             end
             ds_wait_ready: begin
                 next_state = es_allowin ? ds_idle : ds_wait_ready;
