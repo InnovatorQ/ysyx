@@ -55,9 +55,9 @@ module ysyx_25110269_IFU(
                 fs_idle: 
                     fs_state <= fs_wait_ready ;
                 fs_wait_ready: 
-                    fs_state <= (rvalid | br_taken) ? fs_data_ready : fs_wait_ready;
+                    fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
-                    fs_state <= ds_allowin ? fs_idle : fs_data_ready;
+                    fs_state <= ds_allowin ? fs_wait_ready : fs_data_ready;
                 default: fs_state <= fs_idle;
             endcase
         end
