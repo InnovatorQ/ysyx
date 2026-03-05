@@ -99,8 +99,6 @@ void cpu_exec(int n) {
     long cycle_count = 0;
     long inst_count = 0;
     if (boot_time == 0) boot_time = get_time_internal();
-    static word_t last_pc;
-    static word_t last_inst ;
     while (!is_ebreak) {
       word_t pc;
       word_t inst;
@@ -130,7 +128,13 @@ void cpu_exec(int n) {
         inst_count++;
       }
       single_cycle();
-      word_t npc = get_rf(32);
+      if(done){
+        word_t npc = CPU_INFO(WBU).ws_pc;
+#ifdef CONFIG_DIFFTEST
+        difftest_step(pc, npc, inst);
+#endif
+      }
+      
       if (check_watchpoints()){
         printf("Stopped at watchpoint \n");
         break;
