@@ -47,7 +47,7 @@ module ysyx_25110269_EXU(
     localparam      es_wait_ready = 1'b1;
     
 
-    assign es_allowin = (es_state == es_wait_ready) && ms_allowin;
+    assign es_allowin = (es_state == es_idle) ;
     always @(posedge clock)begin
         if(reset)begin
             es_valid <= 1'b0;
@@ -65,7 +65,7 @@ module ysyx_25110269_EXU(
     always @(*)begin
         case(es_state)
             es_idle : begin
-                next_state = (ds_to_es_valid && es_allowin) ? es_wait_ready : es_idle;
+                next_state = ds_to_es_valid ? es_wait_ready : es_idle;
             end
             es_wait_ready: begin
                 next_state = ms_allowin ? es_idle : es_wait_ready;
