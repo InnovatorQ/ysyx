@@ -101,10 +101,11 @@ module ysyx_25110269(
     wire            ms_to_ws_valid;
     wire            ws_allowin;
 
-    wire [`FS_TO_DS_BUS_WD - 1 : 0]     fs_to_ds_bus;
-    wire [`DS_TO_ES_BUS_WD - 1 : 0]     ds_to_es_bus;
-    wire [`ES_TO_MS_BUS_WD - 1 : 0]     es_to_ms_bus;
-    wire [`MS_TO_WS_BUS_WD - 1 : 0]     ms_to_ws_bus;
+    wire [`FS_TO_DS_BUS_WD - 1 :  0]     fs_to_ds_bus;
+    wire [`DS_TO_ES_BUS_WD - 1 :  0]     ds_to_es_bus;
+    wire [`ES_TO_MS_BUS_WD - 1 :  0]     es_to_ms_bus;
+    wire [`MS_TO_WS_BUS_WD - 1 :  0]     ms_to_ws_bus;
+    wire [`ES_TO_DS_FORWARD_BUS-1:0]     es_to_ds_forward_bus;
 
     wire [31 : 0] seq_pc;
     wire          br_taken;
@@ -184,34 +185,37 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_IDU IDU(
-        .clock          (clock          ),
-        .reset          (reset          ),
+        .clock                  (clock                  ),
+        .reset                  (reset                  ),
 
-        .fs_to_ds_valid (fs_to_ds_valid ),
-        .fs_to_ds_bus   (fs_to_ds_bus   ),
+        .fs_to_ds_valid         (fs_to_ds_valid         ),
+        .fs_to_ds_bus           (fs_to_ds_bus           ),
 
-        .ds_allowin     (ds_allowin     ),
-        .es_allowin     (es_allowin     ),
+        .ds_allowin             (ds_allowin             ),
+        .es_allowin             (es_allowin             ),
 
-        .ds_to_es_valid (ds_to_es_valid ),
-        .ds_to_es_bus   (ds_to_es_bus   ),
+        .ds_to_es_valid         (ds_to_es_valid         ),
+        .ds_to_es_bus           (ds_to_es_bus           ),
 
-        .cache_flush    (cache_flush    ),
+        .cache_flush            (cache_flush            ),
+        .es_to_ds_forward_bus   (es_to_ds_forward_bus   ),
         
-        .rs1            (rs1            ),
-        .rs1_data       (rs1_data       ),
-        .rs2            (rs2            ),
-        .rs2_data       (rs2_data       ),
+        .rs1                    (rs1                    ),
+        .rs2                    (rs2                    ),
+        .rs1_data               (rs1_data               ),
+        .rs2_data               (rs2_data               ),
+        // .rf1_data               (rs1_data               ),
+        // .rf2_data               (rs2_data               ),
 
-        .csr_data       (csr_data       ),
-        .csr_result     (csr_result     ),
-        .csr_addr       (csr_addr       ),
-        .csr_op         (csr_op         ),
+        .csr_data               (csr_data               ),
+        .csr_result             (csr_result             ),
+        .csr_addr               (csr_addr               ),
+        .csr_op                 (csr_op                 ),
 
-        .br_taken       (br_taken       ),
-        .br_target      (br_target      ),
-        .inst_ecall     (inst_ecall     ),
-        .inst_mret      (mret           ) 
+        .br_taken               (br_taken               ),
+        .br_target              (br_target              ),
+        .inst_ecall             (inst_ecall             ),
+        .inst_mret              (mret                   ) 
     );
 
     ysyx_25110269_EXU EXU(
@@ -226,7 +230,9 @@ module ysyx_25110269(
         .es_allowin     (es_allowin     ),
 
         .es_to_ms_valid (es_to_ms_valid ),
-        .es_to_ms_bus   (es_to_ms_bus   )
+        .es_to_ms_bus   (es_to_ms_bus   ),
+
+        .forward_bus    (es_to_ds_forward_bus   )
     );
     // AXI4-Lite signals for LSU
     wire        lsu_arvalid, lsu_arready, lsu_rvalid, lsu_rready;

@@ -1,37 +1,38 @@
 // 负责对当前指令进行译码, 准备执行阶段需要使用的数据和控制信号
 /* verilator public_on */
 module ysyx_25110269_IDU(
-    input           clock,
-    input           reset,
+    input                                   clock,
+    input                                   reset,
     //fs->ds
-    input  [`FS_TO_DS_BUS_WD - 1 : 0] fs_to_ds_bus,
-    input           fs_to_ds_valid,
+    input  [`FS_TO_DS_BUS_WD - 1 : 0]       fs_to_ds_bus,
+    input                                   fs_to_ds_valid,
     // rf->ds | ds->rf
-    output [4 : 0]  rs1,
-    output [4 : 0]  rs2,
-    input  [31 : 0] rs1_data,
-    input  [31 : 0] rs2_data,
-    //es->ds
-    input           es_allowin,
+    output [4 : 0]                          rs1,
+    output [4 : 0]                          rs2,
+    input  [31 : 0]                         rs1_data,
+    input  [31 : 0]                         rs2_data,
+    //es->ds                        
+    input                                   es_allowin,
     //ds->es
-    output              ds_to_es_valid,
-    output [`DS_TO_ES_BUS_WD - 1 : 0]    ds_to_es_bus,
+    output                                  ds_to_es_valid,
+    output [`DS_TO_ES_BUS_WD - 1 : 0]       ds_to_es_bus,
     //ds->cache
-    output          cache_flush,
+    output                                  cache_flush,
+    input  [`ES_TO_DS_FORWARD_BUS - 1 : 0]  es_to_ds_forward_bus,
     //ds->fs
-    output          ds_allowin,
+    output                                  ds_allowin,
 
-    output          br_taken,
-    output [31 : 0] br_target,
-    
-    output          inst_ecall,
-    output          inst_mret,
-    //csr->ds
-    input [31 : 0]  csr_data,
-    //ds->csr
-    output [31 : 0] csr_result,
-    output [11 : 0] csr_addr,
-    output [1 : 0]  csr_op
+    output                                  br_taken,
+    output [31 : 0]                         br_target,
+
+    output                                  inst_ecall,
+    output                                  inst_mret,
+    //csr->ds                       
+    input [31 : 0]                          csr_data,
+    //ds->csr                       
+    output [31 : 0]                         csr_result,
+    output [11 : 0]                         csr_addr,
+    output [1 : 0]                          csr_op
 );
 
     reg             ds_valid;   //译码阶段有效信号
@@ -59,6 +60,12 @@ module ysyx_25110269_IDU(
     wire            mem_ren;
     wire            res_from_csr;
     wire            rf_wen;
+    wire            inst_need_rs1;
+    wire            inst_need_rs2;
+    // wire [31 : 0]   rs1_data;
+    // wire [31 : 0]   rs2_data;
+    wire [31 : 0]   es_forward_data;
+    wire [4  : 0]   es_dest;
 
     wire [31 : 0]   inst;
     wire            inst_i;
@@ -124,6 +131,12 @@ module ysyx_25110269_IDU(
     reg        next_state;
 
     assign ds_allowin = 1'b1;
+    assign {
+        es_forward_data,
+        es_dest
+    } = es_to_ds_forward_bus; 
+    // assign rs1_data = (rs1 == es_dest) ? es_forward_data : rf1_data;
+    // assign rs2_data = (rs2 == es_dest) ? es_forward_data : rf2_data;
 
     always @(posedge clock) begin
         if(reset) begin
@@ -241,6 +254,7 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
+    assign inst_need_rs1 = 
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 

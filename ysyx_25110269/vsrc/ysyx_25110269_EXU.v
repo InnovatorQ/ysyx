@@ -13,13 +13,16 @@ module ysyx_25110269_EXU(
     output              es_allowin,
     //es->ms
     output              es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD - 1 : 0]    es_to_ms_bus
+    output [`ES_TO_MS_BUS_WD - 1 : 0]    es_to_ms_bus,
+
+    output [`ES_TO_DS_FORWARD_BUS - 1 : 0] forward_bus
 );
     reg  [31 : 0 ]      pref_cnt;
     reg  [`DS_TO_ES_BUS_WD - 1 : 0]      ds_to_es_bus_r;
+    
     reg                 es_valid;
     wire                es_ready_go;
-
+    
     wire                res_from_csr;
     wire                rf_wen;
     wire                load_sign;
@@ -70,6 +73,11 @@ module ysyx_25110269_EXU(
             default:    next_state = es_idle;
         endcase
     end
+
+    assign forward_bus = {
+        alu_result,
+        dest
+    };
 
     assign es_to_ms_bus = {
         es_pc,      //221 : 190
