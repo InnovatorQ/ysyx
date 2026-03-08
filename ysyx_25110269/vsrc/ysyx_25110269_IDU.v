@@ -9,8 +9,8 @@ module ysyx_25110269_IDU(
     // rf->ds | ds->rf
     output [4 : 0]                          rs1,
     output [4 : 0]                          rs2,
-    input  [31 : 0]                         rs1_data,
-    input  [31 : 0]                         rs2_data,
+    input  [31 : 0]                         rf1_data,
+    input  [31 : 0]                         rf2_data,
     //es->ds                        
     input                                   es_allowin,
     //ds->es
@@ -19,6 +19,7 @@ module ysyx_25110269_IDU(
     //ds->cache
     output                                  cache_flush,
     input  [`ES_TO_DS_FORWARD_BUS - 1 : 0]  es_to_ds_forward_bus,
+    input  [`MS_TO_DS_FORWARD_BUS - 1 : 0]  ms_to_ds_forward_bus,
     //ds->fs
     output                                  ds_allowin,
 
@@ -63,10 +64,15 @@ module ysyx_25110269_IDU(
     wire            rf_wen;
     wire            inst_need_rs1;
     wire            inst_need_rs2;
-    // wire [31 : 0]   rs1_data;
-    // wire [31 : 0]   rs2_data;
+    wire [31 : 0]   rs1_data;
+    wire [31 : 0]   rs2_data;
+    wire            es_forward_enable;
     wire [31 : 0]   es_forward_data;
     wire [4  : 0]   es_dest;
+    wire            ms_dep_need_stall;
+    wire            ms_forward_enable;
+    wire [31 : 0]   ms_forward_data;
+    wire [4  : 0]   ms_dest;
 
     wire [31 : 0]   inst;
     wire            inst_i;
@@ -131,14 +137,26 @@ module ysyx_25110269_IDU(
     localparam ds_wait_ready = 1'b1;
     reg        next_state;
 
-    assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin);
+    wire rs1_forward_stall;
+    wire rs2_forward_stall;
     assign {
         es_forward_data,
+        es_forward_enable,
         es_dest
     } = es_to_ds_forward_bus; 
-    // assign rs1_data = (rs1 == es_dest) ? es_forward_data : rf1_data;
-    // assign rs2_data = (rs2 == es_dest) ? es_forward_data : rf2_data;
+    assign {
+        ms_dep_need_stall,
+        ms_forward_data,
+        ms_forward_enable,
+        ms_dest
+    } = ms_to_ds_forward_bus;
+    assign rs1_data =   ((rs1 == es_dest) && es_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? es_forward_data :
+                        ((rs1 == ms_dest) && ms_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? ms_forward_data : rf1_data;
+                        
 
+    assign rs2_data =   ((rs2 == es_dest) && es_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? es_forward_data :
+                        ((rs2 == ms_dest) && ms_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? ms_forward_data : rf2_data;
+                        
     always @(posedge clock) begin
         if(reset) begin
             ds_state <= ds_idle;
@@ -164,13 +182,16 @@ module ysyx_25110269_IDU(
         end
     end
 
+    assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin)  && !ms_dep_need_stall; 
+    assign ds_to_es_valid = (ds_state == ds_wait_ready) && !ms_dep_need_stall;
+
     always @(*) begin
         case(ds_state)
             ds_idle: begin
-                next_state = (fs_to_ds_valid && ds_allowin) ? ds_wait_ready : ds_idle;
+                next_state = fs_to_ds_valid  ? ds_wait_ready : ds_idle;
             end
             ds_wait_ready: begin
-                next_state = es_allowin ? ds_idle : ds_wait_ready;
+                next_state = (es_allowin && ds_to_es_valid) ? (fs_to_ds_valid ? ds_wait_ready :  ds_idle) : ds_wait_ready;
             end
             default: next_state = ds_idle;
         endcase
@@ -255,7 +276,8 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
-    // assign inst_need_rs1 = 
+    assign inst_need_rs1 = inst_r | inst_i | inst_s | inst_b | inst_csrrs | inst_csrrw;
+    assign inst_need_rs2 = inst_r | inst_s | inst_b;
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
                      inst_sll | inst_xori | inst_andi | inst_or | inst_ori | inst_srli | inst_slli | inst_slt | 
@@ -339,7 +361,6 @@ module ysyx_25110269_IDU(
     //         ds_valid <= fs_to_ds_valid;
     //     end
     // end
-    assign ds_to_es_valid = (ds_state == ds_wait_ready) ? 1'b1 : 1'b0;
 
     always @(posedge clock) begin
         if(fs_to_ds_valid && ds_allowin) begin

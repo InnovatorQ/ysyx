@@ -15,9 +15,9 @@ static uint64_t boot_time = 0;
 static void mtrace(word_t pc, word_t inst) {
   uint8_t opcode = inst & 0x7f;
   uint8_t func3 = (inst >> 12) & 0x7;
-  uint32_t mem_addr = CPU_INFO(LSU).mem_addr;
-  uint32_t mem_wdata = CPU_INFO(LSU).st_data;
-  uint32_t mem_rdata = CPU_INFO(LSU).mem_rdata;
+  uint32_t mem_addr = CPU_INFO(WBU).debug_mem_addr;
+  uint32_t mem_wdata = CPU_INFO(WBU).debug_mem_wdata;
+  uint32_t mem_rdata = CPU_INFO(WBU).debug_mem_rdata;
   if((opcode == 0x23) && (func3 == 0x0)){
     if(in_flash(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (flash)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
     if(in_sram(mem_addr)) log_write("MTRACE[SB]: write " FMT_BYTE " into (sram)" FMT_WORD " at PC=" FMT_WORD "\n", mem_wdata, mem_addr, pc);
@@ -98,14 +98,15 @@ void cpu_exec(int n) {
   if (n == -1) {
     long cycle_count = 0;
     long inst_count = 0;
+    word_t pc;
+    word_t inst;
+    word_t npc;
+    bool done = false;
     if (boot_time == 0) boot_time = get_time_internal();
     while (!is_ebreak) {
-      word_t pc;
-      word_t inst;
-      bool done = CPU_INFO(WBU).inst_finish;
       // DiffTest
       if(done) {
-        pc = CPU_INFO(WBU).ws_pc;
+        pc = get_rf(32);
         inst = pmem_read(pc);
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
 #ifdef CONFIG_ITRACE
@@ -124,14 +125,17 @@ void cpu_exec(int n) {
 #endif
         inst_count++;
       }
+
       single_cycle();
-      if(done){
-        word_t npc = CPU_INFO(WBU).ws_pc;
+      
+      done = CPU_INFO(WBU).inst_finish;
+      
+      if(done && (inst_count != 0)){
+        npc = get_rf(32);
 #ifdef CONFIG_DIFFTEST
         difftest_step(pc, npc, inst);
 #endif
       }
-      
       if (check_watchpoints()){
         printf("Stopped at watchpoint \n");
         break;

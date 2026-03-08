@@ -40,14 +40,15 @@ module ysyx_25110269_EXU(
     wire [31 : 0]       csr_data;
     wire [31 : 0]       es_pc;
     wire [31 : 0]       alu_result;
-
+    wire                forward_enable;
+    
     reg             es_state;
     reg             next_state;
     localparam      es_idle = 1'b0;
     localparam      es_wait_ready = 1'b1;
     
 
-    assign es_allowin = (es_state == es_idle) || ((es_state == es_wait_ready) && ms_allowin);
+    
     always @(posedge clock)begin
         if(reset)begin
             es_valid <= 1'b0;
@@ -61,21 +62,22 @@ module ysyx_25110269_EXU(
             end
         end
     end
-
+    assign es_allowin = (es_state == es_idle) || ((es_state == es_wait_ready) && ms_allowin);
     always @(*)begin
         case(es_state)
             es_idle : begin
                 next_state = ds_to_es_valid ? es_wait_ready : es_idle;
             end
             es_wait_ready: begin
-                next_state = ms_allowin ? es_idle : es_wait_ready;
+                next_state = ms_allowin ? (ds_to_es_valid ? es_wait_ready : es_idle) : es_wait_ready;
             end
             default:    next_state = es_idle;
         endcase
     end
-
+    assign forward_enable = rf_wen && (dest != 0) && es_valid;
     assign forward_bus = {
         alu_result,
+        forward_enable,
         dest
     };
 

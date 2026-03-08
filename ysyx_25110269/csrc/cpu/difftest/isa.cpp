@@ -26,10 +26,10 @@ bool isa_init_checkregs(CPU_state *init_cpu){
 }
 
 
-bool isa_difftest_checkregs(CPU_state *ref, uint32_t pc) {
+bool isa_difftest_checkregs(CPU_state *ref, uint32_t pc, uint32_t npc) {
   // 检查PC
-  if (ref->pc != get_rf(32)) {
-    printf("PC mismatch at PC=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->pc, get_rf(32));
+  if (ref->pc != npc) {
+    printf("PC mismatch at PC=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->pc, npc);
     return false;
   }
   

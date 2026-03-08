@@ -13,23 +13,26 @@ module ysyx_25110269_WBU(
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
+    
     //diff
     output reg      inst_finish
 );
     reg  [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus_r;
-    wire [31 : 0] ws_pc;
-    wire [31 : 0] alu_result;
-    wire [3  : 0] load;
-    wire [31 : 0] load_data;
-    wire [4  : 0] dest;
-    wire          res_from_csr;
-    wire          rf_wen;
-    wire          br_taken;
-    wire [31 : 0] csr_data;
-    wire [31 : 0] wb_data;
-
-    wire          ws_ready_go;
-    reg           ws_valid;
+    wire [31 : 0]   debug_mem_addr;
+    wire [31 : 0]   debug_mem_wdata;
+    wire [31 : 0]   debug_mem_rdata;
+    wire [31 : 0]   ws_pc;
+    wire [31 : 0]   alu_result;
+    wire [3  : 0]   load;
+    wire [31 : 0]   load_data;
+    wire [4  : 0]   dest;
+    wire            res_from_csr;
+    wire            rf_wen;
+    wire            br_taken;
+    wire [31 : 0]   csr_data;
+    wire [31 : 0]   wb_data;
+    wire            ws_ready_go;
+    reg             ws_valid;
 
     localparam  ws_idle = 1'b0;
     localparam  ws_wait_ready = 1'b1;
@@ -60,9 +63,13 @@ module ysyx_25110269_WBU(
 
        endcase 
     end
+    
 
     assign {
         ws_pc,
+        debug_mem_addr,
+        debug_mem_rdata,
+        debug_mem_wdata,
         load_data,
         alu_result,
         csr_data,

@@ -149,7 +149,7 @@ static void show_pref(){
 }
 
 word_t get_rf(int n){
-    word_t pc = CPU_INFO(IFU).pc;
+    word_t pc = CPU_INFO(WBU).ws_pc;
     #ifdef CONFIG_REG_16
     word_t regs[16];
     for(int i = 0; i < 16 ; i++){

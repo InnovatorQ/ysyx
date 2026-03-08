@@ -115,8 +115,8 @@ void init_difftest(const char *ref_so_file, long img_size) {
 }
 
 // 检查寄存器状态
-static void checkregs(CPU_state *ref, uint32_t pc) {
-  if (!isa_difftest_checkregs(ref, pc)) {
+static void checkregs(CPU_state *ref, uint32_t pc, uint32_t npc) {
+  if (!isa_difftest_checkregs(ref, pc, npc)) {
     printf("DiffTest failed at PC = 0x%08x\n", pc);
     #ifdef CONFIG_REG_16
     for(int i = 0; i < 16; i++) {
@@ -140,10 +140,9 @@ static void checkregs(CPU_state *ref, uint32_t pc) {
 // 执行一步并检查
 void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 #ifdef CONFIG_DIFFTEST
-  //printf("difftest_step: pc=0x%08x, npc=0x%08x, is_skip_ref=%d\n", pc, npc, is_skip_ref);
   uint8_t opcode = inst & 0x7f;
   uint8_t func3 = (inst >> 12) & 0x7;
-  uint32_t mem_addr = CPU_INFO(LSU).mem_addr; 
+  uint32_t mem_addr = CPU_INFO(WBU).debug_mem_addr; 
   bool is_store = (opcode == 0x23) && (func3 == 0x0 || func3 == 0x1 || func3 == 0x2);
   if (!ref_difftest_exec || !ref_difftest_regcpy) return;
 
@@ -153,7 +152,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
       skip_dut_nr_inst = 0;
-      checkregs(&ref_r, npc);
+      // checkregs(&ref_r, npc);
       return;
     }
     skip_dut_nr_inst--;
@@ -199,7 +198,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
     checkmem(&ref_r, mem_addr, pc);
   }
   // 检查寄存器状态
-  checkregs(&ref_r, pc);
+  checkregs(&ref_r, pc, npc);
 
 #endif
 }

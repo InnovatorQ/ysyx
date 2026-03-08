@@ -37,6 +37,7 @@ module ysyx_25110269_LSU(
 
     output          ms_to_ws_valid,
     output [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus,
+    output [`MS_TO_DS_FORWARD_BUS - 1 : 0] ms_to_ds_forward_bus,
 
     input           ws_allowin,
     output          ms_allowin
@@ -81,7 +82,9 @@ module ysyx_25110269_LSU(
     wire [1 : 0]    byte_offset;
     wire [7 : 0]    selected_byte;
     wire [15: 0]    selected_halfword;
-    
+    wire [31 : 0]   forward_data;
+    wire            dep_need_stall;
+    wire            forward_enable;
 
     always @(posedge clock) begin
         if(reset)begin
@@ -92,7 +95,10 @@ module ysyx_25110269_LSU(
             delay_cnt <= 32'b0;
             access_start <= 1'b0;
         end else begin
-            ms_valid <= es_to_ms_valid;
+            if(ms_allowin)  begin
+                if(rvalid && rready) ms_valid <= 1;
+                else ms_valid <= es_to_ms_valid;
+            end
             ms_state <= next_state; 
             // 开始访问计数
             if((arvalid && arready) || (awvalid && awready)) begin
@@ -110,7 +116,8 @@ module ysyx_25110269_LSU(
             end
         end
     end
-
+    assign ms_allowin = (ms_state == ms_idle) || (ms_state == ms_rdata_ready) || (ms_state == ms_wdata_ready) || !is_ls ;
+    assign ms_to_ws_valid = (bvalid && bready) || ((ms_state == ms_wait_ready) && !is_ls) || (ms_state == ms_rdata_ready);
     always @(*)begin
         case(ms_state)
             ms_idle : begin
@@ -121,20 +128,20 @@ module ysyx_25110269_LSU(
                     next_state = (awready & awvalid) ? ms_wdata_wait :
                     ((arready & arvalid) ? ms_addr_ready :ms_wait_ready);
                 end else begin
-                    next_state = ms_idle;
+                    next_state = es_to_ms_valid ? ms_wait_ready : ms_idle;
                 end
             end
             ms_addr_ready: begin
                 next_state = (rvalid & rready) ? ms_rdata_ready : ms_addr_ready;
             end
             ms_wdata_wait : begin
-                next_state = ws_allowin && (bready & bvalid) ? ms_wdata_ready : ms_wdata_ready;
+                next_state = (bready & bvalid) ? ms_wdata_ready : ms_wdata_wait;
             end
             ms_rdata_ready : begin
                 next_state = es_to_ms_valid ? ms_wait_ready : ms_idle ;
             end
             ms_wdata_ready : 
-                next_state = es_to_ms_valid ? ms_wait_ready : ms_wdata_ready;
+                next_state = es_to_ms_valid ? ms_wait_ready : ms_idle;
             default : next_state = ms_idle;
         endcase
     end
@@ -146,7 +153,7 @@ module ysyx_25110269_LSU(
                     (load == 4'h3) ? 3'b001 : 
                     (load == 4'h1) ? 3'b000 : 3'b0;
     assign arlen  = 8'h0;
-    assign ms_to_ws_valid = (bvalid && bready) || ((ms_state == ms_wait_ready) && !is_ls) || (ms_state == ms_rdata_ready);
+    
 
     assign awvalid = mem_wen & (ms_state == ms_wait_ready);
     assign wvalid  = mem_wen & (ms_state == ms_wait_ready);
@@ -163,7 +170,7 @@ module ysyx_25110269_LSU(
                     (store == 4'h3) ? (3 << byte_offset) :
                     (store == 4'h1) ? (1 << byte_offset) : 4'b0;
     assign bready = (ms_state == ms_wdata_wait);
-    assign ms_allowin = (ms_state == ms_rdata_ready) || (ms_state == ms_wdata_ready) || !is_ls ;
+    
     assign {
         ms_pc,
         ms_alu_result,
@@ -178,9 +185,21 @@ module ysyx_25110269_LSU(
         rf_wen,
         br_taken
     } = es_to_ms_bus_r;
+    assign dep_need_stall = |load && !ms_to_ws_valid;
+    assign forward_data = res_from_csr ? csr_data : (|load ? load_data : ms_alu_result);
+    assign forward_enable = rf_wen && (dest != 0) && ms_valid;
+    assign ms_to_ds_forward_bus = { 
+        dep_need_stall,
+        forward_data,
+        forward_enable,
+        dest
+    };
 
     assign ms_to_ws_bus = {
         ms_pc,          //184 : 153
+        mem_addr,
+        mem_rdata,
+        st_data,
         load_data,      //152 : 121
         ms_alu_result,  //120 : 89
         csr_data,       //56 : 25

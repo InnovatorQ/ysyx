@@ -106,6 +106,8 @@ module ysyx_25110269(
     wire [`ES_TO_MS_BUS_WD - 1 :  0]     es_to_ms_bus;
     wire [`MS_TO_WS_BUS_WD - 1 :  0]     ms_to_ws_bus;
     wire [`ES_TO_DS_FORWARD_BUS-1:0]     es_to_ds_forward_bus;
+    wire [`MS_TO_DS_FORWARD_BUS-1:0]     ms_to_ds_forward_bus;
+
 
     wire [31 : 0]   seq_pc;
     wire            br_stall;
@@ -201,13 +203,14 @@ module ysyx_25110269(
 
         .cache_flush            (cache_flush            ),
         .es_to_ds_forward_bus   (es_to_ds_forward_bus   ),
+        .ms_to_ds_forward_bus   (ms_to_ds_forward_bus   ),
         
         .rs1                    (rs1                    ),
         .rs2                    (rs2                    ),
-        .rs1_data               (rs1_data               ),
-        .rs2_data               (rs2_data               ),
-        // .rf1_data               (rs1_data               ),
-        // .rf2_data               (rs2_data               ),
+        // .rs1_data               (rs1_data               ),
+        // .rs2_data               (rs2_data               ),
+        .rf1_data               (rs1_data               ),
+        .rf2_data               (rs2_data               ),
 
         .csr_data               (csr_data               ),
         .csr_result             (csr_result             ),
@@ -259,6 +262,7 @@ module ysyx_25110269(
 
         .ms_to_ws_valid     (ms_to_ws_valid ),
         .ms_to_ws_bus       (ms_to_ws_bus   ),
+        .ms_to_ds_forward_bus (ms_to_ds_forward_bus),
         
         // AXI4-Lite interface (connect to pmem)
         .arvalid            (lsu_arvalid    ),
@@ -388,20 +392,20 @@ module ysyx_25110269(
     );
 
     ysyx_25110269_WBU WBU(
-        .clock          (clock          ),
-        .reset          (reset          ),
+        .clock                  (clock                  ),
+        .reset                  (reset                  ),
 
-        .ms_to_ws_valid (ms_to_ws_valid ),
-        .ms_to_ws_bus   (ms_to_ws_bus   ),
+        .ms_to_ws_valid         (ms_to_ws_valid         ),
+        .ms_to_ws_bus           (ms_to_ws_bus           ),
 
-        .ws_allowin     (ws_allowin     ),
+        .ws_allowin             (ws_allowin             ),
 
-        .rs1            (rs1            ),
-        .rs2            (rs2            ),
-        .rf1_data       (rs1_data       ),
-        .rf2_data       (rs2_data       ),
+        .rs1                    (rs1                    ),
+        .rs2                    (rs2                    ),
+        .rf1_data               (rs1_data               ),
+        .rf2_data               (rs2_data               ),
 
-        .inst_finish    (inst_finish    )
+        .inst_finish            (inst_finish            )
     );
     wire [31 : 0] ds_pc = ds_to_es_bus[`DS_TO_ES_BUS_WD - 1 : `DS_TO_ES_BUS_WD - 32];
     reg [31 : 0] csr_mtvec;
