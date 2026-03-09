@@ -26,14 +26,15 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 #ifdef CONFIG_YSYXSOC
 static uint8_t mrom[0x1000] = {}; // 4KB 
-static uint8_t sram[0x2000] = {}; // 8KB
-static uint8_t psram[0x400000] = {}; // 4MB
-static uint8_t sdram[0x20000000] = {};
-static uint8_t gpio[0xf] = {};
 
+static uint8_t psram[0x400000] = {}; // 4MB
+
+static uint8_t gpio[0xf] = {};
 static uint8_t uart[0x10] = {};
 static uint8_t clint[0x10000] = {};
 #endif
+static uint8_t sram[0x2000] = {}; // 8KB
+static uint8_t sdram[0x20000000] = {};
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
@@ -72,13 +73,7 @@ static void psram_write(paddr_t addr, int len, word_t data) {
   host_write(psram + (addr - PSRAM_LEFT), len, data);
 }
 
-static word_t sdram_read(paddr_t addr, int len) {
-  return host_read(sdram + (addr - SDRAM_LEFT), len);
-}
 
-static void sdram_write(paddr_t addr, int len, word_t data) {
-  host_write(sdram + (addr - SDRAM_LEFT), len, data);
-}
 
 static word_t gpio_read(paddr_t addr, int len) {
   return host_read(gpio + (addr - GPIO_LEFT), len);
@@ -104,6 +99,23 @@ static void clint_write(paddr_t addr, int len, word_t data) {
   host_write(clint + (addr - CLINT_LEFT), len, data);
 }
 #endif
+
+static word_t sram_read(paddr_t addr, int len) {
+  return host_read(sram + (addr - SRAM_LEFT), len);
+}
+
+static void sram_write(paddr_t addr, int len, word_t data) {
+  host_write(sram + (addr - SRAM_LEFT), len, data);
+}
+
+static word_t sdram_read(paddr_t addr, int len) {
+  return host_read(sdram + (addr - SDRAM_LEFT), len);
+}
+
+static void sdram_write(paddr_t addr, int len, word_t data) {
+  host_write(sdram + (addr - SDRAM_LEFT), len, data);
+}
+
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -120,8 +132,10 @@ void init_mem() {
   Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_LEFT, MROM_RIGHT);
   Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
   Log("psram area [" FMT_PADDR ", " FMT_PADDR "]", PSRAM_LEFT, PSRAM_RIGHT);
-  Log("sdram area [" FMT_PADDR ", " FMT_PADDR "]", SDRAM_LEFT, SDRAM_RIGHT);
+  
   #endif
+  Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_LEFT, SRAM_RIGHT);
+  Log("sdram area [" FMT_PADDR ", " FMT_PADDR "]", SDRAM_LEFT, SDRAM_RIGHT);
 }
 
 word_t paddr_read(paddr_t addr, int len) {
@@ -148,16 +162,7 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
-  if (in_sram(addr)) {
-    word_t ret = sram_read(addr, len);
-    #ifdef CONFIG_MTRACE_COND
-    if(MTRACE_COND){
-      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
-      addr, ret, len, cpu.pc);
-    }
-    #endif
-    return ret;
-  }
+  
   if (in_psram(addr)) {
     word_t ret = psram_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
@@ -168,16 +173,7 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
-  if (in_sdram(addr)) {
-    word_t ret = sdram_read(addr, len);
-    #ifdef CONFIG_MTRACE_COND
-    if(MTRACE_COND){
-      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
-      addr, ret, len, cpu.pc);
-    }
-    #endif
-    return ret;
-  }
+  
   if(in_gpio(addr)) {
     word_t ret = gpio_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
@@ -209,6 +205,26 @@ word_t paddr_read(paddr_t addr, int len) {
     return ret;
   }
   #endif
+  if (in_sram(addr)) {
+    word_t ret = sram_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
+  if (in_sdram(addr)) {
+    word_t ret = sdram_read(addr, len);
+    #ifdef CONFIG_MTRACE_COND
+    if(MTRACE_COND){
+      log_write("MTRACE: READ SRAM [" FMT_PADDR"] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n",
+      addr, ret, len, cpu.pc);
+    }
+    #endif
+    return ret;
+  }
   IFDEF(CONFIG_DEVICE, 
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);
@@ -247,18 +263,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     #endif
     return;
   }
-  if (in_sram(addr)) {
-    sram_write(addr, len, data);
-    #ifdef CONFIG_MTRACE
-      #ifdef CONFIG_MTRACE_COND
-      if (MTRACE_COND) {
-        log_write("MTRACE: WRITE SRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
-          addr, data, len, cpu.pc);
-      }
-      #endif
-    #endif
-    return;
-  }
+  
   if (in_psram(addr)) {
     psram_write(addr, len, data);
     #ifdef CONFIG_MTRACE
@@ -320,6 +325,30 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     return;
   }
   #endif
+  if (in_sram(addr)) {
+    sram_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE SRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
+  if (in_sdram(addr)) {
+    sdram_write(addr, len, data);
+    #ifdef CONFIG_MTRACE
+      #ifdef CONFIG_MTRACE_COND
+      if (MTRACE_COND) {
+        log_write("MTRACE: WRITE SDRAM [" FMT_PADDR "] = " FMT_WORD " (len=%d) at pc=" FMT_WORD "\n", 
+          addr, data, len, cpu.pc);
+      }
+      #endif
+    #endif
+    return;
+  }
   IFDEF(CONFIG_DEVICE,
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);

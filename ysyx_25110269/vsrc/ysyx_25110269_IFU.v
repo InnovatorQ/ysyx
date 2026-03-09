@@ -1,29 +1,30 @@
 // 负责根据当前PC从存储器中取出一条指令
 /*verilator public_on*/
 module ysyx_25110269_IFU(
-    input          clock            ,  
-    input          reset            ,
-    input          inst_finish        ,
-    //ds->fs
-    input          ds_allowin       ,
-    input          br_taken         ,
-    input   [31:0] br_target        ,
-    input          inst_ecall       ,
-    input          mret             ,
-    //csr->fs
-    input   [31:0] csr_mtvec        ,
-    input   [31:0] csr_mepc         ,
-    //fs->ds
-    output          fs_to_ds_valid  ,
-    output [`FS_TO_DS_BUS_WD - 1 : 0] fs_to_ds_bus    ,
+    input                               clock              ,  
+    input                               reset              ,
+    input                               inst_finish        ,
+    //ds->fs                           
+    input                               ds_allowin         ,
+    input                               br_stall           ,
+    input                               br_taken           ,
+    input   [31:0]                      br_target          ,
+    input                               ecall         ,
+    input                               mret               ,
+    //csr->fs                          
+    input   [31:0]                      csr_mtvec          ,
+    input   [31:0]                      csr_mepc           ,
+    //fs->ds                       
+    output                              fs_to_ds_valid  ,
+    output [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus    ,
 
     // AXI4-Lite Read Address Channel
-    output          arvalid          ,
-    output [31:0]   araddr           ,
+    output                              arvalid          ,
+    output [31:0]                       araddr           ,
     
     // AXI4-Lite Read Data Channel
-    input           rvalid          ,
-    input  [31:0]   rdata            
+    input                               rvalid          ,
+    input  [31:0]                       rdata            
     
 );
     localparam fs_idle = 2'b00;
@@ -42,29 +43,29 @@ module ysyx_25110269_IFU(
             pref_cnt <= 32'b0;
             delay_cnt <= 64'b0;
         end else begin
-            fs_valid <= 1'b1;
+            if(rvalid)
+                fs_valid <= 1'b1;
         end
     end
     
-    // 优化状态机逻辑，减少组合逻辑深度
     always @(posedge clock) begin
         if(reset) begin
             fs_state <= fs_idle;
         end else begin
             case(fs_state)
                 fs_idle: 
-                    fs_state <= (!fs_valid | inst_finish) ? fs_wait_ready : fs_idle;
+                    fs_state <= fs_wait_ready ;
                 fs_wait_ready: 
                     fs_state <= rvalid ? fs_data_ready : fs_wait_ready;
                 fs_data_ready: 
-                    fs_state <= ds_allowin ? fs_idle : fs_data_ready;
+                    fs_state <= ds_allowin ? fs_wait_ready : fs_data_ready;
                 default: fs_state <= fs_idle;
             endcase
         end
     end
     
     
-    assign arvalid = (fs_state == fs_wait_ready);
+    assign arvalid = (fs_state == fs_wait_ready) && !(br_stall || br_taken) && !mret && !ecall;
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
@@ -96,7 +97,7 @@ module ysyx_25110269_IFU(
     
     // 简化next_pc逻辑
     always @(*) begin
-        if(inst_ecall)
+        if(ecall)
             next_pc_reg = csr_mtvec;
         else if(mret)
             next_pc_reg = csr_mepc;
@@ -127,7 +128,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(fs_state == fs_idle && inst_finish) begin
+        end else if(((fs_state == fs_data_ready) && ds_allowin) || (!br_stall && br_taken) || ecall || mret) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end

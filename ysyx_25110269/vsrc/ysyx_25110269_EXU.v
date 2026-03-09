@@ -13,13 +13,16 @@ module ysyx_25110269_EXU(
     output              es_allowin,
     //es->ms
     output              es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD - 1 : 0]    es_to_ms_bus
+    output [`ES_TO_MS_BUS_WD - 1 : 0]    es_to_ms_bus,
+
+    output [`ES_TO_DS_FORWARD_BUS - 1 : 0] forward_bus
 );
     reg  [31 : 0 ]      pref_cnt;
     reg  [`DS_TO_ES_BUS_WD - 1 : 0]      ds_to_es_bus_r;
+    
     reg                 es_valid;
     wire                es_ready_go;
-
+    
     wire                res_from_csr;
     wire                rf_wen;
     wire                load_sign;
@@ -37,14 +40,16 @@ module ysyx_25110269_EXU(
     wire [31 : 0]       csr_data;
     wire [31 : 0]       es_pc;
     wire [31 : 0]       alu_result;
-
+    wire                forward_enable;
+    wire                dep_need_stall;
+    
     reg             es_state;
     reg             next_state;
     localparam      es_idle = 1'b0;
     localparam      es_wait_ready = 1'b1;
     
 
-    assign es_allowin = 1'b1;
+    
     always @(posedge clock)begin
         if(reset)begin
             es_valid <= 1'b0;
@@ -52,24 +57,32 @@ module ysyx_25110269_EXU(
             pref_cnt <= 32'b0; 
         end else begin
             es_state <= next_state;
-            es_valid <= ds_to_es_valid;
+            if(es_allowin)  es_valid <= ds_to_es_valid;
             if(ds_to_es_valid && es_allowin) begin
                 pref_cnt <= pref_cnt + 1'b1;
             end
         end
     end
-
+    assign es_allowin = (es_state == es_idle) || ((es_state == es_wait_ready) && ms_allowin);
     always @(*)begin
         case(es_state)
             es_idle : begin
                 next_state = ds_to_es_valid ? es_wait_ready : es_idle;
             end
             es_wait_ready: begin
-                next_state = ms_allowin ? es_idle : es_wait_ready;
+                next_state = ms_allowin ? (ds_to_es_valid ? es_wait_ready : es_idle) : es_wait_ready;
             end
             default:    next_state = es_idle;
         endcase
     end
+    assign dep_need_stall = |load ;
+    assign forward_enable = rf_wen && (dest != 0) && es_valid;
+    assign forward_bus = {
+        dep_need_stall,
+        alu_result,
+        forward_enable,
+        dest
+    };
 
     assign es_to_ms_bus = {
         es_pc,      //221 : 190

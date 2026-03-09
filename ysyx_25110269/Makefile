@@ -52,7 +52,9 @@ VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
 			-I$(abspath ../nemu/tools/capstone/repo/include) \
 			-I$(abspath ../nvboard/usr/include)\
-			-I$(abspath ./vsrc)  
+			-I$(abspath ./vsrc) \
+			$(if $(CONFIG_APB_DELAY),-DCONFIG_APB_DELAY) \
+			$(if $(CONFIG_AXI_DELAY),-DCONFIG_AXI_DELAY)  
 		    
 OBJ_DIR = $(DST_DIR)/obj_dir
 BIN = $(DST_DIR)/$(TOPNAME)

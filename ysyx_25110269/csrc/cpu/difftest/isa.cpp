@@ -4,6 +4,7 @@
 
 // 外部函数声明
 extern void (*ref_difftest_memcpy)(uint32_t addr, void *buf, size_t n, bool direction);
+
 bool isa_init_checkregs(CPU_state *init_cpu){
   // 检查CSR寄存器
   if (init_cpu->mcause != get_csr(0x342)) {
@@ -50,24 +51,26 @@ bool isa_difftest_checkregs(CPU_state *ref, uint32_t pc) {
     }
   }
   #endif
-  // 检查CSR寄存器
+  return true;
+}
+
+bool isa_difftest_checkcsr(CPU_state *ref, uint32_t pc) {
   if (ref->mcause != get_csr(0x342)) {
-    printf("mcause mismatch: ref=0x%08x dut=0x%08x\n", ref->mcause, get_csr(0x342));
+    printf("mcause mismatch at pc=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->mcause, get_csr(0x342));
     return false;
   }
   if (ref->mepc != get_csr(0x341)) {
-    printf("mepc mismatch: ref=0x%08x dut=0x%08x\n", ref->mepc, get_csr(0x341));
+    printf("mepc mismatch at pc=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->mepc, get_csr(0x341));
     return false;
   }
   if (ref->mstatus != get_csr(0x300)) {
-    printf("mstatus mismatch: ref=0x%08x dut=0x%08x\n", ref->mstatus, get_csr(0x300));
+    printf("mstatus mismatch pc=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->mstatus, get_csr(0x300));
     return false;
   }
   if (ref->mtvec != get_csr(0x305)) {
-    printf("mtvec mismatch: ref=0x%08x dut=0x%08x\n", ref->mtvec, get_csr(0x305));
+    printf("mtvec mismatch pc=0x%08x: ref=0x%08x dut=0x%08x\n", pc, ref->mtvec, get_csr(0x305));
     return false;
   }
-
   return true;
 }
 

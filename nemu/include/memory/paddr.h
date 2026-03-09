@@ -50,17 +50,12 @@ static inline bool in_mrom(paddr_t addr) {
   return addr >= MROM_LEFT && addr <= MROM_RIGHT;
 }
 
-static inline bool in_sram(paddr_t addr) {
-  return addr >= SRAM_LEFT && addr <= SRAM_RIGHT;
-}
+
 
 static inline bool in_psram(paddr_t addr) {
   return addr >= PSRAM_LEFT && addr <= PSRAM_RIGHT;
 }
 
-static inline bool in_sdram(paddr_t addr) {
-  return addr >= SDRAM_LEFT && addr <= SDRAM_RIGHT;
-}
 
 static inline bool in_gpio(paddr_t addr) {
   return addr >= GPIO_LEFT && addr <= GPIO_RIGHT;
@@ -74,6 +69,15 @@ static inline bool in_clint(paddr_t addr) {
   return addr >= CLINT_LEFT && addr <= CLINT_RIGHT;
 }
 #endif
+
+static inline bool in_sram(paddr_t addr) {
+  return addr >= SRAM_LEFT && addr <= SRAM_RIGHT;
+}
+
+static inline bool in_sdram(paddr_t addr) {
+  return addr >= SDRAM_LEFT && addr <= SDRAM_RIGHT;
+}
+
 word_t paddr_read(paddr_t addr, int len);
 void paddr_write(paddr_t addr, int len, word_t data);
 

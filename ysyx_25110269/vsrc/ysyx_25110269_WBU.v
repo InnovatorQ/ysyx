@@ -13,23 +13,28 @@ module ysyx_25110269_WBU(
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
+    output [`WS_TO_DS_FORWARD_BUS - 1 : 0] ws_to_ds_forward_bus,
     //diff
     output reg      inst_finish
 );
     reg  [`MS_TO_WS_BUS_WD - 1 : 0] ms_to_ws_bus_r;
-    wire [31 : 0] ws_pc;
-    wire [31 : 0] alu_result;
-    wire [3  : 0] load;
-    wire [31 : 0] load_data;
-    wire [4  : 0] dest;
-    wire          res_from_csr;
-    wire          rf_wen;
-    wire          br_taken;
-    wire [31 : 0] csr_data;
-    wire [31 : 0] wb_data;
-
-    wire          ws_ready_go;
-    reg           ws_valid;
+    wire [31 : 0]   debug_mem_addr;
+    wire [31 : 0]   debug_mem_wdata;
+    wire [31 : 0]   debug_mem_rdata;
+    wire [31 : 0]   ws_pc;
+    wire [31 : 0]   alu_result;
+    wire [3  : 0]   load;
+    wire [31 : 0]   load_data;
+    wire [4  : 0]   dest;
+    wire            res_from_csr;
+    wire            rf_wen;
+    wire            br_taken;
+    wire [31 : 0]   csr_data;
+    wire [31 : 0]   wb_data;
+    wire [31 : 0]   ws_to_ds_forward_data;
+    wire            ws_to_ds_forward_enable;
+    wire            ws_ready_go;
+    reg             ws_valid;
 
     localparam  ws_idle = 1'b0;
     localparam  ws_wait_ready = 1'b1;
@@ -54,15 +59,25 @@ module ysyx_25110269_WBU(
             end
             ws_wait_ready:begin
                 inst_finish = 1'b1;
-                next_state = ws_idle;
+                next_state =  ms_to_ws_valid ? ws_wait_ready : ws_idle;
             end
             default: next_state = ws_idle;
 
        endcase 
     end
+    assign ws_to_ds_forward_data = wb_data;
+    assign ws_to_ds_forward_enable = rf_wen && (dest != 0) && ws_valid;
+    assign ws_to_ds_forward_bus = {
+        ws_to_ds_forward_data,
+        ws_to_ds_forward_enable,
+        dest
+    };
 
     assign {
         ws_pc,
+        debug_mem_addr,
+        debug_mem_rdata,
+        debug_mem_wdata,
         load_data,
         alu_result,
         csr_data,
@@ -103,6 +118,10 @@ module ysyx_25110269_WBU(
     always @(posedge clock) begin
         if(ms_to_ws_valid && ws_allowin)
             ms_to_ws_bus_r <= ms_to_ws_bus;
+    if(inst_finish) begin
+        if(debug_mem_addr >= 32'h02000000 && debug_mem_addr < 32'h02010000) skip_ref();
+        if(debug_mem_addr >= 32'h10000000 && debug_mem_addr < 32'h10000032) skip_ref();
+    end
     end
 endmodule
 /*verilator public_off*/

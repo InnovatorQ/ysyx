@@ -75,7 +75,7 @@ if (WAYS > 1) begin : gen_hit_logic
     end
 end else begin : gen_direct_hit
     always @(*) begin
-        hit = (valid_array[set_index] && (tag_array[set_index] == tag)) && (state == IDLE) && !uncache_addr;
+        hit = (valid_array[set_index] && (tag_array[set_index] == tag)) && (state == IDLE) && !uncache_addr && rvalid;
     end
 end
 endgenerate
