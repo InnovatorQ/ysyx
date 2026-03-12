@@ -13,7 +13,7 @@ module ysyx_25110269_WBU(
     input  [4 : 0]  rs2,
     output [31 : 0] rf1_data,
     output [31 : 0] rf2_data,
-    
+    output [`WS_TO_DS_FORWARD_BUS - 1 : 0] ws_to_ds_forward_bus,
     //diff
     output reg      inst_finish
 );
@@ -31,6 +31,8 @@ module ysyx_25110269_WBU(
     wire            br_taken;
     wire [31 : 0]   csr_data;
     wire [31 : 0]   wb_data;
+    wire [31 : 0]   ws_to_ds_forward_data;
+    wire            ws_to_ds_forward_enable;
     wire            ws_ready_go;
     reg             ws_valid;
 
@@ -63,7 +65,13 @@ module ysyx_25110269_WBU(
 
        endcase 
     end
-    
+    assign ws_to_ds_forward_data = wb_data;
+    assign ws_to_ds_forward_enable = rf_wen && (dest != 0) && ws_valid;
+    assign ws_to_ds_forward_bus = {
+        ws_to_ds_forward_data,
+        ws_to_ds_forward_enable,
+        dest
+    };
 
     assign {
         ws_pc,
@@ -110,6 +118,10 @@ module ysyx_25110269_WBU(
     always @(posedge clock) begin
         if(ms_to_ws_valid && ws_allowin)
             ms_to_ws_bus_r <= ms_to_ws_bus;
+    if(inst_finish) begin
+        if(debug_mem_addr >= 32'h02000000 && debug_mem_addr < 32'h02010000) skip_ref();
+        if(debug_mem_addr >= 32'h10000000 && debug_mem_addr < 32'h10000032) skip_ref();
+    end
     end
 endmodule
 /*verilator public_off*/

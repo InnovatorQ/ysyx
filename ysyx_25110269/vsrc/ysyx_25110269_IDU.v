@@ -20,6 +20,7 @@ module ysyx_25110269_IDU(
     output                                  cache_flush,
     input  [`ES_TO_DS_FORWARD_BUS - 1 : 0]  es_to_ds_forward_bus,
     input  [`MS_TO_DS_FORWARD_BUS - 1 : 0]  ms_to_ds_forward_bus,
+    input  [`WS_TO_DS_FORWARD_BUS - 1 : 0]  ws_to_ds_forward_bus,
     //ds->fs
     output                                  ds_allowin,
 
@@ -27,8 +28,8 @@ module ysyx_25110269_IDU(
     output                                  br_taken,
     output [31 : 0]                         br_target,
 
-    output                                  inst_ecall,
-    output                                  inst_mret,
+    output                                  ecall,
+    output                                  mret,
     //csr->ds                       
     input [31 : 0]                          csr_data,
     //ds->csr                       
@@ -66,6 +67,7 @@ module ysyx_25110269_IDU(
     wire            inst_need_rs2;
     wire [31 : 0]   rs1_data;
     wire [31 : 0]   rs2_data;
+    wire            es_dep_need_stall;
     wire            es_forward_enable;
     wire [31 : 0]   es_forward_data;
     wire [4  : 0]   es_dest;
@@ -73,6 +75,9 @@ module ysyx_25110269_IDU(
     wire            ms_forward_enable;
     wire [31 : 0]   ms_forward_data;
     wire [4  : 0]   ms_dest;
+    wire            ws_forward_enable;
+    wire [31 : 0]   ws_forward_data;
+    wire [4  : 0]   ws_dest;
 
     wire [31 : 0]   inst;
     wire            inst_i;
@@ -123,6 +128,8 @@ module ysyx_25110269_IDU(
     wire            inst_csrrs;
     wire            inst_csrrw;
     wire            inst_fence;      
+    wire            inst_ecall;
+    wire            inst_mret;
 
     wire [31 : 0]   imm_i;
     wire [31 : 0]   imm_iu;
@@ -140,6 +147,7 @@ module ysyx_25110269_IDU(
     wire rs1_forward_stall;
     wire rs2_forward_stall;
     assign {
+        es_dep_need_stall,
         es_forward_data,
         es_forward_enable,
         es_dest
@@ -150,13 +158,20 @@ module ysyx_25110269_IDU(
         ms_forward_enable,
         ms_dest
     } = ms_to_ds_forward_bus;
-    assign rs1_data =   ((rs1 == es_dest) && es_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? es_forward_data :
-                        ((rs1 == ms_dest) && ms_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? ms_forward_data : rf1_data;
-                        
+    assign {
+        ws_forward_data,
+        ws_forward_enable,
+        ws_dest
+    } = ws_to_ds_forward_bus;
+    assign {rs1_forward_stall ,rs1_data} =  ((rs1 == es_dest) && es_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? {es_dep_need_stall ,es_forward_data} :
+                                            ((rs1 == ms_dest) && ms_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? {ms_dep_need_stall ,ms_forward_data} :
+                                            ((rs1 == ws_dest) && ws_forward_enable && (rs1 != 5'b0) && inst_need_rs1) ? {1'b0 ,ws_forward_data} :
+                                            {1'b0, rf1_data};
 
-    assign rs2_data =   ((rs2 == es_dest) && es_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? es_forward_data :
-                        ((rs2 == ms_dest) && ms_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? ms_forward_data : rf2_data;
-                        
+    assign {rs2_forward_stall, rs2_data} =  ((rs2 == es_dest) && es_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {es_dep_need_stall ,es_forward_data} :
+                                            ((rs2 == ms_dest) && ms_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {ms_dep_need_stall ,ms_forward_data} :
+                                            ((rs2 == ws_dest) && ws_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {1'b0 ,ws_forward_data} :
+                                            {1'b0, rf2_data};
     always @(posedge clock) begin
         if(reset) begin
             ds_state <= ds_idle;
@@ -167,7 +182,7 @@ module ysyx_25110269_IDU(
             pref_cnt_csr <= 32'b0;
         end else begin
             ds_state <= next_state;
-            ds_valid <= fs_to_ds_valid;
+            if(ds_allowin) ds_valid <= fs_to_ds_valid;
             if(ds_state == ds_wait_ready && es_allowin) begin
                 if(|alu_op) begin
                     pref_cnt_alu <= pref_cnt_alu + 1'b1;
@@ -182,8 +197,8 @@ module ysyx_25110269_IDU(
         end
     end
 
-    assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin)  && !ms_dep_need_stall; 
-    assign ds_to_es_valid = (ds_state == ds_wait_ready) && !ms_dep_need_stall;
+    assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin)  && !(rs1_forward_stall || rs2_forward_stall) ; 
+    assign ds_to_es_valid = (ds_state == ds_wait_ready) && !(rs1_forward_stall || rs2_forward_stall);
 
     always @(*) begin
         case(ds_state)
@@ -276,7 +291,7 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
-    assign inst_need_rs1 = inst_r | inst_i | inst_s | inst_b | inst_csrrs | inst_csrrw;
+    assign inst_need_rs1 = inst_r | inst_i | inst_s | inst_b | inst_iu | inst_csrrs | inst_csrrw;
     assign inst_need_rs2 = inst_r | inst_s | inst_b;
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
                      inst_jal | inst_sltiu | inst_sub | inst_xor | inst_sltu | inst_srai | inst_and|
@@ -313,14 +328,15 @@ module ysyx_25110269_IDU(
     assign alu_op[10] = inst_sra;
     assign alu_op[11] = inst_srl;
     //计算分支是否被采取
-    assign br_taken = inst_jalr | inst_jal  
+    assign br_taken = (inst_jalr | inst_jal  
                     |(inst_bne && (rs1_data != rs2_data))
                     |(inst_bge && !rs1_lt_rd_sign)
                     |(inst_beq && (rs1_data == rs2_data))
                     |(inst_bgeu && (rs1_data >= rs2_data))
                     |(inst_bltu && (rs1_data < rs2_data))
-                    |(inst_blt && rs1_lt_rd_sign);
-    assign br_stall = br_taken && ds_valid;
+                    |(inst_blt && rs1_lt_rd_sign)) && ds_valid;
+    assign ecall = inst_ecall && ds_valid;
+    assign mret = inst_mret && ds_valid;
     //获取操作对象
     assign rd = inst[11:7];
     assign rs1 = inst[19:15];
@@ -337,7 +353,7 @@ module ysyx_25110269_IDU(
                  inst_u ? imm_u : 
                  inst_s ? imm_s : 
                  inst_j ? imm_j : 32'b0;
-
+    assign br_stall = rs1_forward_stall || rs2_forward_stall;
     assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
                         inst_jal ? (ds_pc + imm_j) :
                         inst_b ? (ds_pc + offset) : 32'b0;  
@@ -350,17 +366,6 @@ module ysyx_25110269_IDU(
     assign st_data = rs2_data;
     assign csr_result = {32{csr_op[0]}} & (rs1_data | csr_data) |
                         {32{csr_op[1]}} & rs1_data;
-    // assign ds_ready_go = 1'b1;
-    // assign ds_allowin = ~ds_valid || done;
-    // assign ds_to_es_valid = ds_valid && ds_ready_go;
-
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         ds_valid <= 1'b0;
-    //     end else if(ds_allowin) begin
-    //         ds_valid <= fs_to_ds_valid;
-    //     end
-    // end
 
     always @(posedge clock) begin
         if(fs_to_ds_valid && ds_allowin) begin

@@ -91,6 +91,7 @@ void nvboard_bind_all_pins(VysyxSoCFull* top);
 bool is_ebreak = false;
 #ifdef CONFIG_WAVE
 static VerilatedFstC* tfp = new VerilatedFstC;
+static bool wave_start = false;
 #endif
 
 extern "C" void skip_ref(){
@@ -101,19 +102,33 @@ extern "C" void skip_ref(){
 extern "C" void ebreak(){
     is_ebreak = true;
 } 
+#ifdef CONFIG_WAVE
+void start_wave_dump()
+{
+    if(!wave_start){
+        Verilated::traceEverOn(true);
+        top->trace(tfp, 99);
+        tfp->open(DST_DIR "/wave.fst");
+        wave_start = true;
+        Log("Wave recording started, output to " DST_DIR "/wave.fst");
+    }
+}
+#endif
 
 void single_cycle(){
     nvboard_update();
     top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if((CPU_INFO(WBU).ws_pc == CONFIG_WAVE_START) && get_rf(13) == 0xa0000520 && !wave_start) start_wave_dump();
+
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
     //assert(0);
     Verilated::timeInc(1);
     top->clock = 1; top->eval();
     //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
     Verilated::timeInc(1);
 }
@@ -191,12 +206,7 @@ int main(int argc, char **argv){
     nvboard_init();
     Verilated::commandArgs(argc, argv);
     //assert(0);
-#ifdef CONFIG_WAVE
-    Verilated::traceEverOn(true);
-    top->trace(tfp, 99);
-    tfp->open(DST_DIR "/wave.fst");
-    printf("Wave output to " DST_DIR "/wave.fst\n");
-#endif
+
     //reset1个周期
     reset(20);
     

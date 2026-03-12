@@ -75,11 +75,11 @@ if (WAYS > 1) begin : gen_hit_logic
     end
 end else begin : gen_direct_hit
     always @(*) begin
-        hit = (valid_array[set_index] && (tag_array[set_index] == tag)) && (state == IDLE) && !uncache_addr;
+        hit = (valid_array[set_index] && (tag_array[set_index] == tag)) && (state == IDLE) && !uncache_addr && rvalid;
     end
 end
 endgenerate
-
+// 多路替换策略
 generate
 if (WAYS > 1) begin : gen_replace_logic
     // 组相联替换策略
@@ -107,6 +107,7 @@ assign i_arlen = uncache_addr ? 0 : BLOCK_WORD ;
 assign i_arsize = 3'b010; // 4字节
 assign i_araddr = uncache_addr ? raddr : {raddr[31:OFFSET_BITS], {OFFSET_BITS{1'b0}}};
 assign valid = (i_rvalid && i_rready && i_rlast) || (rvalid && hit);
+// 返回数据
 generate
 if (WAYS > 1) begin : gen_rdata_assoc
     assign rdata = (rvalid && hit) ? icache[set_index * WAYS + {1'b0, gen_assoc.hit_way}] : i_rdata_r;
@@ -115,7 +116,7 @@ end else begin : gen_rdata_direct
     always @(*) begin
         case(offset >> 2)
         'h0 : o_rdata = icache[set_index][31 : 0];
-        // 'h1 : o_rdata = icache[set_index][63 : 32];
+        'h1 : o_rdata = icache[set_index][63 : 32];
         default : ;
         endcase
     end
@@ -132,6 +133,7 @@ reg [31 : 0] miss_cnt;
 reg [31 : 0] hit_cnt;
 reg [31 : 0] penalty_cnt;
 reg          access_start;
+// 回填入icache中，包括多路和单路
 generate
 if (WAYS > 1) begin : gen_update_assoc
     always @(posedge clock) begin
@@ -155,7 +157,7 @@ end else begin : gen_update_direct
                     icache[set_index][31:0]   <= i_rdata;
                     i_rdata_r <= i_rdata;
                     end
-                // 'h1 : icache[set_index][63:32]  <= i_rdata;
+                'h1 : icache[set_index][63:32]  <= i_rdata;
             endcase
             if(w_ptr == i_arlen)begin
                 tag_array[set_index] <= tag;
@@ -165,6 +167,7 @@ end else begin : gen_update_direct
     end
 end
 endgenerate
+// 状态转移
 
 integer i;
 always @(posedge clock) begin
@@ -190,13 +193,15 @@ always @(posedge clock) begin
                         if(!uncache_addr) hit_cnt <= hit_cnt + 1;
                     end else begin
                         state <= MISS; // 未命中，进入MISS状态
-                        if(!uncache_addr) miss_cnt <= miss_cnt + 1;
-                        access_start <= 1;
-                        w_ptr <= 0;
+                        if(!uncache_addr) begin
+                            miss_cnt <= miss_cnt + 1;
+                            access_start <= 1;
+                            w_ptr <= 0;
+                        end
                     end
                 end
                 if(cache_flush)begin 
-                    skip_ref();
+                        skip_ref();
                     for(i = 0; i < NUM_BLOCKS; i = i + 1)begin
                         valid_array[i] <= 0;
                         tag_array[i] <= 0;

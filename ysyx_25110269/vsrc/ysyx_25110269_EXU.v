@@ -41,6 +41,7 @@ module ysyx_25110269_EXU(
     wire [31 : 0]       es_pc;
     wire [31 : 0]       alu_result;
     wire                forward_enable;
+    wire                dep_need_stall;
     
     reg             es_state;
     reg             next_state;
@@ -56,13 +57,15 @@ module ysyx_25110269_EXU(
             pref_cnt <= 32'b0; 
         end else begin
             es_state <= next_state;
-            es_valid <= ds_to_es_valid;
+            if(es_allowin)  es_valid <= ds_to_es_valid;
             if(ds_to_es_valid && es_allowin) begin
                 pref_cnt <= pref_cnt + 1'b1;
             end
         end
     end
     assign es_allowin = (es_state == es_idle) || ((es_state == es_wait_ready) && ms_allowin);
+    assign es_to_ms_valid = (es_state == es_wait_ready);
+    
     always @(*)begin
         case(es_state)
             es_idle : begin
@@ -74,8 +77,10 @@ module ysyx_25110269_EXU(
             default:    next_state = es_idle;
         endcase
     end
+    assign dep_need_stall = |load ;
     assign forward_enable = rf_wen && (dest != 0) && es_valid;
     assign forward_bus = {
+        dep_need_stall,
         alu_result,
         forward_enable,
         dest
@@ -122,18 +127,7 @@ module ysyx_25110269_EXU(
         .alu_result (alu_result )
     );
 
-    // assign es_ready_go = 1'b1;
-    // assign es_allowin  = ~es_valid || done;
-    // assign es_to_ws_valid = es_valid && es_ready_go;
-
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         es_valid <= 1'b0;
-    //     end else if(es_allowin) begin
-    //         es_valid <= ds_to_es_valid;
-    //     end
-    // end
-    assign es_to_ms_valid = (es_state == es_wait_ready) ? 1'b1 : 1'b0;
+    
     always @(posedge clock) begin
         if(ds_to_es_valid && es_allowin) begin
             ds_to_es_bus_r <= ds_to_es_bus;

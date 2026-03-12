@@ -1,20 +1,20 @@
 // 负责根据当前PC从存储器中取出一条指令
 /*verilator public_on*/
 module ysyx_25110269_IFU(
-    input                               clock            ,  
-    input                               reset            ,
+    input                               clock              ,  
+    input                               reset              ,
     input                               inst_finish        ,
-    //ds->fs                        
-    input                               ds_allowin       ,
-    input                               br_stall        ,
-    input                               br_taken         ,
-    input   [31:0]                      br_target        ,
-    input                               inst_ecall       ,
-    input                               mret             ,
-    //csr->fs                       
-    input   [31:0]                      csr_mtvec        ,
-    input   [31:0]                      csr_mepc         ,
-    //fs->ds                    
+    //ds->fs                           
+    input                               ds_allowin         ,
+    input                               br_stall           ,
+    input                               br_taken           ,
+    input   [31:0]                      br_target          ,
+    input                               ecall         ,
+    input                               mret               ,
+    //csr->fs                          
+    input   [31:0]                      csr_mtvec          ,
+    input   [31:0]                      csr_mepc           ,
+    //fs->ds                       
     output                              fs_to_ds_valid  ,
     output [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus    ,
 
@@ -65,7 +65,7 @@ module ysyx_25110269_IFU(
     end
     
     
-    assign arvalid = (fs_state == fs_wait_ready) && !br_stall;
+    assign arvalid = (fs_state == fs_wait_ready) && !(br_stall || br_taken) && !mret && !ecall;
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
@@ -97,11 +97,11 @@ module ysyx_25110269_IFU(
     
     // 简化next_pc逻辑
     always @(*) begin
-        if(inst_ecall)
+        if(ecall)
             next_pc_reg = csr_mtvec;
         else if(mret)
             next_pc_reg = csr_mepc;
-        else if(br_stall)
+        else if(br_taken)
             next_pc_reg = br_target;
         else
             next_pc_reg = seq_pc_reg;
@@ -109,26 +109,13 @@ module ysyx_25110269_IFU(
     
     assign next_pc = next_pc_reg;
 
-    // assign to_fs_valid = ~reset ;
-    // assign fs_ready_go = 1'b1;
-    // assign fs_allowin = !fs_valid || done;
-    // assign fs_to_ds_valid = fs_valid && fs_ready_go;                
-    
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         fs_valid <= 1'b0;
-    //     end else if(fs_allowin) begin
-    //         fs_valid <= to_fs_valid;
-    //     end
-    // end
-
     always @(posedge clock) begin
         if(reset) begin
             //pc <= 32'h7ffffffc;
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(((fs_state == fs_data_ready) && ds_allowin) || br_stall) begin
+        end else if(((fs_state == fs_data_ready) && ds_allowin) || (!br_stall && br_taken) || ecall || mret) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end

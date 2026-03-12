@@ -107,14 +107,14 @@ module ysyx_25110269(
     wire [`MS_TO_WS_BUS_WD - 1 :  0]     ms_to_ws_bus;
     wire [`ES_TO_DS_FORWARD_BUS-1:0]     es_to_ds_forward_bus;
     wire [`MS_TO_DS_FORWARD_BUS-1:0]     ms_to_ds_forward_bus;
-
+    wire [`WS_TO_DS_FORWARD_BUS-1:0]     ws_to_ds_forward_bus;
 
     wire [31 : 0]   seq_pc;
     wire            br_stall;
     wire            br_taken;
     wire [31 : 0]   br_target;
     wire            mret;
-    wire            inst_ecall;
+    wire            ecall;
     
     wire            rf_wen;
     wire            csr_wen;
@@ -175,7 +175,7 @@ module ysyx_25110269(
         .br_stall       (br_stall       ),
         .br_taken       (br_taken       ),
         .br_target      (br_target      ),
-        .inst_ecall     (inst_ecall     ),
+        .ecall          (ecall          ),
         .mret           (mret           ),
         .csr_mtvec      (csr_mtvec      ),
         .csr_mepc       (csr_mepc       ),
@@ -204,11 +204,10 @@ module ysyx_25110269(
         .cache_flush            (cache_flush            ),
         .es_to_ds_forward_bus   (es_to_ds_forward_bus   ),
         .ms_to_ds_forward_bus   (ms_to_ds_forward_bus   ),
+        .ws_to_ds_forward_bus   (ws_to_ds_forward_bus   ),
         
         .rs1                    (rs1                    ),
         .rs2                    (rs2                    ),
-        // .rs1_data               (rs1_data               ),
-        // .rs2_data               (rs2_data               ),
         .rf1_data               (rs1_data               ),
         .rf2_data               (rs2_data               ),
 
@@ -220,8 +219,8 @@ module ysyx_25110269(
         .br_stall               (br_stall               ),
         .br_taken               (br_taken               ),
         .br_target              (br_target              ),
-        .inst_ecall             (inst_ecall             ),
-        .inst_mret              (mret                   ) 
+        .ecall                  (ecall                  ),
+        .mret                   (mret                   ) 
     );
 
     ysyx_25110269_EXU EXU(
@@ -404,6 +403,7 @@ module ysyx_25110269(
         .rs2                    (rs2                    ),
         .rf1_data               (rs1_data               ),
         .rf2_data               (rs2_data               ),
+        .ws_to_ds_forward_bus   (ws_to_ds_forward_bus   ),
 
         .inst_finish            (inst_finish            )
     );
@@ -414,7 +414,7 @@ module ysyx_25110269(
         .ds_pc      (ds_pc      ),
         .clock      (clock      ),
         .reset      (reset      ),
-        .ecall      (inst_ecall ),
+        .ecall      (ecall      ),
         .mret       (mret       ),
         .rd_addr    (csr_addr   ),
         .rd_data    (csr_data   ),
@@ -425,7 +425,7 @@ module ysyx_25110269(
         .csr_mepc   (csr_mepc   )
     );
 
-    ysyx_25110269_icache #(.NUM_SETS(16), .WAYS(1), .BLOCK_SIZE (4))icache
+    ysyx_25110269_icache #(.NUM_SETS(8), .WAYS(1), .BLOCK_SIZE (8))icache
     (
         .clock          (clock          ),
         .reset          (reset          ),

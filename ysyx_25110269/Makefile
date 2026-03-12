@@ -52,7 +52,9 @@ VERILATOR_CFLAGS += -MMD --build -cc $(if $(CONFIG_WAVE),--trace-fst,)\
 			-I$(abspath ../ysyxSoC/perip/spi/rtl) \
 			-I$(abspath ../nemu/tools/capstone/repo/include) \
 			-I$(abspath ../nvboard/usr/include)\
-			-I$(abspath ./vsrc)  
+			-I$(abspath ./vsrc) \
+			$(if $(CONFIG_APB_DELAY),-DCONFIG_APB_DELAY) \
+			$(if $(CONFIG_AXI_DELAY),-DCONFIG_AXI_DELAY)  
 		    
 OBJ_DIR = $(DST_DIR)/obj_dir
 BIN = $(DST_DIR)/$(TOPNAME)
@@ -90,7 +92,7 @@ $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
 yosys: 
-	cd ~/ysyx/yosys-sta && $(MAKE) -j8 sta
+	cd ~/yosys-sta && $(MAKE) -j8 sta
 	 
 run: $(BIN)
 	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt  $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 

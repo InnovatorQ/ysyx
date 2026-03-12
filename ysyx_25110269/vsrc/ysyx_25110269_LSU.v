@@ -101,17 +101,17 @@ module ysyx_25110269_LSU(
             end
             ms_state <= next_state; 
             // 开始访问计数
-            if((arvalid && arready) || (awvalid && awready)) begin
+            if(arvalid  || awvalid) begin
                 access_start <= 1'b1;
             end
             
             // 访问完成，停止计数
-            if((rvalid && rready) || (bvalid && bready)) begin
+            if(rvalid  || bvalid) begin
                 access_start <= 1'b0;
             end
             
             // LSU延迟计数
-            if(access_start || (arvalid && arready) || (awvalid && awready)) begin
+            if(access_start || arvalid || awvalid) begin
                 delay_cnt <= delay_cnt + 1'b1;
             end
         end
@@ -185,7 +185,7 @@ module ysyx_25110269_LSU(
         rf_wen,
         br_taken
     } = es_to_ms_bus_r;
-    assign dep_need_stall = |load && !ms_to_ws_valid;
+    assign dep_need_stall = |load && !ms_to_ws_valid && (ms_state != ms_idle);
     assign forward_data = res_from_csr ? csr_data : (|load ? load_data : ms_alu_result);
     assign forward_enable = rf_wen && (dest != 0) && ms_valid;
     assign ms_to_ds_forward_bus = { 
@@ -243,7 +243,6 @@ module ysyx_25110269_LSU(
     always @(posedge clock)begin
         if(es_to_ms_valid && ms_allowin)
             es_to_ms_bus_r <= es_to_ms_bus;
-        if(((mem_addr >= 32'h10000000) && (mem_addr <= 32'h10000032)) && ms_to_ws_valid) skip_ref();    
     end
     
 endmodule

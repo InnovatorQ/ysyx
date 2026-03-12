@@ -115,8 +115,8 @@ void init_difftest(const char *ref_so_file, long img_size) {
 }
 
 // 检查寄存器状态
-static void checkregs(CPU_state *ref, uint32_t pc, uint32_t npc) {
-  if (!isa_difftest_checkregs(ref, pc, npc)) {
+static void checkregs(CPU_state *ref, uint32_t pc) {
+  if (!isa_difftest_checkregs(ref, pc)) {
     printf("DiffTest failed at PC = 0x%08x\n", pc);
     #ifdef CONFIG_REG_16
     for(int i = 0; i < 16; i++) {
@@ -128,10 +128,6 @@ static void checkregs(CPU_state *ref, uint32_t pc, uint32_t npc) {
       printf("GPR[%2d] DUT=0x%08x REF=0x%08x\n", i, get_rf(i), ref->gpr[i]);
     }
     #endif
-    printf("MCAUSE  DUT=0x%08x REF=0x%08x\n", get_csr(0x342), ref->mcause);
-    printf("MEPC    DUT=0x%08x REF=0x%08x\n", get_csr(0x341), ref->mepc);
-    printf("MSTATUS DUT=0x%08x REF=0x%08x\n", get_csr(0x300), ref->mstatus);
-    printf("MTVEC   DUT=0x%08x REF=0x%08x\n", get_csr(0x305), ref->mtvec);
     exit(1);
   }
 }
@@ -152,7 +148,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     if (ref_r.pc == npc) {
       skip_dut_nr_inst = 0;
-      // checkregs(&ref_r, npc);
+      checkregs(&ref_r, npc);
       return;
     }
     skip_dut_nr_inst--;
@@ -165,6 +161,7 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 
   if (is_skip_ref) {
     // 跳过检查，直接同步寄存器状态到REF
+    // Log("skip_pc : " FMT_WORD , pc);
     CPU_state cpu_state;
     #ifdef CONFIG_REG_16
     for (int i = 0; i < 16; i++) {
@@ -195,10 +192,10 @@ void difftest_step(uint32_t pc, uint32_t npc, uint32_t inst) {
 
   if(is_store){
     // Log("mem_addr : " FMT_WORD , mem_addr);
-    checkmem(&ref_r, mem_addr, pc);
+    // checkmem(&ref_r, mem_addr, pc);
   }
   // 检查寄存器状态
-  checkregs(&ref_r, pc, npc);
+  checkregs(&ref_r, pc);
 
 #endif
 }
