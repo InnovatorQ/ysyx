@@ -15,7 +15,7 @@ Area heap = RANGE(&_heap_start, &_heap_end);
 static const char mainargs[MAINARGS_MAX_LEN] = TOSTRING(MAINARGS_PLACEHOLDER); // defined in CFLAGS
 
 void putch(char ch) {
-  while((*((volatile char *)UART_BASE + UART_LSR) & (1 << 5)) == 0); 
+  // while((*((volatile char *)UART_BASE + UART_LSR) & (1 << 5)) == 0); 
   *((volatile char *)UART_BASE) = ch;
 }
 
