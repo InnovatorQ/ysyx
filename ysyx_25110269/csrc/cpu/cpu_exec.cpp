@@ -110,7 +110,7 @@ void cpu_exec(int n) {
         pc = get_rf(32);
         inst = pmem_read(pc);
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
-        if(CONFIG_TRACE_START == pc && !trace_open && get_rf(13) == 0xa0000520) {
+        if(CONFIG_TRACE_START == pc && !trace_open) {
           trace_open = true;
 #ifdef CONFIG_ITRACE
           Log("trace recording started,at pc=0x%08x",pc);

@@ -75,7 +75,6 @@ module ysyx_25110269_LSU(
     wire            load_sign;
     wire            res_from_csr;
     wire            rf_wen;
-    wire            br_taken;
     wire            is_ls;
     reg  [31 : 0]   mem_rdata;
     wire            mem_wen;
@@ -182,8 +181,7 @@ module ysyx_25110269_LSU(
         store,
         load_sign,
         res_from_csr,
-        rf_wen,
-        br_taken
+        rf_wen
     } = es_to_ms_bus_r;
     assign dep_need_stall = |load && !ms_to_ws_valid && (ms_state != ms_idle);
     assign forward_data = res_from_csr ? csr_data : (|load ? load_data : ms_alu_result);
@@ -206,8 +204,7 @@ module ysyx_25110269_LSU(
         dest,           //12 : 8
         load,           //7 : 4
         res_from_csr,   //2
-        rf_wen,         //1
-        br_taken        //0
+        rf_wen         //1
     };
     
     assign mem_wen = |store;

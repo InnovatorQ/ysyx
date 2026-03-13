@@ -28,7 +28,6 @@ module ysyx_25110269_EXU(
     wire                load_sign;
     wire [3 : 0]        load;
     wire [3 : 0]        store;
-    wire                br_taken;
     wire [11 : 0]       alu_op;
     wire [31 : 0]       alu_src1;
     wire [31 : 0]       alu_src2;
@@ -97,8 +96,8 @@ module ysyx_25110269_EXU(
         store,      //8 : 5
         load_sign,  //3
         res_from_csr,//2
-        rf_wen,     //1
-        br_taken    //0
+        rf_wen      //1
+        
     };
 
     assign {
@@ -115,8 +114,7 @@ module ysyx_25110269_EXU(
         store,
         load_sign,
         res_from_csr,
-        rf_wen,
-        br_taken
+        rf_wen
     } = ds_to_es_bus_r;
 
     ysyx_25110269_alu alu(

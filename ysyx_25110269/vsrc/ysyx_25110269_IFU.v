@@ -31,11 +31,24 @@ module ysyx_25110269_IFU(
     localparam fs_wait_ready = 2'b01;
     localparam fs_addr_ready = 2'b10;
     localparam fs_data_ready = 2'b11;
-    reg [1:0]  fs_state;
-    reg [31:0] ifu_rdata;
-    reg [31:0] pref_cnt;
-    reg [63:0] delay_cnt;
-    reg        access_start;
+
+    //性能计数器，综合优化
+    reg [31 : 0]    pref_cnt;
+    reg [63 : 0]    delay_cnt;
+    reg             access_start;
+
+    reg [1  : 0]    fs_state;
+    reg [31 : 0]    ifu_rdata;
+    reg [31 : 0]    pc;
+    reg             fs_valid;   //发送阶段有效信号
+
+    wire [31 : 0]   next_pc;
+    wire [31 : 0]   seq_pc;
+    wire            to_fs_valid;
+    wire            fs_allowin;
+    wire            fs_ready_go;
+    
+
     // 添加fs_valid逻辑
     always @(posedge clock) begin
         if(reset) begin
@@ -65,36 +78,19 @@ module ysyx_25110269_IFU(
     end
     
     
-    assign arvalid = (fs_state == fs_wait_ready) && !(br_stall || br_taken) && !mret && !ecall;
+    assign arvalid = (fs_state == fs_wait_ready);
     assign araddr = pc;
     
     assign fs_to_ds_valid = (fs_state == fs_data_ready);
-
-    reg  [31 : 0]   pc;
-    wire [31 : 0]   next_pc;
-    wire [31 : 0]   seq_pc;
-
-    wire            to_fs_valid;
-    wire            fs_allowin;
-    //wire            fs_ready_go;
-    reg             fs_valid;   //发送阶段有效信号
+    assign fs_ready_go =  ((fs_state == fs_data_ready) && ds_allowin) || (!br_stall && br_taken) || ecall || mret;
 
     assign fs_to_ds_bus = {
         pc,
         ifu_rdata
     };
     // 预计算所有可能的PC值，减少关键路径
-    reg [31:0] seq_pc_reg;
     reg [31:0] next_pc_reg;
-    
-    always @(posedge clock) begin
-        if(reset) begin
-            seq_pc_reg <= 32'h30000000;
-        end else begin
-            seq_pc_reg <= pc + 32'h4;  // 提前计算顺序PC
-        end
-    end
-    
+
     // 简化next_pc逻辑
     always @(*) begin
         if(ecall)
@@ -104,7 +100,7 @@ module ysyx_25110269_IFU(
         else if(br_taken)
             next_pc_reg = br_target;
         else
-            next_pc_reg = seq_pc_reg;
+            next_pc_reg = pc + 4;
     end
     
     assign next_pc = next_pc_reg;
@@ -115,7 +111,7 @@ module ysyx_25110269_IFU(
             //pc <= 32'h1ffffffc;
             pc <= 32'h30000000;
             //pc <= 32'hfffffffc;
-        end else if(((fs_state == fs_data_ready) && ds_allowin) || (!br_stall && br_taken) || ecall || mret) begin
+        end else if(fs_ready_go) begin
             pc <= next_pc;
             //$display("IFU FETCH ADDR: %h", pc);
         end

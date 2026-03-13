@@ -119,7 +119,7 @@ void single_cycle(){
     nvboard_update();
     top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
-    if((CPU_INFO(WBU).ws_pc == CONFIG_WAVE_START) && get_rf(13) == 0xa0000520 && !wave_start) start_wave_dump();
+    if((CPU_INFO(WBU).ws_pc == CONFIG_WAVE_START) && !wave_start) start_wave_dump();
 
     if(wave_start) tfp->dump(Verilated::time());
 #endif

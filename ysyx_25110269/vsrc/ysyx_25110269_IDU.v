@@ -226,8 +226,7 @@ module ysyx_25110269_IDU(
         store,          //8 : 5
         load_sign,      //3
         res_from_csr,   //2
-        rf_wen,         //1
-        br_taken        //0 
+        rf_wen          //1
     };
 
     assign {
@@ -315,7 +314,7 @@ module ysyx_25110269_IDU(
     assign csr_op[0] = inst_csrrs;
     assign csr_op[1] = inst_csrrw;
     //计算类指令
-    assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc;
+    assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc | inst_jal | inst_jalr;
     assign alu_op[1] = inst_sltiu | inst_sltu;
     assign alu_op[2] = inst_sub;
     assign alu_op[3] = inst_xor | inst_xori;
@@ -360,9 +359,9 @@ module ysyx_25110269_IDU(
 
     assign mem_addr = rs1_data + imm;
     
-    assign src1 = inst_lui ? 32'b0 : 
-                inst_auipc ? ds_pc :rs1_data;  // lui时src1为0
-    assign src2 = inst_r ? rs2_data : imm;
+    assign src1 =   inst_lui    ? 32'b0 : 
+                    (inst_auipc | inst_jalr | inst_jal) ? ds_pc :rs1_data;  // lui时src1为0
+    assign src2 = inst_r ? rs2_data : ((inst_jalr | inst_jal) ? 32'h4 : imm);
     assign st_data = rs2_data;
     assign csr_result = {32{csr_op[0]}} & (rs1_data | csr_data) |
                         {32{csr_op[1]}} & rs1_data;
