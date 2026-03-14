@@ -1,0 +1,236 @@
+From 3c6b289bec8e7dbf7275ec5d5b0a90ceeeac2f87 Mon Sep 17 00:00:00 2001
+From: Qzx <1944332766@qq.com>
+Date: Wed, 11 Feb 2026 18:53:32 +0800
+Subject: [PATCH 3/6] =?UTF-8?q?=E4=BF=9D=E5=AD=98=E4=B8=80=E7=A7=8D?=
+ =?UTF-8?q?=E5=8F=A6=E7=B1=BB=E7=9A=84=E5=86=99=E6=B3=95?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ perip/sdram/core_sdram_axi4/sdram_axi_core.v | 25 +++++----
+ perip/sdram/sdram.v                          | 54 +++++++++++---------
+ perip/sdram/sdram_top_apb.v                  |  8 +--
+ 3 files changed, 47 insertions(+), 40 deletions(-)
+
+diff --git a/perip/sdram/core_sdram_axi4/sdram_axi_core.v b/perip/sdram/core_sdram_axi4/sdram_axi_core.v
+index cedbf77b..4c60188d 100644
+--- a/perip/sdram/core_sdram_axi4/sdram_axi_core.v
++++ b/perip/sdram/core_sdram_axi4/sdram_axi_core.v
+@@ -42,7 +42,7 @@ module sdram_axi_core
+     ,input  [  7:0]  inport_len_i
+     ,input  [ 31:0]  inport_addr_i
+     ,input  [ 31:0]  inport_write_data_i
+-    ,input  [ 15:0]  sdram_data_input_i
++    ,input  [ 31:0]  sdram_data_input_i
+ 
+     // Outputs
+     ,output          inport_accept_o
+@@ -55,10 +55,10 @@ module sdram_axi_core
+     ,output          sdram_ras_o
+     ,output          sdram_cas_o
+     ,output          sdram_we_o
+-    ,output [  1:0]  sdram_dqm_o
++    ,output [  3:0]  sdram_dqm_o
+     ,output [ 12:0]  sdram_addr_o
+     ,output [  1:0]  sdram_ba_o
+-    ,output [ 15:0]  sdram_data_output_o
++    ,output [ 31:0]  sdram_data_output_o
+     ,output          sdram_data_out_en_o
+ );
+ 
+@@ -76,7 +76,7 @@ parameter SDRAM_READ_LATENCY     = 2;
+ // Defines / Local params
+ //-----------------------------------------------------------------
+ localparam SDRAM_BANK_W          = 2;
+-localparam SDRAM_DQM_W           = 2;
++localparam SDRAM_DQM_W           = 4;
+ localparam SDRAM_BANKS           = 2 ** SDRAM_BANK_W;
+ localparam SDRAM_ROW_W           = SDRAM_ADDR_W - SDRAM_COL_W - SDRAM_BANK_W;
+ localparam SDRAM_REFRESH_CNT     = 2 ** SDRAM_ROW_W;
+@@ -112,7 +112,7 @@ localparam STATE_REFRESH     = 4'd9;
+ localparam AUTO_PRECHARGE    = 10;
+ localparam ALL_BANKS         = 10;
+ 
+-localparam SDRAM_DATA_W      = 16;
++localparam SDRAM_DATA_W      = 32;
+ 
+ localparam CYCLE_TIME_NS     = 1000 / SDRAM_MHZ;
+ 
+@@ -483,7 +483,7 @@ always @ (posedge clk_i or posedge rst_i)
+ if (rst_i)
+ begin
+     command_q       <= CMD_NOP;
+-    data_q          <= 16'b0;
++    data_q          <= 32'b0;
+     addr_q          <= {SDRAM_ROW_W{1'b0}};
+     bank_q          <= {SDRAM_BANK_W{1'b0}};
+     cke_q           <= 1'b0;
+@@ -616,15 +616,14 @@ begin
+         command_q       <= CMD_WRITE;
+         addr_q          <= addr_col_w;
+         bank_q          <= addr_bank_w;
+-        data_q          <= ram_write_data_w[15:0];
++        data_q          <= ram_write_data_w;
+ 
+         // Disable auto precharge (auto close of row)
+         addr_q[AUTO_PRECHARGE]  <= 1'b0;
+ 
+         // Write mask
+-        dqm_q           <= ~ram_wr_w[1:0];
+-        dqm_buffer_q    <= ~ram_wr_w[3:2];
+-
++        dqm_q           <= ~ram_wr_w;
++        
+         data_rd_en_q    <= 1'b0;
+     end
+     //-----------------------------------------
+@@ -665,14 +664,14 @@ else
+ // in WRITE0. Also buffer lower 16-bits of read data.
+ always @ (posedge clk_i or posedge rst_i)
+ if (rst_i)
+-    data_buffer_q <= 16'b0;
++    data_buffer_q <= 32'b0;
+ else if (state_q == STATE_WRITE0)
+-    data_buffer_q <= ram_write_data_w[31:16];
++    data_buffer_q <= ram_write_data_w;
+ else if (rd_q[SDRAM_READ_LATENCY+1])
+     data_buffer_q <= sample_data_q;
+ 
+ // Read data output
+-assign ram_read_data_w = {sample_data_q, data_buffer_q};
++assign ram_read_data_w = sample_data_q;
+ 
+ //-----------------------------------------------------------------
+ // ACK
+diff --git a/perip/sdram/sdram.v b/perip/sdram/sdram.v
+index 3fdf6ef7..9fdb14d7 100644
+--- a/perip/sdram/sdram.v
++++ b/perip/sdram/sdram.v
+@@ -7,8 +7,8 @@ module sdram(
+   input        we,
+   input [12:0] a,     // 行地址
+   input [ 1:0] ba,    // 存储体地址
+-  input [ 1:0] dqm,   // 数据掩码
+-  inout [15:0] dq     // 数据
++  input [ 3:0] dqm,   // 数据掩码
++  inout [31:0] dq     // 数据
+ );
+ 
+   // MT48LC16M16A2: 16M x 16bit, 4 banks, 13-bit row, 9-bit col
+@@ -41,16 +41,16 @@ module sdram(
+   // Read pipeline
+   reg [15:0] read_data_pipe [0:3];
+   reg [3:0] read_valid_pipe;
+-  reg [31:0] shift_reg;
++  reg [2:0] latency_cnt;
+   
+   // Data output control
+   reg data_out_en;
+-  reg [15:0] data_out;
++  reg [31:0] data_out;
+ 
+-  reg in_write;
++  // reg in_write;
+   reg in_read;
+   
+-  assign dq = data_out_en ? data_out : 16'hzzzz;
++  assign dq = data_out_en ? data_out : 32'hzzzz;
+   
+   always @(posedge clk) begin
+     if (cke) begin
+@@ -67,10 +67,9 @@ module sdram(
+         
+         CMD_READ: begin
+           if (bank_active[ba]) begin
+-            read_data_pipe[0] <= memory[ba][active_row[ba]][a[8:0]];
+-            read_data_pipe[1] <= memory[ba][active_row[ba]][a[8:0] + 1];
+-            read_valid_pipe <= 4'b0011;
++            data_out <= {memory[ba][active_row[ba]][a[8:0] + 1],memory[ba][active_row[ba]][a[8:0]]};
+             in_read <= 1'b1;
++            latency_cnt <= 0;
+           end
+         end
+         
+@@ -78,7 +77,9 @@ module sdram(
+           if (bank_active[ba]) begin
+             if (!dqm[0]) memory[ba][active_row[ba]][a[8:0]][7:0] <= dq[7:0];
+             if (!dqm[1]) memory[ba][active_row[ba]][a[8:0]][15:8] <= dq[15:8];
+-            in_write <= 1'b1;
++            if (!dqm[2]) memory[ba][active_row[ba]][a[8:0]+1][7:0] <= dq[23:16];
++            if (!dqm[3]) memory[ba][active_row[ba]][a[8:0]+1][15:8] <= dq[31:24];
++            //in_write <= 1'b1;
+           end
+         end
+         
+@@ -91,25 +92,32 @@ module sdram(
+       endcase
+       case (cas_latency)
+       3'd2: begin
+-        if(!in_read) begin
+-          data_out_en <= read_valid_pipe[1];
+-          data_out <= read_data_pipe[1];
+-        end else begin
+-          in_read <= 1'b0;
+-          data_out_en <= read_valid_pipe[0];
+-          data_out <= read_data_pipe[0];
++        // if(!in_read) begin
++        //   data_out_en <= read_valid_pipe[1];
++        //   data_out <= read_data_pipe[1];
++        // end else begin
++        //   in_read <= 1'b0;
++        //   data_out_en <= read_valid_pipe[0];
++        //   data_out <= read_data_pipe[0];
++        // end
++        if(in_read) begin
++          latency_cnt <= latency_cnt + 1;
++          if(data_out_en) begin
++            in_read <= 0;
++          end
+         end
++        data_out_en <= (latency_cnt == (cas_latency - 1)) ? 1'b1 : 1'b0;
+       end
+       default: begin
+         data_out_en <= 1'b0;
+-        data_out <= 16'h0000;
++        data_out <= 32'h0000;
+       end
+     endcase
+-      if(in_write) begin
+-            if (!dqm[0]) memory[ba][active_row[ba]][a[8:0]+1][7:0] <= dq[7:0];
+-            if (!dqm[1]) memory[ba][active_row[ba]][a[8:0]+1][15:8] <= dq[15:8];
+-          in_write <= 1'b0;
+-      end
++      // if(in_write) begin
++      //       if (!dqm[0]) memory[ba][active_row[ba]][a[8:0]+1][7:0] <= dq[7:0];
++      //       if (!dqm[1]) memory[ba][active_row[ba]][a[8:0]+1][15:8] <= dq[15:8];
++      //     in_write <= 1'b0;
++      // end
+     end
+     
+     // Read pipeline shift
+diff --git a/perip/sdram/sdram_top_apb.v b/perip/sdram/sdram_top_apb.v
+index 3bc5b93b..f127d714 100644
+--- a/perip/sdram/sdram_top_apb.v
++++ b/perip/sdram/sdram_top_apb.v
+@@ -20,13 +20,13 @@ module sdram_top_apb (
+   output        sdram_we,
+   output [12:0] sdram_a,
+   output [ 1:0] sdram_ba,
+-  output [ 1:0] sdram_dqm,
+-  inout  [15:0] sdram_dq
++  output [ 3:0] sdram_dqm,
++  inout  [31:0] sdram_dq
+ );
+ 
+   wire sdram_dout_en;
+-  wire [15:0] sdram_dout;
+-  assign sdram_dq = sdram_dout_en ? sdram_dout : 16'bz;
++  wire [31:0] sdram_dout;
++  assign sdram_dq = sdram_dout_en ? sdram_dout : 32'bz;
+ 
+   typedef enum [1:0] { ST_IDLE, ST_WAIT_ACCEPT, ST_WAIT_ACK } state_t;
+   reg [1:0] state;
+-- 
+2.34.1
+

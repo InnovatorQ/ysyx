@@ -1,0 +1,202 @@
+From c46f0aee6d913e057bd2688ab20a14e8997c338b Mon Sep 17 00:00:00 2001
+From: Qzx <1944332766@qq.com>
+Date: Mon, 23 Feb 2026 09:02:57 +0800
+Subject: [PATCH 5/6] =?UTF-8?q?=E5=AE=9E=E7=8E=B0gpio=E6=8E=A7=E5=88=B6?=
+ =?UTF-8?q?=E5=99=A8=EF=BC=8Cps2=E6=8E=A7=E5=88=B6=E5=99=A8=E5=92=8Cvga?=
+ =?UTF-8?q?=E6=8E=A7=E5=88=B6=E5=99=A8?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ perip/gpio/gpio_top_apb.v | 34 ++++++++++++++++++++
+ perip/ps2/ps2_top_apb.v   | 52 ++++++++++++++++++++++++++++++
+ perip/vga/vga_top_apb.v   | 67 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 153 insertions(+)
+
+diff --git a/perip/gpio/gpio_top_apb.v b/perip/gpio/gpio_top_apb.v
+index ec51ffe5..8e8a7717 100644
+--- a/perip/gpio/gpio_top_apb.v
++++ b/perip/gpio/gpio_top_apb.v
+@@ -23,5 +23,39 @@ module gpio_top_apb(
+   output [7:0]  gpio_seg_6,
+   output [7:0]  gpio_seg_7
+ );
++  reg [15:0] led;
++  reg [7:0]  segs [7:0];
++  
++  wire is_read  = ~reset & in_pready & ~in_pwrite;
++  wire is_write = ~reset & in_psel & ~in_penable &  in_pwrite;
++ 
++  assign in_pready = in_psel && in_penable;
++  assign in_pslverr = 1'b0;
++  assign in_prdata = is_read ? {16'b0, gpio_in} : 32'b0; 
+ 
++  always @(posedge clock) begin
++    if (reset) led <= 16'h0;
++    else if (is_write) begin
++      if(in_paddr == 32'h10002000) led <= in_pwdata[15:0];
++      else if(in_paddr == 32'h10002008) begin
++        segs[0] <= {4'b0001, in_pwdata[3:0]};
++        segs[1] <= {4'b0100, in_pwdata[7:4]};
++        segs[2] <= {4'b0010, in_pwdata[11:8]};
++        segs[3] <= {4'b0, in_pwdata[15:12]};
++        segs[4] <= {4'b1001, in_pwdata[19:16]};
++        segs[5] <= {4'b1001, in_pwdata[23:20]};
++        segs[6] <= {4'b0100, in_pwdata[27:24]};
++        segs[7] <= {4'b0010, in_pwdata[31:28]};
++      end
++    end
++  end
++  assign gpio_out = led;
++  assign gpio_seg_0 = segs[0];
++  assign gpio_seg_1 = segs[1];
++  assign gpio_seg_2 = segs[2];
++  assign gpio_seg_3 = segs[3];
++  assign gpio_seg_4 = segs[4];
++  assign gpio_seg_5 = segs[5];
++  assign gpio_seg_6 = segs[6];
++  assign gpio_seg_7 = segs[7];
+ endmodule
+diff --git a/perip/ps2/ps2_top_apb.v b/perip/ps2/ps2_top_apb.v
+index 080d38fa..a00602a0 100644
+--- a/perip/ps2/ps2_top_apb.v
++++ b/perip/ps2/ps2_top_apb.v
+@@ -15,5 +15,57 @@ module ps2_top_apb(
+   input         ps2_clk,
+   input         ps2_data
+ );
++ 
++  assign in_pready = in_psel && in_penable;
++  assign in_pslverr = 1'b0;
++  
+ 
++  reg [9:0] buffer;        // ps2_data bits
++  reg [3:0] count;         // count ps2_data bits
++  reg [2:0] ps2_clk_sync;
++  reg [7:0] fifo [7:0];
++  reg [2:0] w_ptr, r_ptr;
++  reg       overflow, ready;
++
++  always @(posedge clock) begin
++    ps2_clk_sync <=  {ps2_clk_sync[1:0],ps2_clk};
++  end
++
++  wire sampling = ps2_clk_sync[2] & ~ps2_clk_sync[1];
++
++  always @(posedge clock) begin
++    if (reset) begin // reset
++        count <= 0;
++        w_ptr <= 0;
++        r_ptr <= 0;
++        overflow <= 0;
++        ready <= 0;
++    end
++    else begin
++      if(ready) begin
++        if(in_pready) begin
++          if(w_ptr == r_ptr + 3'b1) ready <= 0; // empty
++          r_ptr <= r_ptr + 3'b1;
++        end
++      end
++      
++        if (sampling) begin
++          if (count == 4'd10) begin
++            if ((buffer[0] == 0) &&     // start bit
++                (ps2_data)       &&     // stop bit
++                (^buffer[9:1])) begin   // odd  parity
++              fifo[w_ptr] <= buffer[8:1]; // store data bits
++              w_ptr <= w_ptr + 3'b1;
++              ready <= 1;
++              overflow <= overflow | ((w_ptr + 3'b1) == r_ptr); // full
++            end
++            count <= 0;     // for next
++          end else begin
++            buffer[count] <= ps2_data;  // store ps2_data
++            count <= count + 3'b1;
++          end
++        end
++    end
++end
++ assign in_prdata = ready ? {24'b0, fifo[r_ptr]} : 32'b0;
+ endmodule
+diff --git a/perip/vga/vga_top_apb.v b/perip/vga/vga_top_apb.v
+index 5c74cfbe..6678a51f 100644
+--- a/perip/vga/vga_top_apb.v
++++ b/perip/vga/vga_top_apb.v
+@@ -19,5 +19,72 @@ module vga_top_apb(
+   output        vga_vsync,
+   output        vga_valid
+ );
++  reg [23:0]  vga_mem [0:640*480-1]; //640x480分辨率的显存
++  //640x480分辨率下的VGA参数设置
++  //像素时间
++  parameter    h_frontporch = 96;
++  parameter    h_active = 144;
++  parameter    h_backporch = 784;
++  parameter    h_total = 800;
++  //行时间
++  parameter    v_frontporch = 2;
++  parameter    v_active = 35;
++  parameter    v_backporch = 515;
++  parameter    v_total = 525;
+ 
++  //像素计数值
++  reg [9:0]    x_cnt;
++  reg [9:0]    y_cnt;
++  wire         h_valid;
++  wire         v_valid;
++  wire [9:0]   h_addr;
++  wire [9:0]   v_addr;
++  wire [23:0]  vga_data;
++  //APB接口逻辑
++  wire read = ~reset & in_pready & ~in_pwrite;
++  wire write = ~reset & in_psel & ~in_penable &  in_pwrite;
++  assign in_pslverr = 1'b0; //不产生错误
++  assign in_pready = in_psel & in_penable; //当选中且使能时准备好
++
++  always @(posedge clock) //行像素计数
++      if (reset)
++        x_cnt <= 1;
++      else
++      begin
++        if (x_cnt == h_total)
++            x_cnt <= 1;
++        else
++            x_cnt <= x_cnt + 10'd1;
++      end
++
++  always @(posedge clock)  //列像素计数
++      if (reset)
++        y_cnt <= 1;
++      else
++      begin
++        if (y_cnt == v_total & x_cnt == h_total)
++            y_cnt <= 1;
++        else if (x_cnt == h_total)
++            y_cnt <= y_cnt + 10'd1;
++      end
++  always @(posedge clock) begin//写入显存数据
++  if (write)
++    vga_mem[in_paddr[20:2]] <= in_pwdata[23:0]; //根据地址写入显存
++  end
++  //生成同步信号
++  assign vga_hsync = (x_cnt > h_frontporch);
++  assign vga_vsync = (y_cnt > v_frontporch);
++  //生成消隐信号
++  assign h_valid = (x_cnt > h_active) & (x_cnt <= h_backporch);
++  assign v_valid = (y_cnt > v_active) & (y_cnt <= v_backporch);
++  assign vga_valid = h_valid & v_valid;
++  //计算当前有效像素坐标
++  assign h_addr = h_valid ? (x_cnt - 10'd145) : {10{1'b0}};
++  assign v_addr = v_valid ? (y_cnt - 10'd36) : {10{1'b0}};
++  //设置输出的颜色值
++  assign vga_data = vga_mem[h_addr + v_addr*640];
++   //写入显存数据
++  assign vga_r = vga_data[23:16];
++  assign vga_g = vga_data[15:8];
++  assign vga_b = vga_data[7:0];
+ endmodule
+-- 
+2.34.1
+

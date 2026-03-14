@@ -1,0 +1,270 @@
+From 8932b3265921f092ba9cf5b3b181b5abc51c515d Mon Sep 17 00:00:00 2001
+From: Qzx <1944332766@qq.com>
+Date: Wed, 11 Feb 2026 16:44:55 +0800
+Subject: [PATCH 2/3] =?UTF-8?q?=E5=90=8C=E4=B8=8A=E6=AC=A1=E6=8F=90?=
+ =?UTF-8?q?=E4=BA=A4?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/Makefile      |   2 +-
+ bsp/abstract-machine/soc_extra.ld  | 105 +++++++++++++++++++++++++++++
+ bsp/abstract-machine/src/context.c |  84 +++++++++++++++++++++--
+ bsp/abstract-machine/src/uart.c    |   2 +-
+ 4 files changed, 186 insertions(+), 7 deletions(-)
+ create mode 100644 bsp/abstract-machine/soc_extra.ld
+
+diff --git a/bsp/abstract-machine/Makefile b/bsp/abstract-machine/Makefile
+index 8d70f310b..dbdd44673 100644
+--- a/bsp/abstract-machine/Makefile
++++ b/bsp/abstract-machine/Makefile
+@@ -8,7 +8,7 @@ NAME = rtthread
+ SRCS = $(shell find src -name "*.c")
+ CFLAGS += -DHAVE_CCONFIG_H -D__RTTHREAD__
+ CFLAGS += -Wno-nonnull-compare
+-LDFLAGS += -T extra.ld
++LDFLAGS += -T soc_extra.ld
+ -include $(FILE_MK)
+ -include $(AM_APPS_MK)
+ include $(AM_HOME)/Makefile
+diff --git a/bsp/abstract-machine/soc_extra.ld b/bsp/abstract-machine/soc_extra.ld
+new file mode 100644
+index 000000000..bc338f7d2
+--- /dev/null
++++ b/bsp/abstract-machine/soc_extra.ld
+@@ -0,0 +1,105 @@
++ENTRY(_start)
++
++MEMORY {
++  mrom :  ORIGIN = 0x20000000, LENGTH = 4K
++  sram :  ORIGIN = 0x0f000000, LENGTH = 8K
++  flash : ORIGIN = 0x30000000, LENGTH = 16M
++  psram : ORIGIN = 0x80000000, LENGTH = 4M
++}
++
++SECTIONS {
++  . = ORIGIN(flash);
++  .boot : {
++    *(entry*)
++    *(fsbl)
++  } > flash
++
++  .ssbl : {
++    ssbl_start = .;
++    *(ssbl)
++  } > sram AT > flash
++  ssbl_size = SIZEOF(.ssbl);
++  ssbl_load_start = LOADADDR(.ssbl);
++
++  .text : {
++    text_start = .;
++    *(.text*)
++  } > psram AT> flash
++  text_size = SIZEOF(.text);
++  text_load_start = LOADADDR(.text);
++
++  .rodata : {
++    rodata_start = .;
++    *(.rodata*)
++    *(.srodata*)
++    rodata_end = .;
++  } > psram AT> flash
++  rodata_size = SIZEOF(.rodata);
++  rodata_load_start = LOADADDR(.rodata);
++
++  .data : {
++    data_start = .;
++    
++    /* RT-Thread extra data sections */
++    __fsymtab_start = .;
++    KEEP(*(FSymTab))
++    __fsymtab_end = .;
++    . = ALIGN(8);
++    __vsymtab_start = .;
++    KEEP(*(VSymTab))
++    __vsymtab_end = .;
++    . = ALIGN(8);
++
++    /* section information for initial. */
++    . = ALIGN(8);
++    __rt_init_start = .;
++    KEEP(*(SORT(.rti_fn*)))
++    __rt_init_end = .;
++    . = ALIGN(8);
++
++    __rt_utest_tc_tab_start = .;
++    KEEP(*(UtestTcTab))
++    __rt_utest_tc_tab_end = .;
++
++    . = ALIGN(8);
++    __am_apps_data_start = .;
++    *(__am_apps.data*)
++    *(__am_apps.sdata*)
++    __am_apps_data_end = .;
++    . = ALIGN(8);
++    
++    /* Original data section */
++    *(.data*)
++    *(.sdata*)
++    _data_end = .;
++  } > psram AT> flash
++  data_size = SIZEOF(.data);
++  data_load_start = LOADADDR(.data);
++
++  .bss : {
++    bss_start = .;
++    
++    /* RT-Thread extra bss sections */
++    . = ALIGN(8);
++    __am_apps_bss_start = .;
++    *(__am_apps.bss*)
++    *(__am_apps.sbss*)
++    *(__am_apps.scommon*)
++    __am_apps_bss_end = .;
++    . = ALIGN(8);
++    
++    /* Original bss section */
++    *(.bss*)
++    *(.sbss*)
++    *(.scommon)
++    bss_end = .;
++  } > psram 
++
++  _stack_pointer = ORIGIN(sram) + LENGTH(sram);
++
++  end = .;
++  _end = .;
++
++  _heap_start = ALIGN(0x1000);
++  _heap_end = 0x80400000;
++}
+diff --git a/bsp/abstract-machine/src/context.c b/bsp/abstract-machine/src/context.c
+index b9cc7eb4d..8176d0bc3 100644
+--- a/bsp/abstract-machine/src/context.c
++++ b/bsp/abstract-machine/src/context.c
+@@ -2,9 +2,35 @@
+ #include <klib.h>
+ #include <rtthread.h>
+ 
++// 用于传递上下文切换参数的结构体
++struct context_switch_data {
++  rt_ubase_t *from;
++  rt_ubase_t *to;
++};
++
+ static Context* ev_handler(Event e, Context *c) {
+   switch (e.event) {
+-    default: printf("Unhandled event ID = %d\n", e.event); assert(0);
++    case EVENT_YIELD:
++      // 从当前线程的user_data获取切换参数
++      rt_thread_t current = rt_thread_self();
++      struct context_switch_data *data = (struct context_switch_data *)current->user_data;
++      
++      if (data->from) {
++        *data->from = (rt_ubase_t)c;
++      }
++      // 切换到to指向的上下文
++      return (Context*)*data->to;
++
++    case EVENT_IRQ_TIMER:
++      return c;
++
++    // case EVENT_IRQ_IODEV:
++
++    
++    
++    default: 
++      printf("Unhandled event ID = %d\n", e.event); 
++      assert(0);
+   }
+   return c;
+ }
+@@ -13,19 +39,67 @@ void __am_cte_init() {
+   cte_init(ev_handler);
+ }
+ 
++// 用于切换到to指向的上下文指针所指向的上下文
+ void rt_hw_context_switch_to(rt_ubase_t to) {
+-  assert(0);
++  rt_thread_t current = rt_thread_self();
++  rt_ubase_t old_user_data = current->user_data;
++  
++  struct context_switch_data data = {NULL, (rt_ubase_t*)to};
++  current->user_data = (rt_ubase_t)&data;
++  
++  yield();
++  
++  current->user_data = old_user_data;
+ }
+ 
++// 需要将当前上下文指针写入from指向的上下文指针中, 然后切换到to指向的上下文
+ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to) {
+-  assert(0);
++  rt_thread_t current = rt_thread_self();
++  rt_ubase_t old_user_data = current->user_data;
++  
++  struct context_switch_data data = {(rt_ubase_t*)from, (rt_ubase_t*)to};
++  current->user_data = (rt_ubase_t)&data;
++  
++  yield();
++  
++  current->user_data = old_user_data;
+ }
+ 
+ void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t to, struct rt_thread *to_thread) {
+   assert(0);
+ }
+ 
++// 包裹函数，从栈中取出三个参数
++static void thread_wrapper(void *arg) {
++  // 获取当前栈指针，参数就在栈中
++  uintptr_t *stack = (uintptr_t *)arg;
++  void (*tentry)(void *) = (void(*)(void*))stack[0];
++  void *parameter = (void*)stack[1]; 
++  void (*texit)(void) = (void(*)(void))stack[2];
++  // 调用真正的线程函数
++  tentry(parameter);
++  // 线程函数返回后调用texit
++  texit();
++  // 确保不从包裹函数返回
++  while(1);
++}
++
+ rt_uint8_t *rt_hw_stack_init(void *tentry, void *parameter, rt_uint8_t *stack_addr, void *texit) {
+-  sda
+-  return NULL;
++  // 对齐栈地址到sizeof(uintptr_t)
++  stack_addr = (rt_uint8_t *)((uintptr_t)stack_addr & ~(sizeof(uintptr_t) - 1));
++  // 在栈中依次存储三个参数
++  stack_addr -= sizeof(uintptr_t);
++  *(uintptr_t*)stack_addr = (uintptr_t)texit;
++  
++  stack_addr -= sizeof(uintptr_t);
++  *(uintptr_t*)stack_addr = (uintptr_t)parameter;
++  
++  stack_addr -= sizeof(uintptr_t);
++  *(uintptr_t*)stack_addr = (uintptr_t)tentry;
++  // 创建栈区域
++  Area kstack = {.start = stack_addr - 4096, .end = stack_addr};
++  // 使用kcontext创建上下文，传入包裹函数和栈地址
++  Context *ctx = kcontext(kstack, thread_wrapper, stack_addr);
++  
++  return (rt_uint8_t*)ctx;
+ }
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index e4eb86689..cb7870bca 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -37,7 +37,7 @@ static int _uart_putc(struct rt_serial_device *serial, char c) {
+ }
+ 
+ static int _uart_getc(struct rt_serial_device *serial) {
+-  static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\nutest_list\n";
++  static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\n";
+   return (*p != '\0' ? *(p ++) : -1);
+ }
+ 
+-- 
+2.34.1
+

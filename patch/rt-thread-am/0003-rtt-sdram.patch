@@ -1,0 +1,95 @@
+From 4e827291f1276d714d0d949d3bd83bbfa13ec258 Mon Sep 17 00:00:00 2001
+From: Qzx <1944332766@qq.com>
+Date: Mon, 23 Feb 2026 09:02:26 +0800
+Subject: [PATCH 3/3] =?UTF-8?q?=E6=94=AF=E6=8C=81=E4=B8=B2=E5=8F=A3?=
+ =?UTF-8?q?=E8=BE=93=E5=85=A5=EF=BC=8C=E8=AE=A9rtt=E8=83=BD=E5=9C=A8sdram?=
+ =?UTF-8?q?=E4=B8=AD=E8=BF=90=E8=A1=8C?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ bsp/abstract-machine/soc_extra.ld | 11 ++++++-----
+ bsp/abstract-machine/src/uart.c   | 11 ++++++++++-
+ 2 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/bsp/abstract-machine/soc_extra.ld b/bsp/abstract-machine/soc_extra.ld
+index bc338f7d2..aba2323a9 100644
+--- a/bsp/abstract-machine/soc_extra.ld
++++ b/bsp/abstract-machine/soc_extra.ld
+@@ -5,6 +5,7 @@ MEMORY {
+   sram :  ORIGIN = 0x0f000000, LENGTH = 8K
+   flash : ORIGIN = 0x30000000, LENGTH = 16M
+   psram : ORIGIN = 0x80000000, LENGTH = 4M
++  sdram : ORIGIN = 0xa0000000, LENGTH = 32M
+ }
+ 
+ SECTIONS {
+@@ -24,7 +25,7 @@ SECTIONS {
+   .text : {
+     text_start = .;
+     *(.text*)
+-  } > psram AT> flash
++  } > sdram AT> flash
+   text_size = SIZEOF(.text);
+   text_load_start = LOADADDR(.text);
+ 
+@@ -33,7 +34,7 @@ SECTIONS {
+     *(.rodata*)
+     *(.srodata*)
+     rodata_end = .;
+-  } > psram AT> flash
++  } > sdram AT> flash
+   rodata_size = SIZEOF(.rodata);
+   rodata_load_start = LOADADDR(.rodata);
+ 
+@@ -72,7 +73,7 @@ SECTIONS {
+     *(.data*)
+     *(.sdata*)
+     _data_end = .;
+-  } > psram AT> flash
++  } > sdram AT> flash
+   data_size = SIZEOF(.data);
+   data_load_start = LOADADDR(.data);
+ 
+@@ -93,7 +94,7 @@ SECTIONS {
+     *(.sbss*)
+     *(.scommon)
+     bss_end = .;
+-  } > psram 
++  } > sdram 
+ 
+   _stack_pointer = ORIGIN(sram) + LENGTH(sram);
+ 
+@@ -101,5 +102,5 @@ SECTIONS {
+   _end = .;
+ 
+   _heap_start = ALIGN(0x1000);
+-  _heap_end = 0x80400000;
++  _heap_end = ORIGIN(sdram) + LENGTH(sdram);
+ }
+diff --git a/bsp/abstract-machine/src/uart.c b/bsp/abstract-machine/src/uart.c
+index cb7870bca..0fb603f64 100644
+--- a/bsp/abstract-machine/src/uart.c
++++ b/bsp/abstract-machine/src/uart.c
+@@ -38,7 +38,16 @@ static int _uart_putc(struct rt_serial_device *serial, char c) {
+ 
+ static int _uart_getc(struct rt_serial_device *serial) {
+   static const char *p = "help\ndate\nversion\nfree\nps\npwd\nls\nmemtrace\nmemcheck\n";
+-  return (*p != '\0' ? *(p ++) : -1);
++  
++  // 先读取内置字符串
++  if (*p != '\0') {
++    return *(p++);
++  }
++  
++  // 内置字符串读完后，通过IOE从UART RX获取字符
++  AM_UART_RX_T rx;
++  ioe_read(AM_UART_RX, &rx);
++  return (rx.data == 0xff) ? -1 : rx.data;
+ }
+ 
+ const struct rt_uart_ops _uart_ops = {
+-- 
+2.34.1
+

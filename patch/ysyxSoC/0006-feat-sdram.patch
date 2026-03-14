@@ -1,0 +1,429 @@
+From b23149831f01970fc9cc929e8c3734780403be59 Mon Sep 17 00:00:00 2001
+From: Qzx <1944332766@qq.com>
+Date: Mon, 9 Mar 2026 21:06:52 +0800
+Subject: [PATCH 6/6] =?UTF-8?q?feat=20::=20=E4=BF=AE=E5=A4=8D=E4=BA=86sdra?=
+ =?UTF-8?q?m=E7=9A=84=E7=89=87=E9=80=89=E6=9C=BA=E5=88=B6=EF=BC=8C?=
+ =?UTF-8?q?=E5=AE=9E=E7=8E=B0=E4=BA=86=E5=AE=8F=E7=BC=96=E8=AF=91=E5=88=87?=
+ =?UTF-8?q?=E6=8D=A2=E5=BB=B6=E8=BF=9F=E6=A0=A1=E5=87=86?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ perip/amba/apb_delayer.v                     |  62 ++++++++++-
+ perip/amba/axi4_delayer.v                    | 110 +++++++++++++++++--
+ perip/sdram/core_sdram_axi4/sdram_axi.v      |   2 +-
+ perip/sdram/core_sdram_axi4/sdram_axi_core.v |  10 +-
+ perip/sdram/sdram.v                          |  13 ++-
+ perip/sdram/sdram_top_axi.v                  |  10 +-
+ src/CPU.scala                                |   4 +-
+ src/Top.scala                                |   2 +-
+ 8 files changed, 188 insertions(+), 25 deletions(-)
+
+diff --git a/perip/amba/apb_delayer.v b/perip/amba/apb_delayer.v
+index c0d20764..fa870c35 100644
+--- a/perip/amba/apb_delayer.v
++++ b/perip/amba/apb_delayer.v
+@@ -23,7 +23,67 @@ module apb_delayer(
+   input  [31:0] out_prdata,
+   input         out_pslverr
+ );
++`ifdef CONFIG_APB_DELAY
++  parameter S = 32768,// 2^15
++            R = 7,
++            R_mul_S = S * R; // 2^15 * 7.22
++  parameter IDLE = 0,
++            WAIT = 1,
++            PROC = 2,
++            READY = 3;
++reg [1:0]   state;
++reg [31:0]  delay_cnt;
++reg         out_pready_r;
++reg         out_pslverr_r;
++reg [31:0]  out_prdata_r;
++
++always @(posedge clock) begin
++  if(reset) begin
++    state <= IDLE;
++    delay_cnt <= 0;
++  end else begin
++    case(state)
++      IDLE: begin
++        if(in_psel && in_penable) begin
++          state <= WAIT;
++          delay_cnt <= 0;
++        end
++      end
++      WAIT: begin
++        delay_cnt <= delay_cnt + R_mul_S;
++        if(out_pready) begin
++          delay_cnt <= (delay_cnt >> 15); // 除以2^15
++          out_pready_r <= out_pready;
++          out_pslverr_r <= out_pslverr;
++          out_prdata_r <= out_prdata;
++          state <= PROC;
++        end
++      end
++      PROC: begin
++        if(delay_cnt == 0) begin
++          state <= READY;
++        end else begin
++          delay_cnt <= delay_cnt - 1;
++        end
++      end
++      READY: begin
++        state <= IDLE;
++      end
++  endcase
++  end
++end
+ 
++  assign out_paddr   = in_paddr;
++  assign out_psel    = in_psel;
++  assign out_penable = in_penable;
++  assign out_pprot   = in_pprot;
++  assign out_pwrite  = in_pwrite;
++  assign out_pwdata  = in_pwdata;
++  assign out_pstrb   = in_pstrb;
++  assign in_pready   = (state == READY) ? out_pready_r : 1'b0;
++  assign in_prdata   = (state == READY) ? out_prdata_r : 32'b0;
++  assign in_pslverr  = (state == READY) ? out_pslverr_r : 1'b0;
++`else 
+   assign out_paddr   = in_paddr;
+   assign out_psel    = in_psel;
+   assign out_penable = in_penable;
+@@ -34,5 +94,5 @@ module apb_delayer(
+   assign in_pready   = out_pready;
+   assign in_prdata   = out_prdata;
+   assign in_pslverr  = out_pslverr;
+-
++`endif 
+ endmodule
+diff --git a/perip/amba/axi4_delayer.v b/perip/amba/axi4_delayer.v
+index f692803b..e3a56ec3 100644
+--- a/perip/amba/axi4_delayer.v
++++ b/perip/amba/axi4_delayer.v
+@@ -63,6 +63,12 @@ module axi4_delayer(
+   input  [1:0]  out_bresp
+ );
+ 
++  parameter DELAY_RATIO = 7;
++  parameter S = 32768;
++  parameter R_MUL_S = DELAY_RATIO * S;
++
++
++  // Address channels (no delay)
+   assign in_arready = out_arready;
+   assign out_arvalid = in_arvalid;
+   assign out_arid = in_arid;
+@@ -70,12 +76,7 @@ module axi4_delayer(
+   assign out_arlen = in_arlen;
+   assign out_arsize = in_arsize;
+   assign out_arburst = in_arburst;
+-  assign out_rready = in_rready;
+-  assign in_rvalid = out_rvalid;
+-  assign in_rid = out_rid;
+-  assign in_rdata = out_rdata;
+-  assign in_rresp = out_rresp;
+-  assign in_rlast = out_rlast;
++
+   assign in_awready = out_awready;
+   assign out_awvalid = in_awvalid;
+   assign out_awid = in_awid;
+@@ -83,14 +84,109 @@ module axi4_delayer(
+   assign out_awlen = in_awlen;
+   assign out_awsize = in_awsize;
+   assign out_awburst = in_awburst;
++
++  // Write data channel (no delay for now)
+   assign in_wready = out_wready;
+   assign out_wvalid = in_wvalid;
+   assign out_wdata = in_wdata;
+   assign out_wstrb = in_wstrb;
+   assign out_wlast = in_wlast;
++
++  assign out_rready = in_rready;
++
+   assign out_bready = in_bready;
++
++`ifdef CONFIG_AXI_DELAY
++  parameter IDLE = 0, R_WAIT = 1, R_PROC = 2, R_READY = 3,
++                      W_WAIT = 1, W_PROC = 2, W_READY = 3;
++
++  reg [1 : 0] r_state;
++  reg [1 : 0] w_state;
++  reg [31: 0] r_delay_cnt;
++  reg [31: 0] w_delay_cnt;
++  reg         r_rvalid;
++  reg [31: 0] r_data;
++  reg [1 : 0] r_rresp;
++  reg [3 : 0] r_rid;
++  reg         r_last;
++  reg         w_bvalid;
++  reg [3 : 0] w_bid;
++  reg [1 : 0] w_bresp;
++  always @(posedge clock) begin
++    if(reset) begin
++      r_state <= IDLE;
++      w_state <= IDLE;
++      r_delay_cnt <= 0;
++      w_delay_cnt <= 0;
++    end
++    case(r_state)
++      IDLE : begin
++        if(in_arvalid && out_arready) begin
++           r_delay_cnt <= R_MUL_S;
++           r_state <= R_WAIT;
++        end
++      end
++      R_WAIT : begin
++        r_delay_cnt <= r_delay_cnt + R_MUL_S;
++        if(out_rvalid) begin
++          r_delay_cnt <= r_delay_cnt >> 15;
++          r_rvalid <= out_rvalid;
++          r_last <= out_rlast;
++          r_data <= out_rdata;
++          r_rid  <= out_rid;
++          r_rresp<= out_rresp;
++          r_state <= R_PROC;
++        end
++      end
++      R_PROC : begin
++        if(r_delay_cnt == 0) r_state <= R_READY;
++        else r_delay_cnt <= r_delay_cnt - 1;
++      end
++      R_READY : begin
++        r_state <= IDLE;
++      end
++    endcase
++    case(w_state)
++      IDLE : begin
++        if(in_awvalid && out_awready) begin
++           w_delay_cnt <= R_MUL_S;
++           w_state <= W_WAIT;
++        end
++      end
++      W_WAIT : begin
++        w_delay_cnt <= w_delay_cnt + R_MUL_S;
++        if(out_bvalid) begin
++          w_delay_cnt <= w_delay_cnt >> 15;
++          w_bvalid <= out_bvalid;
++          w_bresp <= out_bresp;
++          w_bid <= out_bid;
++          w_state <= W_PROC;
++        end
++      end
++      W_PROC : begin
++        if(w_delay_cnt == 0) w_state <= W_READY;
++        else w_delay_cnt <= w_delay_cnt - 1;
++      end
++      W_READY : w_state <= IDLE;
++    endcase
++  end
++  assign in_rvalid = (r_state == R_READY) ? r_rvalid : 0;
++  assign in_rdata = (r_state == R_READY) ? r_data : 0;
++  assign in_rresp = (r_state == R_READY) ? r_rresp : 0;
++  assign in_rid = (r_state == R_READY) ? r_rid : 0;
++  assign in_rlast = (r_state == R_READY) ? r_last : 0;
++  assign in_bvalid = (w_state == W_READY) ? w_bvalid : 0;
++  assign in_bresp = (w_state == W_READY) ? w_bresp : 0;
++  assign in_bid = (w_state == W_READY) ? w_bid : 0;
++`else  
++  assign in_rvalid = out_rvalid;
++  assign in_rdata = out_rdata;
++  assign in_rresp = out_rresp;
++  assign in_rid = out_rid;
++  assign in_rlast = out_rlast;
++  
+   assign in_bvalid = out_bvalid;
+   assign in_bid = out_bid;
+   assign in_bresp = out_bresp;
+-
++`endif 
+ endmodule
+diff --git a/perip/sdram/core_sdram_axi4/sdram_axi.v b/perip/sdram/core_sdram_axi4/sdram_axi.v
+index 43187b6a..affbecc0 100644
+--- a/perip/sdram/core_sdram_axi4/sdram_axi.v
++++ b/perip/sdram/core_sdram_axi4/sdram_axi.v
+@@ -74,7 +74,7 @@ module sdram_axi
+     ,output          sdram_cas_o
+     ,output          sdram_we_o
+     ,output [  3:0]  sdram_dqm_o         // 4-bit DQM
+-    ,output [ 13:0]  sdram_addr_o
++    ,output [ 12:0]  sdram_addr_o
+     ,output [  1:0]  sdram_ba_o
+     ,output [ 31:0]  sdram_data_output_o // 32-bit output
+     ,output          sdram_data_out_en_o
+diff --git a/perip/sdram/core_sdram_axi4/sdram_axi_core.v b/perip/sdram/core_sdram_axi4/sdram_axi_core.v
+index 0ff605db..7fefa29d 100644
+--- a/perip/sdram/core_sdram_axi4/sdram_axi_core.v
++++ b/perip/sdram/core_sdram_axi4/sdram_axi_core.v
+@@ -158,7 +158,7 @@ reg                    data_rd_en_q;
+ reg [SDRAM_DQM_W-1:0]  dqm_q;
+ reg                    cke_q;
+ reg [SDRAM_BANK_W-1:0] bank_q;
+-
++reg                    cs;
+ // Buffer half word during read and write commands
+ reg [SDRAM_DATA_W-1:0] data_buffer_q;
+ reg [SDRAM_DQM_W-1:0]  dqm_buffer_q;
+@@ -497,6 +497,7 @@ begin
+         active_row_q[idx] <= {SDRAM_ROW_W{1'b0}};
+ 
+     row_open_q      <= {SDRAM_BANKS{1'b0}};
++    cs              <= 1'b0;
+ end
+ else
+ begin
+@@ -561,6 +562,8 @@ begin
+ 
+         active_row_q[addr_bank_w]  <= addr_row_w;
+         row_open_q[addr_bank_w]    <= 1'b1;
++
++        cs            <= addr_cs_w;
+     end
+     //-----------------------------------------
+     // STATE_PRECHARGE
+@@ -594,6 +597,7 @@ begin
+         command_q   <= CMD_REFRESH;
+         addr_q      <= {SDRAM_ROW_W{1'b0}};
+         bank_q      <= {SDRAM_BANK_W{1'b0}};
++        cs          <= 1'b0;
+     end
+     //-----------------------------------------
+     // STATE_READ
+@@ -709,8 +713,8 @@ assign sdram_data_in_w       = sdram_data_input_i;
+ 
+ assign sdram_cke_o  = cke_q;
+ // Generate chip selects for word expansion
+-assign sdram_cs_o[0] = (command_q[3] & ~addr_cs_w) | addr_cs_w;  // Lower 32-bit word
+-assign sdram_cs_o[1] = (command_q[3] & addr_cs_w) | ~addr_cs_w;   // Upper 32-bit word
++assign sdram_cs_o[0] = (command_q[3] & ~cs) | cs;  // Lower 32-bit word
++assign sdram_cs_o[1] = (command_q[3] & cs) | ~cs;   // Upper 32-bit word
+ assign sdram_ras_o  = command_q[2];
+ assign sdram_cas_o  = command_q[1];
+ assign sdram_we_o   = command_q[0];
+diff --git a/perip/sdram/sdram.v b/perip/sdram/sdram.v
+index deceeb76..9c4a4c38 100644
+--- a/perip/sdram/sdram.v
++++ b/perip/sdram/sdram.v
+@@ -1,3 +1,4 @@
++/* verilator public_on */
+ module sdram(
+   input        clk,
+   input        cke,
+@@ -34,7 +35,7 @@ module sdram(
+   reg [2:0] cas_latency;
+   reg [2:0] burst_length;
+   reg [2:0] read_latency;
+-  reg       in_read;
++  reg [3:0] in_read;
+   // Bank state
+   reg [3:0] bank_active;
+   reg [ROW_BITS-1:0] active_row [0:3];
+@@ -68,7 +69,7 @@ module sdram(
+             read_data_pipe <= memory[ba][active_row[ba]][a[8:0]];
+             read_valid_pipe <= 1'b1;
+             read_latency <= 0;
+-            in_read <= 1;
++            in_read <= in_read + 1;
+           end
+         end
+         
+@@ -86,7 +87,7 @@ module sdram(
+         
+         default: ; // NOP, REFRESH treated as NOP
+       endcase
+-      if(in_read) begin
++      if(|in_read) begin
+         case (cas_latency)
+         3'd2: begin
+           if(read_latency == cas_latency - 1) begin
+@@ -95,7 +96,8 @@ module sdram(
+             read_latency <= read_latency + 1;
+           end else if(read_latency == cas_latency) begin
+             data_out_en <= 0;
+-            in_read <= 0;
++            in_read <= in_read - 1;
++            read_latency <= 1;
+           end else begin
+             read_latency <= read_latency + 1;
+             data_out_en <= 0;
+@@ -109,7 +111,8 @@ module sdram(
+       endcase
+       end
+     end
+-    
++    else in_read <= 0;
+   end
+   
+ endmodule
++/* verilator public_off */
+\ No newline at end of file
+diff --git a/perip/sdram/sdram_top_axi.v b/perip/sdram/sdram_top_axi.v
+index f0fd6fdb..90659420 100644
+--- a/perip/sdram/sdram_top_axi.v
++++ b/perip/sdram/sdram_top_axi.v
+@@ -33,19 +33,19 @@ module sdram_top_axi(
+ 
+   output        sdram_clk,
+   output        sdram_cke,
+-  output        sdram_cs,
++  output [ 1:0] sdram_cs,
+   output        sdram_ras,
+   output        sdram_cas,
+   output        sdram_we,
+   output [12:0] sdram_a,
+   output [ 1:0] sdram_ba,
+-  output [ 1:0] sdram_dqm,
+-  inout  [15:0] sdram_dq
++  output [ 3:0] sdram_dqm,
++  inout  [31:0] sdram_dq
+ );
+ 
+   wire sdram_dout_en;
+-  wire [15:0] sdram_dout;
+-  assign sdram_dq = sdram_dout_en ? sdram_dout : 16'bz;
++  wire [31:0] sdram_dout;
++  assign sdram_dq = sdram_dout_en ? sdram_dout : 32'bz;
+   sdram_axi #(
+     .SDRAM_MHZ(100),
+     .SDRAM_ADDR_W(24),
+diff --git a/src/CPU.scala b/src/CPU.scala
+index 7559195f..3d0a70ad 100644
+--- a/src/CPU.scala
++++ b/src/CPU.scala
+@@ -13,7 +13,7 @@ object CPUAXI4BundleParameters {
+   def apply() = AXI4BundleParameters(addrBits = 32, dataBits = 32, idBits = ChipLinkParam.idBits)
+ }
+ 
+-class ysyx_00000000 extends BlackBox {
++class ysyx_25110269 extends BlackBox {
+   val io = IO(new Bundle {
+     val clock = Input(Clock())
+     val reset = Input(Reset())
+@@ -35,7 +35,7 @@ class CPU(idBits: Int)(implicit p: Parameters) extends LazyModule {
+     val interrupt = IO(Input(Bool()))
+     val slave = IO(Flipped(AXI4Bundle(CPUAXI4BundleParameters())))
+ 
+-    val cpu = Module(new ysyx_00000000)
++    val cpu = Module(new ysyx_25110269)
+     cpu.io.clock := clock
+     cpu.io.reset := reset
+     cpu.io.io_interrupt := interrupt
+diff --git a/src/Top.scala b/src/Top.scala
+index c00378a6..2913155b 100644
+--- a/src/Top.scala
++++ b/src/Top.scala
+@@ -7,7 +7,7 @@ import freechips.rocketchip.diplomacy.LazyModule
+ 
+ object Config {
+   def hasChipLink: Boolean = false
+-  def sdramUseAXI: Boolean = false
++  def sdramUseAXI: Boolean = true
+ }
+ 
+ class ysyxSoCTop extends Module {
+-- 
+2.34.1
+
