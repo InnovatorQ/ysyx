@@ -24,10 +24,8 @@ module ysyx_25110269_IDU(
     //ds->fs
     output                                  ds_allowin,
 
-    output                                  br_stall,
-    output                                  br_taken,
-    output [31 : 0]                         br_target,
-
+    output  [`BR_BUS - 1 : 0]               br_bus,
+    output                                  fence,
     output                                  ecall,
     output                                  mret,
     //csr->ds                       
@@ -46,7 +44,7 @@ module ysyx_25110269_IDU(
     reg  [31 : 0]   pref_cnt_csr;
     reg  [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
-
+    wire            valid;
     wire [6  : 0]   opcode;
     wire [2  : 0]   funct3;
     wire [6  : 0]   funct7;
@@ -55,6 +53,8 @@ module ysyx_25110269_IDU(
     wire [31 : 0]   src2;
     wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
+    wire [31 : 0]   br_target;
+    wire            br_taken;
     wire [11 : 0]   alu_op;
     wire [4  : 0]   rd;
     wire [3  : 0]   load;
@@ -87,7 +87,7 @@ module ysyx_25110269_IDU(
     wire            inst_s;
     wire            inst_b;
     wire            inst_j;
-
+    wire            inst_fence;
     wire            inst_add;
     wire            inst_addi;
     wire            inst_sub;
@@ -126,8 +126,7 @@ module ysyx_25110269_IDU(
     wire            inst_bltu;
     wire            inst_ebreak;
     wire            inst_csrrs;
-    wire            inst_csrrw;
-    wire            inst_fence;      
+    wire            inst_csrrw;     
     wire            inst_ecall;
     wire            inst_mret;
 
@@ -170,7 +169,7 @@ module ysyx_25110269_IDU(
 
     assign {rs2_forward_stall, rs2_data} =  ((rs2 == es_dest) && es_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {es_dep_need_stall ,es_forward_data} :
                                             ((rs2 == ms_dest) && ms_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {ms_dep_need_stall ,ms_forward_data} :
-                                            ((rs2 == ws_dest) && ws_forward_enable && (rs1 != 5'b0) && inst_need_rs2) ? {1'b0 ,ws_forward_data} :
+                                            ((rs2 == ws_dest) && ws_forward_enable && (rs2 != 5'b0) && inst_need_rs2) ? {1'b0 ,ws_forward_data} :
                                             {1'b0, rf2_data};
     always @(posedge clock) begin
         if(reset) begin
@@ -196,7 +195,7 @@ module ysyx_25110269_IDU(
             end
         end
     end
-
+    assign valid = ds_valid && !(rs1_forward_stall || rs2_forward_stall);
     assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin)  && !(rs1_forward_stall || rs2_forward_stall) ; 
     assign ds_to_es_valid = (ds_state == ds_wait_ready) && !(rs1_forward_stall || rs2_forward_stall);
 
@@ -226,8 +225,7 @@ module ysyx_25110269_IDU(
         store,          //8 : 5
         load_sign,      //3
         res_from_csr,   //2
-        rf_wen,         //1
-        br_taken        //0 
+        rf_wen          //1
     };
 
     assign {
@@ -291,6 +289,7 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
+    assign fence = inst_fence && valid;
     assign inst_need_rs1 = inst_r | inst_i | inst_s | inst_b | inst_iu | inst_csrrs | inst_csrrw;
     assign inst_need_rs2 = inst_r | inst_s | inst_b;
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
@@ -315,7 +314,7 @@ module ysyx_25110269_IDU(
     assign csr_op[0] = inst_csrrs;
     assign csr_op[1] = inst_csrrw;
     //计算类指令
-    assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc;
+    assign alu_op[0] = inst_addi | inst_add | inst_lui | inst_auipc | inst_jal | inst_jalr;
     assign alu_op[1] = inst_sltiu | inst_sltu;
     assign alu_op[2] = inst_sub;
     assign alu_op[3] = inst_xor | inst_xori;
@@ -327,6 +326,10 @@ module ysyx_25110269_IDU(
     assign alu_op[9] = inst_slt;
     assign alu_op[10] = inst_sra;
     assign alu_op[11] = inst_srl;
+
+    assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
+                        inst_jal ? (ds_pc + imm_j) :
+                        inst_b ? (ds_pc + offset) : 32'b0; 
     //计算分支是否被采取
     assign br_taken = (inst_jalr | inst_jal  
                     |(inst_bne && (rs1_data != rs2_data))
@@ -334,9 +337,16 @@ module ysyx_25110269_IDU(
                     |(inst_beq && (rs1_data == rs2_data))
                     |(inst_bgeu && (rs1_data >= rs2_data))
                     |(inst_bltu && (rs1_data < rs2_data))
-                    |(inst_blt && rs1_lt_rd_sign)) && ds_valid;
-    assign ecall = inst_ecall && ds_valid;
-    assign mret = inst_mret && ds_valid;
+                    |(inst_blt && rs1_lt_rd_sign)) && valid;
+    
+    assign br_bus = {
+        br_taken,
+        br_target
+    };
+
+    assign ecall = inst_ecall && valid;
+    assign mret = inst_mret && valid;
+
     //获取操作对象
     assign rd = inst[11:7];
     assign rs1 = inst[19:15];
@@ -352,32 +362,16 @@ module ysyx_25110269_IDU(
                  inst_iu? imm_i : 
                  inst_u ? imm_u : 
                  inst_s ? imm_s : 
-                 inst_j ? imm_j : 32'b0;
-    assign br_stall = rs1_forward_stall || rs2_forward_stall;
-    assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
-                        inst_jal ? (ds_pc + imm_j) :
-                        inst_b ? (ds_pc + offset) : 32'b0;  
+                 inst_j ? imm_j : 32'b0; 
 
     assign mem_addr = rs1_data + imm;
     
-    assign src1 = inst_lui ? 32'b0 : 
-                inst_auipc ? ds_pc :rs1_data;  // lui时src1为0
-    assign src2 = inst_r ? rs2_data : imm;
+    assign src1 =   inst_lui    ? 32'b0 : 
+                    (inst_auipc | inst_jalr | inst_jal) ? ds_pc :rs1_data;  // lui时src1为0
+    assign src2 = inst_r ? rs2_data : ((inst_jalr | inst_jal) ? 32'h4 : imm);
     assign st_data = rs2_data;
     assign csr_result = {32{csr_op[0]}} & (rs1_data | csr_data) |
                         {32{csr_op[1]}} & rs1_data;
-    
-    // assign ds_ready_go = 1'b1;
-    // assign ds_allowin = ~ds_valid || done;
-    // assign ds_to_es_valid = ds_valid && ds_ready_go;
-
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         ds_valid <= 1'b0;
-    //     end else if(ds_allowin) begin
-    //         ds_valid <= fs_to_ds_valid;
-    //     end
-    // end
 
     always @(posedge clock) begin
         if(fs_to_ds_valid && ds_allowin) begin

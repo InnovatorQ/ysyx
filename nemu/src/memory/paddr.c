@@ -57,14 +57,6 @@ static void mrom_write(paddr_t addr, int len, word_t data) {
   // MROM is read-only
 }
 
-static word_t sram_read(paddr_t addr, int len) {
-  return host_read(sram + (addr - SRAM_LEFT), len);
-}
-
-static void sram_write(paddr_t addr, int len, word_t data) {
-  host_write(sram + (addr - SRAM_LEFT), len, data);
-}
-
 static word_t psram_read(paddr_t addr, int len) {
   return host_read(psram + (addr - PSRAM_LEFT), len);
 }

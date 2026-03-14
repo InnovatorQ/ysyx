@@ -28,7 +28,6 @@ module ysyx_25110269_WBU(
     wire [4  : 0]   dest;
     wire            res_from_csr;
     wire            rf_wen;
-    wire            br_taken;
     wire [31 : 0]   csr_data;
     wire [31 : 0]   wb_data;
     wire [31 : 0]   ws_to_ds_forward_data;
@@ -84,8 +83,7 @@ module ysyx_25110269_WBU(
         dest,
         load,
         res_from_csr,
-        rf_wen,
-        br_taken
+        rf_wen
     } = ms_to_ws_bus_r;
 
     ysyx_25110269_regfile rf(
@@ -100,20 +98,8 @@ module ysyx_25110269_WBU(
         
     );
     assign wb_data = (load != 4'h0) ? load_data : 
-                      br_taken ? ws_pc + 32'h4 : 
                       res_from_csr ? csr_data : alu_result;
 
-    // assign ws_ready_go = 1'b1;
-    // assign ws_allowin  = ~ws_valid || done;
-    // assign done = ws_valid && ws_ready_go;
-
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         ws_valid <= 1'b0;
-    //     end else if(ws_allowin) begin
-    //         ws_valid <= es_to_ws_valid;
-    //     end
-    // end
 
     always @(posedge clock) begin
         if(ms_to_ws_valid && ws_allowin)

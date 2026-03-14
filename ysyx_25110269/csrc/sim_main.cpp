@@ -91,6 +91,7 @@ void nvboard_bind_all_pins(VysyxSoCFull* top);
 bool is_ebreak = false;
 #ifdef CONFIG_WAVE
 static VerilatedFstC* tfp = new VerilatedFstC;
+static bool wave_start = false;
 #endif
 
 extern "C" void skip_ref(){
@@ -101,19 +102,33 @@ extern "C" void skip_ref(){
 extern "C" void ebreak(){
     is_ebreak = true;
 } 
+#ifdef CONFIG_WAVE
+void start_wave_dump()
+{
+    if(!wave_start){
+        Verilated::traceEverOn(true);
+        top->trace(tfp, 99);
+        tfp->open(DST_DIR "/wave.fst");
+        wave_start = true;
+        Log("Wave recording started, output to " DST_DIR "/wave.fst");
+    }
+}
+#endif
 
 void single_cycle(){
     nvboard_update();
     top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if((CPU_INFO(WBU).ws_pc == CONFIG_WAVE_START) && !wave_start) start_wave_dump();
+
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
     //assert(0);
     Verilated::timeInc(1);
     top->clock = 1; top->eval();
     //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
     Verilated::timeInc(1);
 }
@@ -140,7 +155,8 @@ static void show_pref(){
     Log("|LSU delay cycles              \t| %-12u\t|", CPU_INFO(LSU).delay_cnt);
     Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
     Log("+-------------------------------------------------+");
-    Log("|icache hit | miss (no sram)   \t| %-6u|%-6u\t|",  CPU_INFO(icache).hit_cnt, CPU_INFO(icache).miss_cnt);
+    Log("|icache hit  (no sram)         \t| %-12u\t|",  CPU_INFO(icache).hit_cnt);
+    Log("|icache miss (no sram)         \t| %-12u\t|",  CPU_INFO(icache).miss_cnt);
     Log("|the precentage of icache hit  \t| %-12.2f\t|", p_hit);
     Log("+-------------------------------------------------+");
     Log("|miss_penalty                  \t| %-12u\t|", CPU_INFO(icache).penalty_cnt);
@@ -191,12 +207,7 @@ int main(int argc, char **argv){
     nvboard_init();
     Verilated::commandArgs(argc, argv);
     //assert(0);
-#ifdef CONFIG_WAVE
-    Verilated::traceEverOn(true);
-    top->trace(tfp, 99);
-    tfp->open(DST_DIR "/wave.fst");
-    printf("Wave output to " DST_DIR "/wave.fst\n");
-#endif
+
     //reset1个周期
     reset(20);
     

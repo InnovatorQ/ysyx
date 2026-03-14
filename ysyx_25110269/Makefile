@@ -92,7 +92,7 @@ $(NEMU_SO):
 	$(MAKE) -C ../nemu 
 
 yosys: 
-	cd ~/ysyx/yosys-sta && $(MAKE) -j8 sta
+	cd ~/yosys-sta && $(MAKE) -j8 sta
 	 
 run: $(BIN)
 	@$^ --log=$(DST_DIR)/ysyxSoC-log.txt  $(if $(CONFIG_DIFFTEST),--diff=$(NEMU_SO),) --elf=$(ELF_TAR) $(OBJ_TAR) 

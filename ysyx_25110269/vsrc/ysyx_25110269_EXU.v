@@ -28,7 +28,6 @@ module ysyx_25110269_EXU(
     wire                load_sign;
     wire [3 : 0]        load;
     wire [3 : 0]        store;
-    wire                br_taken;
     wire [11 : 0]       alu_op;
     wire [31 : 0]       alu_src1;
     wire [31 : 0]       alu_src2;
@@ -64,6 +63,8 @@ module ysyx_25110269_EXU(
         end
     end
     assign es_allowin = (es_state == es_idle) || ((es_state == es_wait_ready) && ms_allowin);
+    assign es_to_ms_valid = (es_state == es_wait_ready);
+    
     always @(*)begin
         case(es_state)
             es_idle : begin
@@ -95,8 +96,8 @@ module ysyx_25110269_EXU(
         store,      //8 : 5
         load_sign,  //3
         res_from_csr,//2
-        rf_wen,     //1
-        br_taken    //0
+        rf_wen      //1
+        
     };
 
     assign {
@@ -113,8 +114,7 @@ module ysyx_25110269_EXU(
         store,
         load_sign,
         res_from_csr,
-        rf_wen,
-        br_taken
+        rf_wen
     } = ds_to_es_bus_r;
 
     ysyx_25110269_alu alu(
@@ -125,18 +125,7 @@ module ysyx_25110269_EXU(
         .alu_result (alu_result )
     );
 
-    // assign es_ready_go = 1'b1;
-    // assign es_allowin  = ~es_valid || done;
-    // assign es_to_ws_valid = es_valid && es_ready_go;
-
-    // always @(posedge clk) begin
-    //     if(reset) begin
-    //         es_valid <= 1'b0;
-    //     end else if(es_allowin) begin
-    //         es_valid <= ds_to_es_valid;
-    //     end
-    // end
-    assign es_to_ms_valid = (es_state == es_wait_ready) ? 1'b1 : 1'b0;
+    
     always @(posedge clock) begin
         if(ds_to_es_valid && es_allowin) begin
             ds_to_es_bus_r <= ds_to_es_bus;

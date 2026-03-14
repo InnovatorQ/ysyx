@@ -101,13 +101,14 @@ module ysyx_25110269(
     wire            ms_to_ws_valid;
     wire            ws_allowin;
 
-    wire [`FS_TO_DS_BUS_WD - 1 :  0]     fs_to_ds_bus;
-    wire [`DS_TO_ES_BUS_WD - 1 :  0]     ds_to_es_bus;
-    wire [`ES_TO_MS_BUS_WD - 1 :  0]     es_to_ms_bus;
-    wire [`MS_TO_WS_BUS_WD - 1 :  0]     ms_to_ws_bus;
-    wire [`ES_TO_DS_FORWARD_BUS-1:0]     es_to_ds_forward_bus;
-    wire [`MS_TO_DS_FORWARD_BUS-1:0]     ms_to_ds_forward_bus;
-    wire [`WS_TO_DS_FORWARD_BUS-1:0]     ws_to_ds_forward_bus;
+    wire [`FS_TO_DS_BUS_WD - 1 :  0]        fs_to_ds_bus;
+    wire [`DS_TO_ES_BUS_WD - 1 :  0]        ds_to_es_bus;
+    wire [`ES_TO_MS_BUS_WD - 1 :  0]        es_to_ms_bus;
+    wire [`MS_TO_WS_BUS_WD - 1 :  0]        ms_to_ws_bus;
+    wire [`BR_BUS - 1 : 0]                  br_bus;
+    wire [`ES_TO_DS_FORWARD_BUS-1:0]        es_to_ds_forward_bus;
+    wire [`MS_TO_DS_FORWARD_BUS-1:0]        ms_to_ds_forward_bus;
+    wire [`WS_TO_DS_FORWARD_BUS-1:0]        ws_to_ds_forward_bus;
 
     wire [31 : 0]   seq_pc;
     wire            br_stall;
@@ -115,7 +116,7 @@ module ysyx_25110269(
     wire [31 : 0]   br_target;
     wire            mret;
     wire            ecall;
-    
+    wire            fence;
     wire            rf_wen;
     wire            csr_wen;
     wire            mem_wen;
@@ -172,9 +173,8 @@ module ysyx_25110269(
         .fs_to_ds_valid (fs_to_ds_valid ),
         .fs_to_ds_bus   (fs_to_ds_bus   ),
 
-        .br_stall       (br_stall       ),
-        .br_taken       (br_taken       ),
-        .br_target      (br_target      ),
+        .br_bus         (br_bus         ),
+        .fence          (fence          ),
         .ecall          (ecall          ),
         .mret           (mret           ),
         .csr_mtvec      (csr_mtvec      ),
@@ -216,9 +216,8 @@ module ysyx_25110269(
         .csr_addr               (csr_addr               ),
         .csr_op                 (csr_op                 ),
 
-        .br_stall               (br_stall               ),
-        .br_taken               (br_taken               ),
-        .br_target              (br_target              ),
+        .br_bus                 (br_bus                 ),
+        .fence                  (fence                  ),
         .ecall                  (ecall                  ),
         .mret                   (mret                   ) 
     );
@@ -425,7 +424,7 @@ module ysyx_25110269(
         .csr_mepc   (csr_mepc   )
     );
 
-    ysyx_25110269_icache #(.NUM_SETS(16), .WAYS(1), .BLOCK_SIZE (4))icache
+    ysyx_25110269_icache #(.NUM_SETS(8), .WAYS(1), .BLOCK_SIZE (8))icache
     (
         .clock          (clock          ),
         .reset          (reset          ),

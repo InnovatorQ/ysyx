@@ -13,6 +13,7 @@ static uint64_t boot_time = 0;
 static bool done = false;
 static long cycle_count = 0;
 static long inst_count = 0;
+static bool trace_open = false;
 
 #ifdef CONFIG_MTRACE
 static void mtrace(word_t pc, word_t inst) {
@@ -109,6 +110,14 @@ void cpu_exec(int n) {
         pc = get_rf(32);
         inst = pmem_read(pc);
         //printf("pc: 0x%08x, npc: 0x%08x\n", pc, npc);
+        if(CONFIG_TRACE_START == pc && !trace_open) {
+          trace_open = true;
+#ifdef CONFIG_ITRACE
+          Log("trace recording started,at pc=0x%08x",pc);
+#endif
+        }
+        
+if(trace_open){
 #ifdef CONFIG_ITRACE
         char disasm_buf[128];  // 反汇编结果缓冲区
         // 调用Capstone反汇编器将机器码转换为可读指令
@@ -123,6 +132,7 @@ void cpu_exec(int n) {
           // 检测函数调用和返回（使用上一条指令）
         check_ftrace(pc, inst);
 #endif
+}
         inst_count++;
       }
 
