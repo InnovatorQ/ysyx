@@ -178,9 +178,9 @@ void ftrace_call(vaddr_t pc, vaddr_t target) {
   const char *func_name = find_symbol(target);  // 查找目标地址对应的函数名
   if (func_name) {
     // 输出缩进，表示调用层次
-    for (int i = 0; i < call_depth; i++) printf("  ");
-    // 输出函数调用信息
-    printf("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
+    // for (int i = 0; i < call_depth; i++) printf("  ");
+    // // 输出函数调用信息
+    // printf("call [" FMT_WORD " -> " FMT_WORD "] %s\n", pc, target, func_name);
     
     // 同时输出到日志文件
     log_write("FTRACE: ");
@@ -203,9 +203,9 @@ void ftrace_ret(vaddr_t pc) {
     const char *func_name = (call_depth < MAX_CALL_DEPTH) ? call_stack[call_depth] : "unknown";
     
     // 输出缩进，表示调用层次
-    for (int i = 0; i < call_depth; i++) printf("  ");
-    // 输出函数返回信息，包含函数名
-    printf("ret  [" FMT_WORD "] %s\n", pc, func_name);
+    // for (int i = 0; i < call_depth; i++) printf("  ");
+    // // 输出函数返回信息，包含函数名
+    // printf("ret  [" FMT_WORD "] %s\n", pc, func_name);
     
     // 同时输出到日志文件（如果启用了日志）
     log_write("FTRACE: ");

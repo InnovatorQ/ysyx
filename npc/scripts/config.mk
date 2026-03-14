@@ -7,8 +7,8 @@ $(warning $(COLOR_RED)To build the project, first run 'make menuconfig'.$(COLOR_
 endif
 
 Q            := @
-KCONFIG_PATH := $(NPC_HOME)/tools/kconfig
-Kconfig      := $(NPC_HOME)/Kconfig
+KCONFIG_PATH := $(ysyxSoC_HOME)/tools/kconfig
+Kconfig      := $(ysyxSoC_HOME)/Kconfig
 rm-distclean += include/generated include/config .config .config.old
 silent := -s
 

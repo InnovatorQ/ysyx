@@ -1,4 +1,5 @@
 #include "sdb.h"
+#include "common.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -91,9 +92,16 @@ static int cmd_info(char *args) {
     char *reg_num = strtok(NULL, " ");
     if(reg_num == NULL){
         //显示所有寄存器
+        #ifdef CONFIG_REG_16
+        for(int i = 0; i < 16; i++){
+            printf("r%d: 0x%08x\n", i, get_rf(i));
+        }
+        #endif
+        #ifdef CONFIG_REG_32
         for(int i = 0; i < 32; i++){
             printf("r%d: 0x%08x\n", i, get_rf(i));
         }
+        #endif
     }else{
       printf("x%s: 0x%08x\n", reg_num, get_rf(atoi(reg_num)));
     }
@@ -118,9 +126,9 @@ static int cmd_x(char *args) {
   int addr = strtoul(expr_str, NULL, 0);
 
   for(int i = 0; i < n; i++) {
-    word_t data = pmem_read(addr + i * 4);
-    printf("0x%08x: 0x%08x\n", addr + i * 4, data);
-  }
+      word_t data = pmem_read(addr + i * 4);
+      printf("0x%08x: 0x%08x\n", addr + i * 4, data);
+    }
   return 0;
 }
 

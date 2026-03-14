@@ -1,9 +1,8 @@
 #include"svdpi.h"
-#include"Vtop.h"
 #include"verilated.h"
 #include"verilated_fst_c.h"
 #include"monitor/sdb/sdb.h"
-#include"common.h"
+#include"memory/paddr.h"
 #ifdef CONFIG_DIFFTEST
 #include"difftest.h"
 #endif
@@ -13,42 +12,123 @@
 #include<stdbool.h>
 #include<assert.h>
 #include<sys/time.h>
+extern uint8_t mrom[CONFIG_MROM_SIZE];
+extern uint8_t flash[CONFIG_FLASH_SIZE];
+extern uint8_t sram[CONFIG_SRAM_SIZE];
 
 extern void init_monitor(int argc, char *argv[]);
 
-Vtop* top;
-#ifdef CONFIG_WAVE
-VerilatedFstC* tfp;
-#endif
-//宏
-#define MSIZE (128 * 1024 * 1024) //128MB
-#define RTC_ADDR 0xa0000048
-//全局
-bool is_ebreak = false;
-word_t pmem[MSIZE];
+extern "C" void flash_read(int32_t addr, int32_t *data) {
+    Assert(addr < CONFIG_FLASH_SIZE, "Access Fault !!! addr = " FMT_WORD "\n", addr);
+    int32_t align_addr = addr & ~0x3u; // 对地址进行4字节对齐
+    *data = (int32_t)(
+        (flash[align_addr])             |   // 字节0 -> 位0-7
+        (flash[align_addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (flash[align_addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (flash[align_addr + 3] << 24));     // 字节3 -> 位24-31
+    //printf("%08x\n", *data);
+}
+extern "C" void mrom_read(int32_t addr, int32_t *data) { 
+    //assert(0);
+    Assert(in_mrom(addr), "Access Fault !!! addr = " FMT_WORD "\n", addr);
+    word_t mrom_addr = (addr - CONFIG_MROM_BASE) & ~0x3u;
+    //printf("mrom:addr : 0x%08x, mem: 0x%08x\n", pmem_addr, pmem[pmem_addr]); 
+    *data = (int32_t)(
+        (mrom[mrom_addr])             |   // 字节0 -> 位0-7
+        (mrom[mrom_addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (mrom[mrom_addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (mrom[mrom_addr + 3] << 24));     // 字节3 -> 位24-31
+}
 
+// 总是读取地址为`raddr & ~0x3u`的4字节返回
+extern "C" word_t pmem_read(int raddr) {
+    // 将物理地址映射到pmem数组索引
+    word_t data;
+    if(in_flash(raddr)){
+        paddr_t addr = (raddr - CONFIG_FLASH_BASE) & ~0x3u;
+        data = (word_t)(
+        (flash[addr])             |   // 字节0 -> 位0-7
+        (flash[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (flash[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (flash[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
+    } else if(in_sram(raddr)){
+        paddr_t addr = ((raddr - CONFIG_SRAM_BASE) & ~0x3u) >> 2; 
+        return SRAM[addr];
+    } else if(in_mrom(raddr)){
+        paddr_t addr = (raddr - CONFIG_MROM_BASE) & ~0x3u;
+        data = (int32_t)(
+        (mrom[addr])             |   // 字节0 -> 位0-7
+        (mrom[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (mrom[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (mrom[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
+    } else if(in_psram(raddr)){
+        paddr_t addr = (raddr - CONFIG_PSRAM_BASE) & ~0x3u;
+        data = (int32_t)(
+        (PSRAM[addr])             |   // 字节0 -> 位0-7
+        (PSRAM[addr + 1] << 8)    |   // 字节1 -> 位8-15
+        (PSRAM[addr + 2] << 16)   |   // 字节2 -> 位16-23
+        (PSRAM[addr + 3] << 24));     // 字节3 -> 位24-31
+        return data;
+    } else if(in_sdram(raddr)){
+        paddr_t addr = (raddr - CONFIG_SDRAM_BASE) & ~0x3u;
+        paddr_t bank = (addr >> 10) & 0x3;      // 位[11:10]
+        paddr_t row = (addr >> 12) & 0x1fff;    // 位[24:12]  
+        paddr_t col = (addr >> 1) & 0x1ff;      // 位[9:1]
+        bool ce = (addr >> 25) & 0x1;           // [25]
+        if(ce) data = (int32_t) (SDRAM2[bank][row][col] | (SDRAM3[bank][row][col] << 16));
+        else data = (int32_t) (SDRAM0[bank][row][col] | (SDRAM1[bank][row][col] << 16));     
+        return data;
+    } 
+    Assert(raddr == (CONFIG_FLASH_BASE - 4), "Access Fault !!! raddr = " FMT_WORD "\n", raddr);
+    return 0;
+}
+
+// 共享变量
+VysyxSoCFull* top = new VysyxSoCFull;
+void nvboard_bind_all_pins(VysyxSoCFull* top);
+bool is_ebreak = false;
+#ifdef CONFIG_WAVE
+static VerilatedFstC* tfp = new VerilatedFstC;
+static bool wave_start = false;
+#endif
 
 extern "C" void skip_ref(){
 #ifdef CONFIG_DIFFTEST
     difftest_skip_ref();
 #endif
 }
-
-
 extern "C" void ebreak(){
     is_ebreak = true;
 } 
+#ifdef CONFIG_WAVE
+void start_wave_dump()
+{
+    if(!wave_start){
+        Verilated::traceEverOn(true);
+        top->trace(tfp, 99);
+        tfp->open(DST_DIR "/wave.fst");
+        wave_start = true;
+        Log("Wave recording started, output to " DST_DIR "/wave.fst");
+    }
+}
+#endif
 
 void single_cycle(){
-    top->clk = 0; top->eval();
+    nvboard_update();
+    top->clock = 0; top->eval();
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if((CPU_INFO(WBU).ws_pc == CONFIG_WAVE_START) && !wave_start) start_wave_dump();
+
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
+    //assert(0);
     Verilated::timeInc(1);
-    top->clk = 1; top->eval();
+    top->clock = 1; top->eval();
     //printf("PC: 0x%08x, INST: 0x%08x\n", top->pc, top->inst);
 #ifdef CONFIG_WAVE
-    tfp->dump(Verilated::time());
+    if(wave_start) tfp->dump(Verilated::time());
 #endif
     Verilated::timeInc(1);
 }
@@ -57,118 +137,65 @@ static void reset(int n){
     top->reset = 1;
     while(n-- > 0) single_cycle();
     top->reset = 0;
-    
 }
 
-// 总是往地址为`waddr & ~0x3u`的4字节按写掩码`wmask`写入`wdata`
-// `wmask`中每比特表示`wdata`中1个字节的掩码,
-// 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
-extern "C" void pmem_write(int waddr, int wdata, char wmask) {
-    static int last_waddr = -1;
-    static int last_wdata = -1;
-    static char last_wmask = -1;
-    if(waddr == last_waddr && wdata == last_wdata && wmask == last_wmask) {
-        return;
-    }
-    last_waddr = waddr;
-    last_wdata = wdata;
-    last_wmask = wmask;
-
-// #ifdef CONFIG_DEVICE
-//     if( waddr >= 0x10000000 && waddr < 0x10000fff) {
-//         putchar((char)(wdata & 0xff));
-//         fflush(stdout);  // 强制刷新
-    
-//         return;
-//     }
-// #endif
-
-    int addr = ((waddr - 0x80000000) & ~0x3u) >> 2;
-    //int addr = (waddr & ~0x3u) >> 2;
-    if (addr < 0 || addr >= MSIZE) return;
-    word_t *mem = &pmem[addr];
-    
-    for(int i = 0; i < 4; i++) {
-        if(wmask & (1 << i)) {
-            *mem = (*mem & ~(0xff << (i * 8)))
-            | (((wdata >> (i * 8)) & 0xff) << (i * 8));
-        }
-    }
-    // 记录内存写入日志
-#ifdef CONFIG_MTRACE
-    log_write("MTRACE: WRITE [0x%08x] = 0x%08x (mask=0x%02x) at pc=0x%08x\n", 
-              waddr, wdata, wmask & 0xff, top->pc);
-#endif
-}
-
-// 总是读取地址为`raddr & ~0x3u`的4字节返回
-extern "C" word_t pmem_read(int raddr) {
-    // 处理RTC设备 - 返回当前系统时间（不缓存）
-    //#ifdef CONFIG_DEVICE
-    // if(raddr >= RTC_ADDR && raddr < RTC_ADDR + 32) {
-    // #ifdef CONFIG_DIFFTEST
-    //     difftest_skip_ref();  // 跳过REF执行，因为外设行为不同
-    // #endif
-    //     // // 获取微秒级时间用于AM_TIMER_UPTIME
-    //     // uint64_t uptime_us = get_time();
-        
-    //     // // 获取实际时间用于AM_TIMER_RTC
-    //     // time_t now = time(NULL);
-    //     // struct tm *tm_info = localtime(&now);
-        
-    //     // switch(raddr - RTC_ADDR) {
-    //     //     case 0: return uptime_us & 0xFFFFFFFF;        // uptime低32位(微秒)
-    //     //     case 4: return (uptime_us >> 32) & 0xFFFFFFFF; // uptime高32位(微秒)
-    //     //     case 8: return tm_info->tm_sec;               // 秒
-    //     //     case 12: return tm_info->tm_min;              // 分
-    //     //     case 16: return tm_info->tm_hour;             // 时
-    //     //     case 20: return tm_info->tm_mday;             // 日
-    //     //     case 24: return tm_info->tm_mon + 1;          // 月
-    //     //     case 28: return tm_info->tm_year + 1900;      // 年
-    //     // }
-        
-    // }
-    // #endif
-    // 将物理地址映射到pmem数组索引
-    int addr = ((raddr - 0x80000000) & ~0x3u) >> 2;
-    //int addr = (raddr & ~0x3u) >> 2;
-    
-    if (addr >= 0 && addr < MSIZE) {
-
-        word_t data = pmem[addr];
-        // 避免重复记录相同地址的读取
-        static int last_raddr = -1;
-        static word_t last_data = 0;
-        static word_t last_pc = 0;
-        if (raddr != last_raddr || data != last_data || top->pc != last_pc) {
-#ifdef CONFIG_MTRACE
-            log_write("MTRACE: READ [0x%08x] = 0x%08x at pc=0x%08x\n", 
-                      raddr, data, top->pc);
-#endif
-            last_raddr = raddr;
-            last_data = data;
-            last_pc = top->pc;
-        }
-        return data;
-    }
-    return 0;
+static void show_pref(){
+    double p_hit = CPU_INFO(icache).hit_cnt * 1.0 / (CPU_INFO(icache).hit_cnt + CPU_INFO(icache).miss_cnt);
+    Log("+-------------------------------------------------+");
+    Log("|Total prefetched instructions \t| %-12u\t|", CPU_INFO(IFU).pref_cnt);
+    Log("|Total prefetched delay cycles \t| %-12lu\t|", CPU_INFO(IFU).delay_cnt);
+    Log("+-------------------------------------------------+");
+    Log("|decode calculate prefetch     \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_alu);
+    Log("|decode load/store prefetch    \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_ls);
+    Log("|decode branch prefetch        \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_br);
+    Log("|decode csr prefetch           \t| %-12u\t|", CPU_INFO(IDU).pref_cnt_csr);
+    Log("+-------------------------------------------------+");
+    Log("|LSU load prefetch             \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_l);
+    Log("|LSU store prefetch            \t| %-12u\t|", CPU_INFO(LSU).pref_cnt_s);
+    Log("|LSU delay cycles              \t| %-12u\t|", CPU_INFO(LSU).delay_cnt);
+    Log("|average delay cycles per access \t| %-12.2f\t|", CPU_INFO(LSU).delay_cnt * 1.0 / (CPU_INFO(LSU).pref_cnt_l + CPU_INFO(LSU).pref_cnt_s));
+    Log("+-------------------------------------------------+");
+    Log("|icache hit  (no sram)         \t| %-12u\t|",  CPU_INFO(icache).hit_cnt);
+    Log("|icache miss (no sram)         \t| %-12u\t|",  CPU_INFO(icache).miss_cnt);
+    Log("|the precentage of icache hit  \t| %-12.2f\t|", p_hit);
+    Log("+-------------------------------------------------+");
+    Log("|miss_penalty                  \t| %-12u\t|", CPU_INFO(icache).penalty_cnt);
+    Log("|Average Memory Access Time    \t| %-12.2f\t|", p_hit * CPU_INFO(icache).hit_cnt + (1 - p_hit) * CPU_INFO(icache).penalty_cnt);
+    Log("+-------------------------------------------------+");
 }
 
 word_t get_rf(int n){
-    if(n >= 0 && n < 32) return top->regs[n];
-    else if(n == 32) return top->pc;
-    else {
-        printf("Invalid register number: %d\n", n);
-        return 0;
+    word_t pc = CPU_INFO(WBU).ws_pc;
+    #ifdef CONFIG_REG_16
+    word_t regs[16];
+    for(int i = 0; i < 16 ; i++){
+        regs[i] = CPU_INFO(WBU__rf).regs[i];
     }
+    if(n >= 0 && n < 16) return regs[n];
+    #endif
+    #ifdef CONFIG_REG_32
+    word_t regs[32];
+    for(int i = 0; i < 32 ; i++){
+        regs[i] = CPU_INFO(WBU__rf).regs[i];
+    }
+    if(n >= 0 && n < 32) return regs[n];
+    #endif
+    else if(n == 32) return pc;
+    Assert(0, "Invalid register number: %d\n", n);
+    return 0;
 }
 
 word_t get_csr(int n){
+    word_t csr_mtvec, csr_mepc, csr_mstatus, csr_mcause;
+    csr_mtvec = CPU_INFO(csr).csr_mtvec;
+    csr_mepc = CPU_INFO(csr).csr_mepc;
+    csr_mstatus = CPU_INFO(csr).csr_mstatus;
+    csr_mcause = CPU_INFO(csr).csr_mcause;
     switch(n){
-        case 0x305: return top->csr_mtvec;
-        case 0x341: return top->csr_mepc;
-        case 0x300: return top->csr_mstatus;
-        case 0x342: return top->csr_mcause;
+        case 0x305: return csr_mtvec;
+        case 0x341: return csr_mepc;
+        case 0x300: return csr_mstatus;
+        case 0x342: return csr_mcause;
         default:
             printf("Invalid CSR number: 0x%03x\n", n);
             return 0;
@@ -176,22 +203,20 @@ word_t get_csr(int n){
 }
 
 int main(int argc, char **argv){
+    nvboard_bind_all_pins(top);
+    nvboard_init();
     Verilated::commandArgs(argc, argv);
-    top = new Vtop;
-#ifdef CONFIG_WAVE
-    Verilated::traceEverOn(true);
-    tfp = new VerilatedFstC;
-    top->trace(tfp, 99);
-    tfp->open(DST_DIR "/wave.fst");
-    printf("Wave output to " DST_DIR "/wave.fst\n");
-#endif
-    //reset10个周期
-    reset(1);
+    //assert(0);
 
+    //reset1个周期
+    reset(20);
+    
     init_monitor(argc, argv);
     
     // 进入sdb主循环
     sdb_mainloop();
+
+    show_pref();
 #ifdef CONFIG_WAVE
     tfp->close();
     delete tfp;

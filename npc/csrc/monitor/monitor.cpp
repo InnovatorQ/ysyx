@@ -7,7 +7,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
-
+// flash初始化
+uint8_t flash[CONFIG_FLASH_SIZE];
+uint8_t mrom[CONFIG_MROM_SIZE];
+uint8_t sram[CONFIG_SRAM_SIZE];
 void sdb_set_batch_mode();
 
 static char *log_file = NULL;
@@ -16,76 +19,51 @@ static char *img_file = NULL;
 static char *elf_file = NULL;
 //static int difftest_port = 1234;
 
+static void welcome(){
+  Log("Build time: %s, %s", __TIME__, __DATE__);
+  printf("Welcome to NPC!\n");
+  printf("For help, type \"help\"\n");
+}
+
+// static void flash_init(){
+//   char file1[] = "/home/qzx/ysyx/ysyx-workbench/am-kernels/tests/cpu-tests/tests/a.bin";
+
+//   FILE *fp = fopen(file1, "rb");
+//   Assert(fp, "Can not open '%s'", file1);
+
+//   fseek(fp, 0, SEEK_END);
+//   long size = ftell(fp);
+
+//   Log("The image is %s, size = %ld", file1, size);
+
+//   fseek(fp, 0, SEEK_SET);
+//   int ret = fread(flash, size, 1, fp);
+
+//   assert(ret == 1);
+
+//   fclose(fp);
+// }
+
 static long load_img() {
   if (img_file == NULL) {
-    printf("No image is given.\n");
-    return 0;
+    Log("No image is given. Use the default build-in image.");
+    return 4096; // built-in image size
   }
-  
-  FILE *fp = NULL;  // 在函数开始声明
-  long total_bytes = 0;  // 统一使用字节数
-  
-  char *ext = strrchr(img_file, '.');
-  if (ext != NULL && strcmp(ext, ".hex") == 0) {
-    // 以hex格式加载镜像
-    fp = fopen(img_file, "rb");
-    if (fp == NULL) {
-      printf("Cannot open image file: %s\n", img_file);
-      return 0;
-    }
-    
-    char line[512];
-    int total_words = 0;
-    
-    while (fgets(line, sizeof(line), fp)) {
-      // 跳过空行和注释
-      if (line[0] == '\n' || line[0] == '#') continue;
-      
-      // 跳过 v3.0 format header
-      if (strncmp(line, "v3.0", 4) == 0) continue;
-      
-      // 解析地址
-      uint32_t addr;
-      if (sscanf(line, "%x:", &addr) != 1) continue;
-      
-      // 找到冒号后的数据部分
-      char *data_start = strchr(line, ':') + 1;
-      if (!data_start) continue;
-      data_start++;
-      
-      // 使用strtok解析数据
-      char *token = strtok(data_start, " \t\n");
-      int word_offset = 0;
-      
-      while (token != NULL) {
-        uint32_t word;
-        if (sscanf(token, "%x", &word) == 1) {
-          uint32_t index = addr + word_offset;
-          if (index < MSIZE) {
-            pmem[index] = word;
-            total_words++;
-          }
-          word_offset++;
-        }
-        token = strtok(NULL, " \t\n");
-      }
-    }
-    total_bytes = total_words * 4;
-    printf("Loaded %d words from %s (hex format)\n", total_words, img_file);
-  } else {
-    // 以bin格式加载镜像
-    fp = fopen(img_file, "rb");
-    if (fp == NULL) {
-      printf("Cannot open image file: %s\n", img_file);
-      return 0;
-    }
-    
-    total_bytes = fread(pmem, 1, MSIZE, fp);
-    printf("Loaded %ld bytes from %s (bin format)\n", total_bytes, img_file);
-  }
-  
+
+  FILE *fp = fopen(img_file, "rb");
+  Assert(fp, "Can not open '%s'", img_file);
+
+  fseek(fp, 0, SEEK_END);
+  long size = ftell(fp);
+
+  Log("The image is %s, size = %ld", img_file, size);
+
+  fseek(fp, 0, SEEK_SET);
+  int ret = fread(flash, size, 1, fp);
+  assert(ret == 1);
+
   fclose(fp);
-  return total_bytes;
+  return size;
 }
 
 static int parse_args(int argc, char *argv[]) {
@@ -133,6 +111,7 @@ void init_monitor(int argc, char *argv[]) {
   // 初始化日志
   init_log(log_file);
   // 加载程序镜像
+  //flash_init();
   long img_size = load_img();
   // 初始化函数调用跟踪
 #ifdef CONFIG_FTRACE
@@ -146,4 +125,6 @@ void init_monitor(int argc, char *argv[]) {
   init_sdb();
   // 初始化反汇编器
   init_disasm();
+
+  welcome();
 }

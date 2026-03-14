@@ -13,3 +13,4 @@ Kconfig
 /tools
 /include/config
 /include/generated
+/tests
