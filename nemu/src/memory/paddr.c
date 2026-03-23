@@ -33,8 +33,10 @@ static uint8_t gpio[0xf] = {};
 static uint8_t uart[0x10] = {};
 static uint8_t clint[0x10000] = {};
 #endif
+#ifdef CONFIG_DIFF_DEVICE
 static uint8_t sram[0x2000] = {}; // 8KB
 static uint8_t sdram[0x20000000] = {};
+#endif
 //实现从虚拟地址到物理地址的转换
 uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 //实现从物理地址到虚拟地址的转换
@@ -91,7 +93,7 @@ static void clint_write(paddr_t addr, int len, word_t data) {
   host_write(clint + (addr - CLINT_LEFT), len, data);
 }
 #endif
-
+#ifdef CONFIG_DIFF_DEVICE
 static word_t sram_read(paddr_t addr, int len) {
   return host_read(sram + (addr - SRAM_LEFT), len);
 }
@@ -107,7 +109,7 @@ static word_t sdram_read(paddr_t addr, int len) {
 static void sdram_write(paddr_t addr, int len, word_t data) {
   host_write(sdram + (addr - SDRAM_LEFT), len, data);
 }
-
+#endif
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
@@ -197,6 +199,7 @@ word_t paddr_read(paddr_t addr, int len) {
     return ret;
   }
   #endif
+  #ifdef CONFIG_DIFF_DEVICE
   if (in_sram(addr)) {
     word_t ret = sram_read(addr, len);
     #ifdef CONFIG_MTRACE_COND
@@ -217,6 +220,7 @@ word_t paddr_read(paddr_t addr, int len) {
     #endif
     return ret;
   }
+  #endif
   IFDEF(CONFIG_DEVICE, 
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);
@@ -317,6 +321,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     return;
   }
   #endif
+  #ifdef CONFIG_DIFF_DEVICE
   if (in_sram(addr)) {
     sram_write(addr, len, data);
     #ifdef CONFIG_MTRACE
@@ -341,6 +346,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     #endif
     return;
   }
+  #endif
   IFDEF(CONFIG_DEVICE,
     difftest_skip_ref();
     extern IOMap* fetch_mmio_map(paddr_t addr);

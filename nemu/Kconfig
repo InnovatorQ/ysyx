@@ -253,6 +253,12 @@ config RT_CHECK
   default y
 endmenu
 
+menu "diff env"
 config YSYXSOC
   bool "sim as soc"
   default n
+config DIFF_DEVICE
+  bool "device of difftest"
+  default n
+endmenu
+
