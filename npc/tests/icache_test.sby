@@ -1,0 +1,18 @@
+[tasks]
+basic bmc
+basic: default
+
+[options]
+bmc:
+mode bmc
+depth 7
+
+[engines]
+smtbmc
+
+[script]
+read -formal icache_test.sv
+prep -top icache_test
+
+[files]
+icache_test.sv

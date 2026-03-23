@@ -24,10 +24,8 @@ module ysyx_25110269_IDU(
     //ds->fs
     output                                  ds_allowin,
 
-    output                                  br_stall,
-    output                                  br_taken,
-    output [31 : 0]                         br_target,
-
+    output  [`BR_BUS - 1 : 0]               br_bus,
+    output                                  fence,
     output                                  ecall,
     output                                  mret,
     //csr->ds                       
@@ -46,7 +44,7 @@ module ysyx_25110269_IDU(
     reg  [31 : 0]   pref_cnt_csr;
     reg  [`FS_TO_DS_BUS_WD - 1 : 0]   fs_to_ds_bus_r;
     wire [31 : 0]   ds_pc;
-
+    wire            valid;
     wire [6  : 0]   opcode;
     wire [2  : 0]   funct3;
     wire [6  : 0]   funct7;
@@ -55,6 +53,8 @@ module ysyx_25110269_IDU(
     wire [31 : 0]   src2;
     wire [31 : 0]   mem_addr;
     wire [31 : 0]   st_data;
+    wire [31 : 0]   br_target;
+    wire            br_taken;
     wire [11 : 0]   alu_op;
     wire [4  : 0]   rd;
     wire [3  : 0]   load;
@@ -87,7 +87,7 @@ module ysyx_25110269_IDU(
     wire            inst_s;
     wire            inst_b;
     wire            inst_j;
-
+    wire            inst_fence;
     wire            inst_add;
     wire            inst_addi;
     wire            inst_sub;
@@ -126,8 +126,7 @@ module ysyx_25110269_IDU(
     wire            inst_bltu;
     wire            inst_ebreak;
     wire            inst_csrrs;
-    wire            inst_csrrw;
-    wire            inst_fence;      
+    wire            inst_csrrw;     
     wire            inst_ecall;
     wire            inst_mret;
 
@@ -196,7 +195,7 @@ module ysyx_25110269_IDU(
             end
         end
     end
-
+    assign valid = ds_valid && !(rs1_forward_stall || rs2_forward_stall);
     assign ds_allowin = (ds_state == ds_idle) || ((ds_state == ds_wait_ready) && es_allowin)  && !(rs1_forward_stall || rs2_forward_stall) ; 
     assign ds_to_es_valid = (ds_state == ds_wait_ready) && !(rs1_forward_stall || rs2_forward_stall);
 
@@ -290,6 +289,7 @@ module ysyx_25110269_IDU(
     assign inst_j = inst_jal;
 
     assign cache_flush = inst_fence;
+    assign fence = inst_fence && valid;
     assign inst_need_rs1 = inst_r | inst_i | inst_s | inst_b | inst_iu | inst_csrrs | inst_csrrw;
     assign inst_need_rs2 = inst_r | inst_s | inst_b;
     assign rf_wen = inst_addi | inst_add | inst_jalr | inst_lw | inst_lh | inst_lbu | inst_lb | inst_lui | inst_auipc |
@@ -326,6 +326,10 @@ module ysyx_25110269_IDU(
     assign alu_op[9] = inst_slt;
     assign alu_op[10] = inst_sra;
     assign alu_op[11] = inst_srl;
+
+    assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
+                        inst_jal ? (ds_pc + imm_j) :
+                        inst_b ? (ds_pc + offset) : 32'b0; 
     //计算分支是否被采取
     assign br_taken = (inst_jalr | inst_jal  
                     |(inst_bne && (rs1_data != rs2_data))
@@ -333,9 +337,16 @@ module ysyx_25110269_IDU(
                     |(inst_beq && (rs1_data == rs2_data))
                     |(inst_bgeu && (rs1_data >= rs2_data))
                     |(inst_bltu && (rs1_data < rs2_data))
-                    |(inst_blt && rs1_lt_rd_sign)) && ds_valid;
-    assign ecall = inst_ecall && ds_valid;
-    assign mret = inst_mret && ds_valid;
+                    |(inst_blt && rs1_lt_rd_sign)) && valid;
+    
+    assign br_bus = {
+        br_taken,
+        br_target
+    };
+
+    assign ecall = inst_ecall && valid;
+    assign mret = inst_mret && valid;
+
     //获取操作对象
     assign rd = inst[11:7];
     assign rs1 = inst[19:15];
@@ -351,11 +362,7 @@ module ysyx_25110269_IDU(
                  inst_iu? imm_i : 
                  inst_u ? imm_u : 
                  inst_s ? imm_s : 
-                 inst_j ? imm_j : 32'b0;
-    assign br_stall = rs1_forward_stall || rs2_forward_stall;
-    assign br_target =  inst_jalr ? ((rs1_data + imm_i) & ~32'h1) :
-                        inst_jal ? (ds_pc + imm_j) :
-                        inst_b ? (ds_pc + offset) : 32'b0;  
+                 inst_j ? imm_j : 32'b0; 
 
     assign mem_addr = rs1_data + imm;
     
