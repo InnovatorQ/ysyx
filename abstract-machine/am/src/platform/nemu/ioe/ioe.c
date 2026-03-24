@@ -73,7 +73,7 @@ static const uint8_t keymap[] = {
 
   [AM_KEY_DELETE]=127,
 };
-static void __am_uart_rx(AM_UART_RX_T *rx) {
+void __am_uart_rx(AM_UART_RX_T *rx) {
    AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
 
   if (ev.keycode == AM_KEY_NONE) {
