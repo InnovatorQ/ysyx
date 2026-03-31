@@ -32,6 +32,10 @@ config DEVICE
   help
     Enable device simulation support.
 
+config TRACE_START
+  hex "strat to record trace"
+  default 0x30000000
+  
 endmenu
 
 menu "Build Options"
@@ -47,11 +51,16 @@ config OPT_O3
   bool "O3 - High optimization"
 endchoice
 
-config WAVE
-  bool "Enable waveform generation"
-  default y
-  help
-    Generate FST waveform files for debugging.
+choice
+  prompt "The numbers of registers"
+  default REG_16
+config REG_16
+  bool "16 registers"
+config REG_32
+  bool "32 registers"
+config REG_64
+  bool "64 registers"
+endchoice
 
 endmenu
 
@@ -104,5 +113,26 @@ menu "Memory Configure"
     hex "gpio size"
     default 0x00000010
 endmenu
-    
+
+menu "WAVE_SET"
+  config WAVE
+  bool "Enable waveform generation"
+  default y
+  help
+    Generate FST waveform files for debugging.
+
+  config WAVE_START
+    hex "start record wave"
+    default 0x30000000
+
+endmenu
+menu "Delayer"
+  config AXI_DELAY
+  bool "axi_delayer"
+  default n
+
+  config APB_DELAY
+  bool "apb_delayer"
+  default n
+endmenu
 
