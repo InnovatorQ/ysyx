@@ -1,0 +1,108 @@
+mainmenu "NPC Configuration Menu"
+
+menu "Testing and Debugging"
+
+config DIFFTEST
+  bool "Enable differential testing"
+  default y
+  help
+    Enable differential testing with NEMU reference.
+
+config ITRACE
+  bool "Enable instruction trace"
+  default y
+  help
+    Enable instruction execution tracing.
+
+config MTRACE
+  bool "Enable memory trace"
+  default n
+  help
+    Enable memory access tracing.
+
+config FTRACE
+  bool "Enable function trace"
+  default n
+  help
+    Enable function call tracing.
+
+config DEVICE
+  bool "Enable device support"
+  default n
+  help
+    Enable device simulation support.
+
+endmenu
+
+menu "Build Options"
+
+choice
+  prompt "Optimization Level"
+  default OPT_O2
+config OPT_O0
+  bool "O0 - No optimization"
+config OPT_O2
+  bool "O2 - Standard optimization"
+config OPT_O3
+  bool "O3 - High optimization"
+endchoice
+
+config WAVE
+  bool "Enable waveform generation"
+  default y
+  help
+    Generate FST waveform files for debugging.
+
+endmenu
+
+menu "Memory Configure"
+  config MROM_BASE
+    hex "mrom base address"
+    default 0x20000000
+
+  config MROM_SIZE
+    hex "mrom size"
+    default 0x1000
+
+  config SRAM_BASE
+    hex "sram base address"
+    default 0x0f000000
+
+  config SRAM_SIZE
+    hex "sram size"
+    default 0x2000
+
+  config FLASH_BASE
+    hex "flash base address"
+    default 0x30000000
+
+  config FLASH_SIZE
+    hex "flash size"
+    default 0x10000000
+
+  config PSRAM_BASE
+    hex "psram base address"
+    default 0x80000000
+
+  config PSRAM_SIZE
+    hex "psram size"
+    default 0x400000
+
+  config SDRAM_BASE
+    hex "sdram base address"
+    default 0xa0000000
+
+  config SDRAM_SIZE
+    hex "sdram size"
+    default 0x20000000
+
+  config GPIO_BASE
+    hex "gpio base address"
+    default 0x10002000
+
+  config GPIO_SIZE
+    hex "gpio size"
+    default 0x00000010
+endmenu
+    
+
