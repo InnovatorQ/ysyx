@@ -1,0 +1,8 @@
+# running in icache_test_basic/src/
+read -formal icache_test.sv
+prep -top icache_test
+
+hierarchy -smtcheck
+rename -witness
+write_jny -no-connections ../model/design.json
+write_rtlil ../model/design.il

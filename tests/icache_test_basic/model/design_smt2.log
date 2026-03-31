@@ -1,0 +1,137 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.62+108 (git sha1 5f8489d36, clang++ 18.1.8 -fPIC -O3)
+
+-- Executing script file `design_smt2.ys' --
+
+1. Executing RTLIL frontend.
+Input filename: design_prep.il
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `icache_test'. Setting top module to icache_test.
+
+2.1. Analyzing design hierarchy..
+Top module:  \icache_test
+Used module:     $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache
+
+2.2. Analyzing design hierarchy..
+Top module:  \icache_test
+Used module:     $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache
+Removed 0 unused modules.
+Module icache_test directly or indirectly contains formal properties -> setting "keep" attribute.
+
+3. Executing FORMALFF pass.
+
+4. Executing DFFUNMAP pass (unmap clock enable and synchronous reset from FFs).
+
+5. Printing statistics.
+
+=== $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      103 wires
+     1454 wire bits
+       39 public wires
+      614 public wire bits
+       17 ports
+      152 port bits
+       89 cells
+        1   $add
+        1   $and
+        3   $anyinit
+       13   $anyseq
+        1   $assume
+        7   $eq
+       12   $logic_and
+        6   $logic_not
+        3   $logic_or
+        3   $mem_v2
+       34   $mux
+        3   $not
+        2   $pmux
+
+=== icache_test ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       89 wires
+      716 wire bits
+       21 public wires
+      228 public wire bits
+        2 ports
+        2 port bits
+       80 cells
+        3   $add
+        6   $anyinit
+        3   $assert
+        1   $assume
+        9   $eq
+        9   $ff
+        4   $logic_and
+        2   $logic_not
+        1   $mem_v2
+       35   $mux
+        1   $ne
+        1   $not
+        3   $pmux
+        1   $reduce_or
+        1   $sub
+        1 submodules
+        1   $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+      169 icache_test
+       89 $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache
+
+        +----------Count including submodules.
+        | 
+      192 wires
+     2170 wire bits
+       60 public wires
+      842 public wire bits
+       19 ports
+      154 port bits
+        - memories
+        - memory bits
+        - processes
+      169 cells
+        4   $add
+        1   $and
+        9   $anyinit
+       13   $anyseq
+        3   $assert
+        2   $assume
+       16   $eq
+        9   $ff
+       16   $logic_and
+        8   $logic_not
+        3   $logic_or
+        4   $mem_v2
+       69   $mux
+        1   $ne
+        4   $not
+        5   $pmux
+        1   $reduce_or
+        1   $sub
+        1 submodules
+        1   $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache
+
+6. Executing SMT2 backend.
+
+6.1. Executing BMUXMAP pass.
+
+6.2. Executing DEMUXMAP pass.
+Creating SMT-LIBv2 representation of module $paramod$d206003fc5a50efa5a4bc65f43ba893031213540\ysyx_25110269_icache.
+Creating SMT-LIBv2 representation of module icache_test.
+
+End of script. Logfile hash: cd6b857a90, CPU: user 0.01s system 0.00s, MEM: 14.43 MB peak
+Yosys 0.62+108 (git sha1 5f8489d36, clang++ 18.1.8 -fPIC -O3)
+Time spent: 81% 2x write_smt2 (0 sec), 11% 2x read_rtlil (0 sec), ...
